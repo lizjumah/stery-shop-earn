@@ -141,7 +141,7 @@ const EarnHome = () => {
             const isBestSeller = (product.commission || 0) >= 100;
             const isHighDemand = (product.commission || 0) >= 60 && !isBestSeller;
             const productUrl = `${window.location.origin}/shop/product/${product.id}?ref=${userData.referralCode}`;
-            const shareMsg = `Check out ${product.name} on Stery! KSh ${product.price}. Order here: ${productUrl}`;
+            const shareMsg = `Great deal at Stery!\n${product.name} now KSh ${product.price}.\nOrder through my link and enjoy this offer.\n${productUrl}`;
 
             const shareProduct = (channel: string) => {
               const encoded = encodeURIComponent(shareMsg);
