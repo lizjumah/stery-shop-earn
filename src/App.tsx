@@ -53,6 +53,7 @@ const AppRoutes = () => {
       <Route path="/shop/orders" element={<ProtectedRoute requiredMode="shop"><OrderHistory /></ProtectedRoute>} />
       <Route path="/shop/offers" element={<ProtectedRoute requiredMode="shop"><Offers /></ProtectedRoute>} />
       <Route path="/shop/rewards" element={<ProtectedRoute requiredMode="shop"><Rewards /></ProtectedRoute>} />
+      <Route path="/shop/group-order" element={<GroupOrder />} />
 
       {/* Earn Routes */}
       <Route path="/earn" element={<ProtectedRoute requiredMode="earn"><EarnHome /></ProtectedRoute>} />
