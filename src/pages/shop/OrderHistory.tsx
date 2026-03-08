@@ -2,13 +2,16 @@ import { useApp } from "@/contexts/AppContext";
 import { orderHistory } from "@/data/user";
 import { BottomNav } from "@/components/BottomNav";
 import { ShopHeader } from "@/components/ShopHeader";
-import { Package, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Package, CheckCircle, Clock, XCircle, ChefHat, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const statusConfig = {
-  pending: { icon: Clock, color: "text-primary", bg: "bg-primary/10", label: "Pending" },
+const statusConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
+  received: { icon: Clock, color: "text-primary", bg: "bg-primary/10", label: "Received" },
+  preparing: { icon: ChefHat, color: "text-amber-600", bg: "bg-amber-500/10", label: "Preparing" },
+  out_for_delivery: { icon: Truck, color: "text-blue-600", bg: "bg-blue-500/10", label: "Out for Delivery" },
   delivered: { icon: CheckCircle, color: "text-accent", bg: "bg-accent/10", label: "Delivered" },
   cancelled: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", label: "Cancelled" },
+  pending: { icon: Clock, color: "text-primary", bg: "bg-primary/10", label: "Pending" },
 };
 
 const OrderHistory = () => {
@@ -19,14 +22,18 @@ const OrderHistory = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <ShopHeader title="Order History" showBack />
+      <ShopHeader title="My Orders" showBack />
 
       <div className="px-4 space-y-3">
         {allOrders.map((order) => {
-          const config = statusConfig[order.status];
+          const config = statusConfig[order.status] || statusConfig.received;
           const StatusIcon = config.icon;
           return (
-            <div key={order.id} className="bg-card rounded-xl p-4 card-elevated">
+            <button
+              key={order.id}
+              onClick={() => navigate(`/shop/order/${order.id}`)}
+              className="w-full text-left bg-card rounded-xl p-4 card-elevated"
+            >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Package className="w-4 h-4 text-muted-foreground" />
@@ -49,7 +56,8 @@ const OrderHistory = () => {
               {order.pointsEarned > 0 && (
                 <p className="text-xs text-primary mt-1">+{order.pointsEarned} points earned</p>
               )}
-            </div>
+              <p className="text-[10px] text-primary mt-1">Tap to track →</p>
+            </button>
           );
         })}
 
