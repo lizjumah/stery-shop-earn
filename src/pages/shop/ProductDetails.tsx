@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { products } from "@/data/products";
+import { FrequentlyBoughtTogether } from "@/components/shop/FrequentlyBoughtTogether";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
