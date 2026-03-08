@@ -63,14 +63,40 @@ const ShopHome = () => {
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="Search products at Stery"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-card rounded-full py-3 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
+          {/* Instant suggestions dropdown */}
+          {searchQuery.length >= 1 && (() => {
+            const suggestions = products.filter((p) =>
+              p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              p.category.toLowerCase().includes(searchQuery.toLowerCase())
+            ).slice(0, 6);
+            return suggestions.length > 0 ? (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-card rounded-xl border border-border shadow-lg overflow-hidden z-50">
+                {suggestions.map((p) => (
+                  <Link
+                    key={p.id}
+                    to={`/shop/product/${p.id}`}
+                    onClick={() => setSearchQuery("")}
+                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors"
+                  >
+                    <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.category}</p>
+                    </div>
+                    <span className="text-sm font-bold text-primary shrink-0">KSh {p.price}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : null;
+          })()}
         </div>
       </div>
 
