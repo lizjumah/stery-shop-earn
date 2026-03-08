@@ -3,7 +3,7 @@ import { useApp } from "@/contexts/AppContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import {
-  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList, Cake
+  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList, Cake, Shield
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -111,7 +111,12 @@ const Profile = () => {
         <div className="bg-card rounded-xl overflow-hidden card-elevated mb-4">
           <Link to="/shop/orders" className="w-full flex items-center gap-4 p-4 hover:bg-secondary transition-colors border-b border-border">
             <ClipboardList className="w-5 h-5 text-muted-foreground" />
-            <span className="flex-1 text-left font-medium text-foreground">Order History</span>
+            <span className="flex-1 text-left font-medium text-foreground">My Orders</span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </Link>
+          <Link to="/admin/orders" className="w-full flex items-center gap-4 p-4 hover:bg-secondary transition-colors border-b border-border">
+            <Shield className="w-5 h-5 text-muted-foreground" />
+            <span className="flex-1 text-left font-medium text-foreground">Admin — Manage Orders</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </Link>
           {mode === "shop" && (

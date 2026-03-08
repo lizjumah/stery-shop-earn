@@ -12,6 +12,8 @@ import ProductDetails from "./pages/shop/ProductDetails";
 import Cart from "./pages/shop/Cart";
 import Checkout from "./pages/shop/Checkout";
 import OrderHistory from "./pages/shop/OrderHistory";
+import OrderTracker from "./pages/shop/OrderTracker";
+import AdminOrders from "./pages/admin/AdminOrders";
 import Offers from "./pages/shop/Offers";
 import Rewards from "./pages/shop/Rewards";
 import GroupOrder from "./pages/shop/GroupOrder";
@@ -47,6 +49,7 @@ const AppRoutes = () => {
       <Route path="/shop/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
       <Route path="/shop/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/shop/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      <Route path="/shop/order/:id" element={<ProtectedRoute><OrderTracker /></ProtectedRoute>} />
       <Route path="/shop/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
       <Route path="/shop/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
       <Route path="/shop/group-order" element={<GroupOrder />} />
@@ -61,6 +64,7 @@ const AppRoutes = () => {
 
       {/* Account */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

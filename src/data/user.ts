@@ -39,7 +39,7 @@ export interface Order {
   orderNumber: string;
   items: { productId: string; name: string; quantity: number; price: number }[];
   total: number;
-  status: "pending" | "delivered" | "cancelled";
+  status: "received" | "preparing" | "out_for_delivery" | "delivered" | "cancelled";
   date: string;
   deliveryOption: "delivery" | "pickup";
   pointsEarned: number;
@@ -124,7 +124,7 @@ export const orderHistory: Order[] = [
       { productId: "3", name: "Sugar 1kg", quantity: 2, price: 180 },
     ],
     total: 710,
-    status: "pending",
+    status: "received",
     date: "2026-03-07",
     deliveryOption: "pickup",
     pointsEarned: 44,

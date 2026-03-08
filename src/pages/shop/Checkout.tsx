@@ -114,7 +114,7 @@ const Checkout = () => {
       orderNumber: num,
       items: orderItems,
       total,
-      status: "pending",
+      status: "received",
       date: new Date().toISOString().split("T")[0],
       deliveryOption,
       pointsEarned: earnedPoints,

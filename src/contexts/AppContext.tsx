@@ -15,12 +15,14 @@ interface OrderItem {
   price: number;
 }
 
+export type OrderStatus = "received" | "preparing" | "out_for_delivery" | "delivered" | "cancelled";
+
 interface PlacedOrder {
   id: string;
   orderNumber: string;
   items: OrderItem[];
   total: number;
-  status: "pending" | "delivered" | "cancelled";
+  status: OrderStatus;
   date: string;
   deliveryOption: "delivery" | "pickup";
   pointsEarned: number;
@@ -52,6 +54,7 @@ interface AppContextType {
   cartItemCount: number;
   orders: PlacedOrder[];
   placeOrder: (order: PlacedOrder) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   loyaltyPoints: number;
   pointsHistory: PointsHistoryEntry[];
   addPoints: (label: string, points: number, type?: "earned" | "bonus") => void;
@@ -167,6 +170,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
+    setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status } : o));
+  };
+
   const generateCartShareCode = (): string => encodeCart(cart);
 
   const loadSharedCart = (code: string): boolean => {
@@ -192,7 +199,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     <AppContext.Provider
       value={{
         mode, setMode, cart, setCart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartItemCount,
-        orders, placeOrder,
+        orders, placeOrder, updateOrderStatus,
         loyaltyPoints, pointsHistory, addPoints, redeemPoints,
         birthday, setBirthday, birthdayBonusClaimed,
         generateCartShareCode, loadSharedCart,
