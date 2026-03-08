@@ -1,7 +1,7 @@
 import { userData, earnings } from "@/data/user";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, TrendingUp, Wallet, Clock, CheckCircle, ShoppingBag } from "lucide-react";
+import { ArrowLeft, TrendingUp, Wallet, Clock, CheckCircle, ShoppingBag, Smartphone, BadgeDollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,9 +9,26 @@ import { toast } from "sonner";
 const EarningsDashboard = () => {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<"week" | "month" | "all">("all");
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [mpesaPhone, setMpesaPhone] = useState(userData.phone);
 
   const paidTotal = earnings.filter((e) => e.status === "paid").reduce((s, e) => s + e.amount, 0);
   const pendingTotal = earnings.filter((e) => e.status === "pending").reduce((s, e) => s + e.amount, 0);
+  const availableToWithdraw = userData.paidEarnings;
+  const canWithdraw = availableToWithdraw >= 500;
+
+  const handleWithdraw = () => {
+    if (!canWithdraw) {
+      toast.error("Minimum withdrawal is KSh 500.");
+      return;
+    }
+    if (!mpesaPhone.trim()) {
+      toast.error("Please enter your M-Pesa number.");
+      return;
+    }
+    toast.success(`Withdrawal of KSh ${availableToWithdraw.toLocaleString()} requested to ${mpesaPhone}. You'll receive it within 24 hours.`);
+    setShowWithdraw(false);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -24,20 +41,22 @@ const EarningsDashboard = () => {
           <h1 className="text-white text-xl font-bold">Earnings Dashboard</h1>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-xl p-4 card-elevated">
-            <div className="flex items-center gap-2 mb-2">
-              <Wallet className="w-5 h-5 text-accent" />
-              <span className="text-xs text-muted-foreground">Total Earned</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">KSh {userData.totalEarnings.toLocaleString()}</p>
+        {/* Main Stats */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white rounded-xl p-3 card-elevated text-center">
+            <Wallet className="w-4 h-4 text-accent mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground">KSh {userData.totalEarnings.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">Total Earned</p>
           </div>
-          <div className="bg-white rounded-xl p-4 card-elevated">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-5 h-5 text-primary" />
-              <span className="text-xs text-muted-foreground">Pending</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">KSh {userData.pendingEarnings.toLocaleString()}</p>
+          <div className="bg-white rounded-xl p-3 card-elevated text-center">
+            <Clock className="w-4 h-4 text-primary mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground">KSh {pendingTotal.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">Pending</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 card-elevated text-center">
+            <BadgeDollarSign className="w-4 h-4 text-accent mx-auto mb-1" />
+            <p className="text-lg font-bold text-accent">KSh {availableToWithdraw.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">Available</p>
           </div>
         </div>
 
@@ -54,6 +73,50 @@ const EarningsDashboard = () => {
       </div>
 
       <div className="px-4 mt-6">
+        {/* Withdraw Section */}
+        {!showWithdraw ? (
+          <Button
+            onClick={() => setShowWithdraw(true)}
+            disabled={!canWithdraw}
+            className="w-full h-12 mb-4 bg-accent hover:bg-accent/90 disabled:opacity-50"
+          >
+            <Smartphone className="w-4 h-4 mr-2" />
+            Withdraw to M-Pesa {canWithdraw ? `(KSh ${availableToWithdraw.toLocaleString()})` : "— Min KSh 500"}
+          </Button>
+        ) : (
+          <div className="bg-card rounded-xl p-4 card-elevated border border-accent/30 mb-4 space-y-3">
+            <h3 className="font-bold text-foreground flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-accent" /> Withdraw via M-Pesa
+            </h3>
+            <div>
+              <label className="text-xs text-muted-foreground">M-Pesa Phone Number</label>
+              <input
+                type="tel"
+                value={mpesaPhone}
+                onChange={(e) => setMpesaPhone(e.target.value)}
+                placeholder="+254 7XX XXX XXX"
+                className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+            <div className="bg-accent/10 rounded-lg p-3">
+              <p className="text-sm font-semibold text-foreground">Amount: <span className="text-accent">KSh {availableToWithdraw.toLocaleString()}</span></p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">You'll receive this within 24 hours via M-Pesa.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowWithdraw(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleWithdraw} className="flex-1 bg-accent hover:bg-accent/90">Confirm Withdrawal</Button>
+            </div>
+          </div>
+        )}
+
+        {!canWithdraw && (
+          <div className="bg-secondary rounded-xl p-3 mb-4">
+            <p className="text-xs text-muted-foreground text-center">
+              💡 You need KSh {(500 - availableToWithdraw).toLocaleString()} more to reach the minimum withdrawal of KSh 500.
+            </p>
+          </div>
+        )}
+
         {/* Period Tabs */}
         <div className="flex gap-2 mb-4">
           {(["week", "month", "all"] as const).map((p) => (
@@ -69,7 +132,7 @@ const EarningsDashboard = () => {
           ))}
         </div>
 
-        {/* Simple Earnings Chart (bars) */}
+        {/* Earnings Chart */}
         <div className="bg-card rounded-xl p-4 card-elevated mb-6">
           <h3 className="font-semibold text-foreground mb-3">Earnings Overview</h3>
           <div className="flex items-end gap-2 h-24">
@@ -87,7 +150,7 @@ const EarningsDashboard = () => {
           </div>
         </div>
 
-        {/* Recent Earnings */}
+        {/* Recent Sales */}
         <h2 className="text-lg font-bold text-foreground mb-4">Recent Sales Activity</h2>
         <div className="space-y-3">
           {earnings.map((earning) => (
@@ -103,27 +166,25 @@ const EarningsDashboard = () => {
               </div>
               <div className="text-right">
                 <p className="font-bold text-foreground">+KSh {earning.amount}</p>
-                <p className={`text-xs ${earning.status === "paid" ? "text-accent" : "text-primary"}`}>
-                  {earning.status === "paid" ? "Paid" : "Pending"}
-                </p>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  earning.status === "paid"
+                    ? "bg-accent/10 text-accent"
+                    : "bg-primary/10 text-primary"
+                }`}>
+                  {earning.status === "paid" ? "✓ Confirmed" : "⏳ Pending"}
+                </span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Withdraw */}
-        <Button
-          onClick={() => toast.success("Withdrawal request submitted!")}
-          className="w-full h-12 mt-6 bg-accent hover:bg-accent/90"
-        >
-          Request Withdrawal
-        </Button>
-
-        <div className="mt-4 bg-secondary rounded-xl p-4">
-          <h3 className="font-bold text-foreground mb-2">💰 Withdrawal Info</h3>
-          <p className="text-sm text-muted-foreground">
-            Earnings are paid out every Friday via M-Pesa. Minimum withdrawal: KSh 500
-          </p>
+        <div className="mt-6 bg-secondary rounded-xl p-4">
+          <h3 className="font-bold text-foreground mb-2">💰 How Commissions Work</h3>
+          <ul className="text-sm text-muted-foreground space-y-1.5">
+            <li>• <strong>Pending</strong> — Commission created when order is placed</li>
+            <li>• <strong>Confirmed</strong> — Commission confirmed when order is delivered</li>
+            <li>• Withdraw via M-Pesa once you reach KSh 500</li>
+          </ul>
         </div>
       </div>
 
