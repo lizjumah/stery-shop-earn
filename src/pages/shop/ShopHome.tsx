@@ -7,7 +7,6 @@ import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Search, Star, ChevronRight, ShoppingCart, ShoppingBag, Zap, Baby, Home as HomeIcon, Gem } from "lucide-react";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   Groceries: <ShoppingBag className="w-5 h-5" />,
@@ -20,7 +19,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 const ShopHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { cartItemCount } = useApp();
+  const { cartItemCount, loyaltyPoints } = useApp();
 
   const featuredProducts = products.filter((p) => !p.isOffer).slice(0, 4);
   const offerProducts = products.filter((p) => p.isOffer);
@@ -40,7 +39,7 @@ const ShopHome = () => {
           <div className="flex items-center gap-2">
             <Link to="/shop/rewards" className="bg-white/20 rounded-full px-3 py-2 flex items-center gap-1.5">
               <Star className="w-4 h-4 text-white fill-white" />
-              <span className="text-white font-semibold text-sm">{userData.loyaltyPoints}</span>
+              <span className="text-white font-semibold text-sm">{loyaltyPoints}</span>
             </Link>
             <Link to="/shop/cart" className="bg-white/20 rounded-full p-2 relative">
               <ShoppingCart className="w-5 h-5 text-white" />
@@ -118,10 +117,12 @@ const ShopHome = () => {
           <div className="bg-card rounded-xl p-4 card-elevated mb-6 border border-primary/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Loyalty Points</p>
-                <p className="text-2xl font-bold text-foreground">{userData.loyaltyPoints} pts</p>
+                <p className="text-sm text-muted-foreground">Your Stery Points</p>
+                <p className="text-2xl font-bold text-foreground">{loyaltyPoints} pts</p>
                 <p className="text-xs text-primary mt-0.5">
-                  {userData.nextRewardAt - userData.loyaltyPoints} more to unlock KSh 50 voucher
+                  {loyaltyPoints >= 50
+                    ? `✅ You can redeem up to KSh ${loyaltyPoints} at checkout`
+                    : `${50 - loyaltyPoints} more to start redeeming`}
                 </p>
               </div>
               <Link to="/shop/rewards">

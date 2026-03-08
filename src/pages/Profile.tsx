@@ -3,13 +3,13 @@ import { useApp } from "@/contexts/AppContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import {
-  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList
+  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList, Cake
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { mode, setMode } = useApp();
+  const { mode, setMode, loyaltyPoints, birthday, setBirthday } = useApp();
 
   const handleSwitchMode = () => {
     const newMode = mode === "shop" ? "earn" : "shop";
@@ -54,16 +54,16 @@ const Profile = () => {
           <div className="grid grid-cols-2 gap-3 mt-3">
             {mode === "shop" ? (
               <>
-                <div className="bg-primary/5 rounded-lg p-3 text-center">
+                <Link to="/shop/rewards" className="bg-primary/5 rounded-lg p-3 text-center">
                   <Star className="w-5 h-5 text-primary mx-auto mb-1" />
-                  <p className="text-lg font-bold text-foreground">{userData.loyaltyPoints}</p>
-                  <p className="text-xs text-muted-foreground">Points</p>
-                </div>
-                <div className="bg-primary/5 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold text-foreground">{loyaltyPoints}</p>
+                  <p className="text-xs text-muted-foreground">Stery Points</p>
+                </Link>
+                <Link to="/shop/rewards" className="bg-primary/5 rounded-lg p-3 text-center">
                   <span className="text-2xl">🎫</span>
-                  <p className="text-lg font-bold text-foreground">3</p>
-                  <p className="text-xs text-muted-foreground">Vouchers</p>
-                </div>
+                  <p className="text-lg font-bold text-foreground">KSh {loyaltyPoints}</p>
+                  <p className="text-xs text-muted-foreground">Reward Value</p>
+                </Link>
               </>
             ) : (
               <>
@@ -84,6 +84,23 @@ const Profile = () => {
       </div>
 
       <div className="px-4 mt-6">
+        {/* Birthday Field */}
+        {mode === "shop" && (
+          <div className="bg-card rounded-xl p-4 card-elevated mb-4 border border-primary/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Cake className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-foreground text-sm">Birthday Reward</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">Set your birthday to earn 50 bonus points! 🎂</p>
+            <input
+              type="date"
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
+              className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        )}
+
         {/* Switch Mode */}
         <Button onClick={handleSwitchMode} variant="outline" className="w-full h-14 mb-4 justify-between">
           <span className="font-medium">Switch to {mode === "shop" ? "Earn" : "Shop"} Mode</span>
@@ -97,6 +114,13 @@ const Profile = () => {
             <span className="flex-1 text-left font-medium text-foreground">Order History</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </Link>
+          {mode === "shop" && (
+            <Link to="/shop/rewards" className="w-full flex items-center gap-4 p-4 hover:bg-secondary transition-colors border-b border-border">
+              <Star className="w-5 h-5 text-muted-foreground" />
+              <span className="flex-1 text-left font-medium text-foreground">Rewards Wallet</span>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </Link>
+          )}
           {[
             { icon: MapPin, label: "Delivery Addresses" },
             { icon: Settings, label: "Settings" },

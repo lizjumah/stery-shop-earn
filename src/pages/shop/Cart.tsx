@@ -2,7 +2,7 @@ import { useApp } from "@/contexts/AppContext";
 import { products } from "@/data/products";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ShoppingBag, Truck, Store } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, Truck, Store, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -13,6 +13,12 @@ const DELIVERY_AREAS = [
   { name: "Chwele", fee: 200 },
 ];
 const FREE_DELIVERY_THRESHOLD = 3000;
+
+const BASKET_MILESTONES = [
+  { threshold: 1000, bonusPoints: 10, label: "10 bonus points" },
+  { threshold: 2000, bonusPoints: 30, label: "30 bonus points" },
+  { threshold: 3000, bonusPoints: 0, label: "FREE delivery" },
+];
 
 const Cart = () => {
   const { cart, updateCartQuantity, removeFromCart } = useApp();
@@ -32,6 +38,10 @@ const Cart = () => {
   const deliveryFee = freeDelivery ? 0 : rawDeliveryFee;
   const total = subtotal + deliveryFee;
   const totalPoints = cartProducts.reduce((sum, item) => sum + (item.product!.loyaltyPoints * item.quantity), 0);
+
+  // Next basket milestone
+  const nextMilestone = BASKET_MILESTONES.find((m) => subtotal < m.threshold);
+  const currentUnlocked = BASKET_MILESTONES.filter((m) => subtotal >= m.threshold);
 
   if (cart.length === 0) {
     return (
@@ -58,27 +68,17 @@ const Cart = () => {
         <div className="space-y-3 mb-6">
           {cartProducts.map(({ productId, quantity, product }) => (
             <div key={productId} className="bg-card rounded-xl p-3 flex gap-3 card-elevated">
-              <img
-                src={product!.image}
-                alt={product!.name}
-                className="w-20 h-20 rounded-lg object-cover"
-              />
+              <img src={product!.image} alt={product!.name} className="w-20 h-20 rounded-lg object-cover" />
               <div className="flex-1">
                 <h3 className="font-semibold text-sm text-foreground">{product!.name}</h3>
                 <p className="text-primary font-bold mt-1">KSh {product!.price}</p>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => updateCartQuantity(productId, quantity - 1)}
-                      className="w-7 h-7 rounded-full border border-border flex items-center justify-center"
-                    >
+                    <button onClick={() => updateCartQuantity(productId, quantity - 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center">
                       <Minus className="w-3 h-3" />
                     </button>
                     <span className="font-bold text-sm w-6 text-center">{quantity}</span>
-                    <button
-                      onClick={() => updateCartQuantity(productId, quantity + 1)}
-                      className="w-7 h-7 rounded-full border border-border flex items-center justify-center"
-                    >
+                    <button onClick={() => updateCartQuantity(productId, quantity + 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center">
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
@@ -92,14 +92,42 @@ const Cart = () => {
           ))}
         </div>
 
+        {/* Basket Unlock Bonus */}
+        <div className="bg-card rounded-xl p-4 card-elevated mb-4 border border-primary/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Star className="w-5 h-5 text-primary fill-primary" />
+            <h2 className="font-semibold text-foreground text-sm">Basket Unlock Bonuses</h2>
+          </div>
+          <div className="space-y-2">
+            {BASKET_MILESTONES.map((m) => {
+              const unlocked = subtotal >= m.threshold;
+              return (
+                <div key={m.threshold} className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${unlocked ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    {unlocked ? "✓" : ""}
+                  </div>
+                  <span className={`text-sm ${unlocked ? "text-accent font-medium line-through" : "text-foreground"}`}>
+                    Spend KSh {m.threshold.toLocaleString()} → {m.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {nextMilestone && (
+            <div className="mt-3 bg-primary/5 rounded-lg p-2.5">
+              <p className="text-sm text-primary font-medium">
+                🎯 Add KSh {(nextMilestone.threshold - subtotal).toLocaleString()} more to earn {nextMilestone.label}!
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Delivery Option */}
         <h2 className="font-semibold text-foreground mb-3">Delivery Option</h2>
         <div className="grid grid-cols-2 gap-3 mb-4">
           <button
             onClick={() => setDeliveryOption("pickup")}
-            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${
-              deliveryOption === "pickup" ? "border-primary bg-primary/5" : "border-border"
-            }`}
+            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${deliveryOption === "pickup" ? "border-primary bg-primary/5" : "border-border"}`}
           >
             <Store className={`w-5 h-5 mb-1 ${deliveryOption === "pickup" ? "text-primary" : "text-muted-foreground"}`} />
             <span className={`text-sm font-medium ${deliveryOption === "pickup" ? "text-primary" : "text-foreground"}`}>Pickup</span>
@@ -107,9 +135,7 @@ const Cart = () => {
           </button>
           <button
             onClick={() => setDeliveryOption("delivery")}
-            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${
-              deliveryOption === "delivery" ? "border-primary bg-primary/5" : "border-border"
-            }`}
+            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${deliveryOption === "delivery" ? "border-primary bg-primary/5" : "border-border"}`}
           >
             <Truck className={`w-5 h-5 mb-1 ${deliveryOption === "delivery" ? "text-primary" : "text-muted-foreground"}`} />
             <span className={`text-sm font-medium ${deliveryOption === "delivery" ? "text-primary" : "text-foreground"}`}>Delivery</span>
@@ -126,9 +152,7 @@ const Cart = () => {
                   <button
                     key={area.name}
                     onClick={() => setDeliveryArea(area.name)}
-                    className={`p-2.5 rounded-lg border-2 text-left transition-colors ${
-                      deliveryArea === area.name ? "border-primary bg-primary/5" : "border-border"
-                    }`}
+                    className={`p-2.5 rounded-lg border-2 text-left transition-colors ${deliveryArea === area.name ? "border-primary bg-primary/5" : "border-border"}`}
                   >
                     <p className={`text-sm font-medium ${deliveryArea === area.name ? "text-primary" : "text-foreground"}`}>{area.name}</p>
                     <p className="text-xs text-muted-foreground">
@@ -150,7 +174,7 @@ const Cart = () => {
 
         {/* Points */}
         <div className="bg-primary/10 rounded-lg p-3 mb-4">
-          <p className="text-primary text-sm font-semibold">🎁 You'll earn {totalPoints} loyalty points!</p>
+          <p className="text-primary text-sm font-semibold">🎁 You'll earn {Math.floor(subtotal / 100)} loyalty points from this order!</p>
         </div>
       </div>
 
