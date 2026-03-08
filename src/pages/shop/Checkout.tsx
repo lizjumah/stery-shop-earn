@@ -3,7 +3,7 @@ import { useApp } from "@/contexts/AppContext";
 import { products } from "@/data/products";
 import { userData } from "@/data/user";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, MessageCircle } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -22,12 +22,9 @@ const Checkout = () => {
   const deliveryOption = (searchParams.get("delivery") as "delivery" | "pickup") || "delivery";
   const deliveryArea = searchParams.get("area") || "Bungoma Town";
 
-  const [name, setName] = useState(userData.name);
   const [phone, setPhone] = useState(userData.phone);
-  const [location, setLocation] = useState(userData.address);
-  const [notes, setNotes] = useState("");
+  const [location, setLocation] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "cash">("mpesa");
-  const [mpesaPhone, setMpesaPhone] = useState(userData.phone);
   const [mpesaCode, setMpesaCode] = useState("");
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -48,7 +45,6 @@ const Checkout = () => {
   const deliveryFee = freeDelivery ? 0 : rawDeliveryFee;
   const preDiscountTotal = subtotal + deliveryFee;
 
-  // Points discount: 1 point = KSh 1, min 50 to redeem, max = total or available points
   const canRedeem = loyaltyPoints >= 50;
   const maxRedeemable = Math.min(loyaltyPoints, preDiscountTotal);
   const pointsDiscount = applyPoints ? Math.min(pointsToApply, maxRedeemable) : 0;
@@ -80,11 +76,25 @@ const Checkout = () => {
     setPaymentSubmitted(true);
   };
 
+  const handleSendLocation = () => {
+    const msg = encodeURIComponent("Hi Stery, this is my delivery location.");
+    window.open(`https://wa.me/254794560657?text=${msg}`, "_blank");
+  };
+
   const handlePlaceOrder = () => {
+    if (!phone.trim()) {
+      toast.error("Please enter your phone number");
+      return;
+    }
+    if (deliveryOption === "delivery" && !location.trim()) {
+      toast.error("Please enter your delivery location");
+      return;
+    }
     if (paymentMethod === "mpesa" && !paymentSubmitted) {
       toast.error("Please complete M-Pesa payment first");
       return;
     }
+
     const num = `STR-${String(Date.now()).slice(-4)}`;
     setOrderNumber(num);
 
@@ -95,7 +105,6 @@ const Checkout = () => {
       price: item.product!.price,
     }));
 
-    // Redeem points if applied
     if (pointsDiscount > 0) {
       redeemPoints(pointsDiscount, `Redeemed on Order ${num}`);
     }
@@ -109,10 +118,9 @@ const Checkout = () => {
       date: new Date().toISOString().split("T")[0],
       deliveryOption,
       pointsEarned: earnedPoints,
-      customerName: name,
+      customerName: userData.name,
       phone,
       location,
-      notes,
       paymentMethod,
       pointsRedeemed: pointsDiscount,
     });
@@ -126,7 +134,6 @@ const Checkout = () => {
     const whatsappMessage = [
       `🛒 *New Order: ${num}*`,
       ``,
-      `👤 *Customer:* ${name}`,
       `📞 *Phone:* ${phone}`,
       ``,
       `📦 *Items Ordered:*`,
@@ -136,7 +143,6 @@ const Checkout = () => {
       `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
       pointsInfo,
       deliveryInfo,
-      notes ? `📝 *Notes:* ${notes}` : "",
     ].filter(Boolean).join("\n");
 
     const whatsappUrl = `https://wa.me/254794560657?text=${encodeURIComponent(whatsappMessage)}`;
@@ -153,7 +159,9 @@ const Checkout = () => {
           <CheckCircle className="w-16 h-16 text-accent" />
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">Order Received!</h1>
-        <p className="text-muted-foreground text-center mb-2">Your order <span className="font-bold text-foreground">{orderNumber}</span> has been placed.</p>
+        <p className="text-muted-foreground text-center mb-2">
+          Your order <span className="font-bold text-foreground">{orderNumber}</span> has been placed.
+        </p>
         {paymentMethod === "mpesa" ? (
           <p className="text-sm text-primary font-medium text-center mb-2">Payment submitted. We will confirm and dispatch.</p>
         ) : (
@@ -185,170 +193,7 @@ const Checkout = () => {
       </div>
 
       <div className="px-4 space-y-4">
-        {/* Points Balance Banner */}
-        <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-primary fill-primary" />
-              <span className="text-sm font-medium text-foreground">Your Stery Points: {loyaltyPoints}</span>
-            </div>
-          </div>
-          {canRedeem ? (
-            <div className="mt-3">
-              <p className="text-xs text-muted-foreground mb-2">
-                You have {loyaltyPoints} points available. Apply points to reduce your total?
-              </p>
-              <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  variant={applyPoints ? "default" : "outline"}
-                  onClick={handleTogglePoints}
-                  className={applyPoints ? "bg-primary hover:bg-primary/90" : ""}
-                >
-                  {applyPoints ? `✅ ${pointsDiscount} pts applied (-KSh ${pointsDiscount})` : "Apply Points"}
-                </Button>
-                {applyPoints && (
-                  <input
-                    type="number"
-                    min={50}
-                    max={maxRedeemable}
-                    value={pointsToApply}
-                    onChange={(e) => setPointsToApply(Math.max(50, Math.min(maxRedeemable, Number(e.target.value))))}
-                    className="w-20 bg-secondary rounded-lg py-1.5 px-2 text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1">Earn {50 - loyaltyPoints} more points to start redeeming!</p>
-          )}
-        </div>
-
-        {/* Customer Info */}
-        <div className="bg-card rounded-xl p-4 card-elevated space-y-3">
-          <h2 className="font-semibold text-foreground">Your Details</h2>
-          <div>
-            <label className="text-sm text-muted-foreground">Full Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary" />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />Phone Number</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary" />
-          </div>
-          {deliveryOption === "delivery" && (
-            <>
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Delivery Area</p>
-                <p className="font-semibold text-foreground">{deliveryArea}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {freeDelivery ? (
-                    <span className="text-accent font-medium">🎉 Free delivery (order above KSh {FREE_DELIVERY_THRESHOLD.toLocaleString()})</span>
-                  ) : (
-                    `Delivery fee: KSh ${deliveryFee}`
-                  )}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />Delivery Location</label>
-                <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Delivery Notes (optional)</label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="e.g. Near the church..." className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary resize-none placeholder:text-muted-foreground" />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Payment Method */}
-        <div className="bg-card rounded-xl p-4 card-elevated">
-          <h2 className="font-semibold text-foreground mb-3">Payment Method</h2>
-          <div className="space-y-2">
-            <button
-              onClick={() => { setPaymentMethod("mpesa"); setPaymentSubmitted(false); }}
-              className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "mpesa" ? "border-primary bg-primary/5" : "border-border"}`}
-            >
-              <span className="text-xl">📱</span>
-              <div>
-                <p className={`font-medium ${paymentMethod === "mpesa" ? "text-primary" : "text-foreground"}`}>M-Pesa Paybill</p>
-                <p className="text-xs text-muted-foreground">Pay via M-Pesa Paybill</p>
-              </div>
-            </button>
-
-            {paymentMethod === "mpesa" && (
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-4 mt-2">
-                <h3 className="font-semibold text-foreground text-center">M-Pesa Payment Details</h3>
-                <div className="bg-card rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Paybill Number</p>
-                      <p className="text-lg font-bold text-foreground">4076859</p>
-                    </div>
-                    <button onClick={() => copyToClipboard("4076859", "paybill")} className="bg-secondary rounded-lg p-2">
-                      {copiedField === "paybill" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
-                    </button>
-                  </div>
-                  <div className="border-t border-border pt-2 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Account Number</p>
-                      <p className="text-lg font-bold text-foreground">Stery</p>
-                    </div>
-                    <button onClick={() => copyToClipboard("Stery", "account")} className="bg-secondary rounded-lg p-2">
-                      {copiedField === "account" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
-                    </button>
-                  </div>
-                  <div className="border-t border-border pt-2">
-                    <p className="text-xs text-muted-foreground">Amount</p>
-                    <p className="text-lg font-bold text-primary">KSh {total}</p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground text-center bg-secondary/50 rounded-lg p-2">
-                  ⚠️ Please make payment before dispatch using the Paybill details above.
-                </p>
-                {!paymentSubmitted ? (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm text-muted-foreground">Your M-Pesa Phone Number</label>
-                      <input value={mpesaPhone} onChange={(e) => setMpesaPhone(e.target.value)} placeholder="e.g. 0712345678" className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary" />
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground">M-Pesa Confirmation Code</label>
-                      <input value={mpesaCode} onChange={(e) => setMpesaCode(e.target.value.toUpperCase())} placeholder="e.g. SLK4H7TXYZ" className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary font-mono tracking-wider" />
-                    </div>
-                    <Button onClick={handleIHavePaid} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
-                      ✅ I Have Paid
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 text-center">
-                    <CheckCircle className="w-6 h-6 text-accent mx-auto mb-1" />
-                    <p className="text-sm font-medium text-foreground">Payment submitted.</p>
-                    <p className="text-xs text-muted-foreground">We will confirm your payment and dispatch your order.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <button
-              onClick={() => setPaymentMethod("cash")}
-              className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border"}`}
-            >
-              <span className="text-xl">💵</span>
-              <div>
-                <p className={`font-medium ${paymentMethod === "cash" ? "text-primary" : "text-foreground"}`}>Cash on Delivery</p>
-                <p className="text-xs text-muted-foreground">Pay when your order is delivered</p>
-              </div>
-            </button>
-
-            {paymentMethod === "cash" && (
-              <div className="bg-secondary/50 rounded-xl p-3 mt-1">
-                <p className="text-sm text-muted-foreground text-center">💵 Pay when your order is delivered.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Order Summary */}
+        {/* Order Summary — shown first for clarity */}
         <div className="bg-card rounded-xl p-4 card-elevated">
           <h2 className="font-semibold text-foreground mb-3">Order Summary</h2>
           {cartProducts.map(({ productId, quantity, product }) => (
@@ -389,6 +234,184 @@ const Checkout = () => {
           </div>
         </div>
 
+        {/* Points Redemption */}
+        <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
+          <div className="flex items-center gap-2">
+            <Star className="w-5 h-5 text-primary fill-primary" />
+            <span className="text-sm font-medium text-foreground">Your Stery Points: {loyaltyPoints}</span>
+          </div>
+          {canRedeem ? (
+            <div className="mt-3">
+              <p className="text-xs text-muted-foreground mb-2">
+                Apply points to reduce your total?
+              </p>
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  variant={applyPoints ? "default" : "outline"}
+                  onClick={handleTogglePoints}
+                  className={applyPoints ? "bg-primary hover:bg-primary/90" : ""}
+                >
+                  {applyPoints ? `✅ -KSh ${pointsDiscount}` : "Apply Points"}
+                </Button>
+                {applyPoints && (
+                  <input
+                    type="number"
+                    min={50}
+                    max={maxRedeemable}
+                    value={pointsToApply}
+                    onChange={(e) => setPointsToApply(Math.max(50, Math.min(maxRedeemable, Number(e.target.value))))}
+                    className="w-20 bg-secondary rounded-lg py-1.5 px-2 text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">{50 - loyaltyPoints} more points to start redeeming</p>
+          )}
+        </div>
+
+        {/* Phone Number */}
+        <div className="bg-card rounded-xl p-4 card-elevated space-y-3">
+          <h2 className="font-semibold text-foreground">Your Details</h2>
+          <div>
+            <label className="text-sm text-muted-foreground flex items-center gap-1">
+              <Phone className="w-3 h-3" /> Phone Number
+            </label>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              type="tel"
+              placeholder="e.g. 0712 345 678"
+              className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+            />
+          </div>
+
+          {/* Delivery Location */}
+          {deliveryOption === "delivery" && (
+            <>
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Delivery Area</p>
+                    <p className="font-semibold text-foreground">{deliveryArea}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">
+                    {freeDelivery ? (
+                      <span className="text-accent">🎉 Free</span>
+                    ) : (
+                      `KSh ${deliveryFee}`
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MapPin className="w-3 h-3" /> Delivery Location
+                </label>
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g. Near Equity Bank, Kanduyi"
+                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+                />
+              </div>
+
+              {/* Send Location on WhatsApp */}
+              <button
+                onClick={handleSendLocation}
+                className="w-full flex items-center justify-center gap-2 bg-accent/10 border border-accent/30 rounded-xl py-3 transition-colors hover:bg-accent/20"
+              >
+                <MessageCircle className="w-5 h-5 text-accent" />
+                <span className="font-semibold text-accent text-sm">Send Location on WhatsApp</span>
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Payment Method */}
+        <div className="bg-card rounded-xl p-4 card-elevated">
+          <h2 className="font-semibold text-foreground mb-3">Payment Method</h2>
+          <div className="space-y-2">
+            <button
+              onClick={() => { setPaymentMethod("mpesa"); setPaymentSubmitted(false); }}
+              className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "mpesa" ? "border-primary bg-primary/5" : "border-border"}`}
+            >
+              <span className="text-xl">📱</span>
+              <div>
+                <p className={`font-medium ${paymentMethod === "mpesa" ? "text-primary" : "text-foreground"}`}>M-Pesa Paybill</p>
+                <p className="text-xs text-muted-foreground">Pay via M-Pesa Paybill</p>
+              </div>
+            </button>
+
+            {paymentMethod === "mpesa" && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-4 mt-2">
+                <div className="bg-card rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Paybill Number</p>
+                      <p className="text-lg font-bold text-foreground">4076859</p>
+                    </div>
+                    <button onClick={() => copyToClipboard("4076859", "paybill")} className="bg-secondary rounded-lg p-2">
+                      {copiedField === "paybill" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+                  </div>
+                  <div className="border-t border-border pt-2 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Account Number</p>
+                      <p className="text-lg font-bold text-foreground">Stery</p>
+                    </div>
+                    <button onClick={() => copyToClipboard("Stery", "account")} className="bg-secondary rounded-lg p-2">
+                      {copiedField === "account" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+                  </div>
+                  <div className="border-t border-border pt-2">
+                    <p className="text-xs text-muted-foreground">Amount</p>
+                    <p className="text-lg font-bold text-primary">KSh {total}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground text-center bg-secondary/50 rounded-lg p-2">
+                  ⚠️ Pay using the Paybill details above before placing your order.
+                </p>
+                {!paymentSubmitted ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-muted-foreground">M-Pesa Confirmation Code</label>
+                      <input
+                        value={mpesaCode}
+                        onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+                        placeholder="e.g. SLK4H7TXYZ"
+                        className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary font-mono tracking-wider placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <Button onClick={handleIHavePaid} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
+                      ✅ I Have Paid
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 text-center">
+                    <CheckCircle className="w-6 h-6 text-accent mx-auto mb-1" />
+                    <p className="text-sm font-medium text-foreground">Payment submitted ✅</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => setPaymentMethod("cash")}
+              className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border"}`}
+            >
+              <span className="text-xl">💵</span>
+              <div>
+                <p className={`font-medium ${paymentMethod === "cash" ? "text-primary" : "text-foreground"}`}>Cash on Delivery</p>
+                <p className="text-xs text-muted-foreground">Pay when your order arrives</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Place Order Button */}
         <Button
           onClick={handlePlaceOrder}
           disabled={paymentMethod === "mpesa" && !paymentSubmitted}
