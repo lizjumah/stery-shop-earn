@@ -11,7 +11,7 @@ import { useState } from "react";
 const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${userData.referralLink}`;
 
 const EarnHome = () => {
-  const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 4);
+  const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   const copyReferralLink = () => {
@@ -136,10 +136,70 @@ const EarnHome = () => {
             See All <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {topProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+        <div className="space-y-3">
+          {topProducts.map((product) => {
+            const isBestSeller = (product.commission || 0) >= 100;
+            const isHighDemand = (product.commission || 0) >= 60 && !isBestSeller;
+            const productUrl = `${window.location.origin}/shop/product/${product.id}?ref=${userData.referralCode}`;
+            const shareMsg = `Check out ${product.name} on Stery! KSh ${product.price}. Order here: ${productUrl}`;
+
+            const shareProduct = (channel: string) => {
+              const encoded = encodeURIComponent(shareMsg);
+              switch (channel) {
+                case "whatsapp": window.open(`https://wa.me/?text=${encoded}`, "_blank"); break;
+                case "sms": window.open(`sms:?body=${encoded}`, "_blank"); break;
+                case "facebook": window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encoded}&u=${encodeURIComponent(productUrl)}`, "_blank"); break;
+                case "copy":
+                  navigator.clipboard.writeText(shareMsg);
+                  toast.success("Product link copied!");
+                  break;
+              }
+            };
+
+            return (
+              <div key={product.id} className="bg-card rounded-xl overflow-hidden card-elevated border border-border">
+                <div className="flex gap-3 p-3">
+                  <Link to={`/earn/product/${product.id}`} className="shrink-0">
+                    <div className="relative">
+                      <img src={product.image} alt={product.name} className="w-20 h-20 rounded-xl object-cover" />
+                      {isBestSeller && (
+                        <span className="absolute -top-1.5 -left-1.5 bg-accent text-accent-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">⭐ Best Seller</span>
+                      )}
+                      {isHighDemand && (
+                        <span className="absolute -top-1.5 -left-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">🔥 High Demand</span>
+                      )}
+                    </div>
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm text-foreground truncate">{product.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Retail: KSh {product.price}</p>
+                    <div className="mt-1.5 bg-accent/10 rounded-lg px-2.5 py-1.5 inline-flex items-center gap-1">
+                      <span className="text-accent font-bold text-sm">Earn KSh {product.commission}</span>
+                      <span className="text-[10px] text-accent/70">per sale</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Share to Sell row */}
+                <div className="border-t border-border px-3 py-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground mr-auto font-medium">Share to Sell:</span>
+                  {[
+                    { id: "whatsapp", label: "WhatsApp", color: "bg-green-500/10 text-green-600 hover:bg-green-500/20" },
+                    { id: "sms", label: "SMS", color: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20" },
+                    { id: "facebook", label: "FB", color: "bg-blue-600/10 text-blue-700 hover:bg-blue-600/20" },
+                    { id: "copy", label: "Copy", color: "bg-muted text-foreground hover:bg-muted/80" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => shareProduct(opt.id)}
+                      className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${opt.color}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
