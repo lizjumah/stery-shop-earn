@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { products, categories } from "@/data/products";
 import { userData } from "@/data/user";
-import { getTodayDeals, getGreeting } from "@/data/dailyDeals";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
-import { Search, Star, ChevronRight, ShoppingCart, ShoppingBag, Zap, Baby, Home as HomeIcon, Gem, Sun, Clock, Package, CreditCard, Truck, MapPin, MessageCircle, HelpCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { Search, Star, ChevronRight, ShoppingCart, ShoppingBag, Zap, Baby, Home as HomeIcon, Gem } from "lucide-react";
+import { Link } from "react-router-dom";
+import { DailyDealsSection } from "@/components/shop/DailyDealsSection";
+import { FreshTodaySection } from "@/components/shop/FreshTodaySection";
+import { BuyAgainSection } from "@/components/shop/BuyAgainSection";
+import { WeeklyEssentialsSection } from "@/components/shop/WeeklyEssentialsSection";
+import { HowItWorksSection } from "@/components/shop/HowItWorksSection";
+import { DeliveryInfoSection } from "@/components/shop/DeliveryInfoSection";
+import { NeedHelpSection } from "@/components/shop/NeedHelpSection";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   Groceries: <ShoppingBag className="w-5 h-5" />,
@@ -21,27 +26,13 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 const ShopHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { cartItemCount, loyaltyPoints, addToCart } = useApp();
-  const navigate = useNavigate();
-
-  const greeting = getGreeting();
-  const todayDeals = getTodayDeals();
-  const dealProducts = todayDeals
-    .map((deal) => products.find((p) => p.id === deal.productId))
-    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+  const { cartItemCount, loyaltyPoints } = useApp();
 
   const featuredProducts = products.filter((p) => !p.isOffer).slice(0, 4);
   const offerProducts = products.filter((p) => p.isOffer);
   const filteredProducts = searchQuery
     ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : null;
-
-  const handleQuickAdd = (productId: string, productName: string) => {
-    addToCart(productId);
-    toast(`${productName} added to cart!`, {
-      action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -95,46 +86,17 @@ const ShopHome = () => {
         </div>
       ) : (
         <div className="px-4 mt-6">
-          {/* Good Morning Banner */}
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 mb-6 card-elevated">
-            <div className="flex items-center gap-2 mb-3">
-              <Sun className="w-6 h-6 text-white" />
-              <h2 className="text-white text-lg font-bold">{greeting} from Stery! ☀️</h2>
-            </div>
-            <p className="text-white/90 text-sm mb-4">Today's Fresh Deals — while stocks last!</p>
-            
-            <div className="space-y-2">
-              {dealProducts.map((product) => (
-                <div key={product.id} className="bg-white/95 rounded-xl p-3 flex items-center gap-3">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-14 h-14 rounded-lg object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <Clock className="w-3 h-3 text-accent" />
-                      <span className="text-[10px] font-semibold text-accent uppercase">Today's Deal</span>
-                    </div>
-                    <h3 className="font-semibold text-sm text-foreground truncate">{product.name}</h3>
-                    <p className="text-primary font-bold text-sm">KSh {product.price}</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => handleQuickAdd(product.id, product.name)}
-                    className="bg-primary hover:bg-primary/90 h-9 px-3"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+          {/* 1. Daily Deals */}
+          <DailyDealsSection />
 
-            <Link to="/shop/categories" className="mt-3 flex items-center justify-center gap-1 text-white text-sm font-medium">
-              <span>View all products</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
+          {/* 2. Fresh Today from Stery Bakery */}
+          <FreshTodaySection />
+
+          {/* 3. Buy Again */}
+          <BuyAgainSection />
+
+          {/* 4. Weekly Essentials */}
+          <WeeklyEssentialsSection />
 
           {/* Hot Deals Banner */}
           <Link to="/shop/offers">
@@ -147,10 +109,10 @@ const ShopHome = () => {
             </div>
           </Link>
 
-          {/* Category Icons */}
+          {/* 5. Categories */}
           <h2 className="text-lg font-bold text-foreground mb-3">Categories</h2>
           <div className="grid grid-cols-3 gap-3 mb-6">
-            {categories.filter(c => c !== "All").map((cat) => (
+            {categories.filter((c) => c !== "All").map((cat) => (
               <Link
                 key={cat}
                 to={`/shop/categories?cat=${encodeURIComponent(cat)}`}
@@ -195,7 +157,7 @@ const ShopHome = () => {
             ))}
           </div>
 
-          {/* Featured */}
+          {/* 6. All Products / Top Essentials */}
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-foreground">Top Essentials</h2>
             <Link to="/shop/categories" className="text-sm text-primary font-medium">See All</Link>
@@ -206,74 +168,10 @@ const ShopHome = () => {
             ))}
           </div>
 
-          {/* How Stery Works */}
-          <h2 className="text-lg font-bold text-foreground mb-4">How Stery Works</h2>
-          <div className="space-y-3 mb-8">
-            {[
-              { icon: <ShoppingBag className="w-6 h-6 text-primary" />, step: "Step 1", title: "Browse & Add to Cart", desc: "Browse products and add items to your cart." },
-              { icon: <CreditCard className="w-6 h-6 text-primary" />, step: "Step 2", title: "Checkout & Pay", desc: "Pay using M-Pesa Paybill or choose cash on delivery." },
-              { icon: <Package className="w-6 h-6 text-primary" />, step: "Step 3", title: "We Deliver", desc: "Stery prepares your order and delivers it to your location." },
-            ].map((item, i) => (
-              <div key={i} className="bg-card rounded-xl p-4 card-elevated flex items-start gap-4">
-                <div className="bg-primary/10 rounded-full p-3 shrink-0">
-                  {item.icon}
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-primary uppercase">{item.step}</span>
-                  <h3 className="font-semibold text-foreground mt-0.5">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Delivery Information */}
-          <h2 className="text-lg font-bold text-foreground mb-4">Delivery Information</h2>
-          <div className="bg-card rounded-xl p-4 card-elevated mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Truck className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-foreground">Delivery Areas & Fees</h3>
-            </div>
-            <div className="space-y-2 mb-3">
-              {[
-                { area: "Bungoma Town", fee: "KSh 100" },
-                { area: "Kanduyi", fee: "KSh 200" },
-                { area: "Naitiri", fee: "KSh 200" },
-                { area: "Chwele", fee: "KSh 200" },
-              ].map((d) => (
-                <div key={d.area} className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-sm text-foreground">{d.area}</span>
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">{d.fee}</span>
-                </div>
-              ))}
-            </div>
-            <div className="bg-accent/10 rounded-lg p-3 text-center">
-              <p className="text-accent text-sm font-semibold">🎉 FREE delivery on orders above KSh 3,000!</p>
-            </div>
-          </div>
-
-          {/* Need Help? */}
-          <div className="mb-4">
-            <button
-              onClick={() => {
-                const msg = encodeURIComponent("Hi Stery, I need help with my order.");
-                window.open(`https://wa.me/254794560657?text=${msg}`, "_blank");
-              }}
-              className="w-full bg-card rounded-xl p-4 card-elevated flex items-center gap-4 border border-border hover:border-primary/30 transition-colors"
-            >
-              <div className="bg-accent/10 rounded-full p-3">
-                <MessageCircle className="w-6 h-6 text-accent" />
-              </div>
-              <div className="text-left flex-1">
-                <h3 className="font-semibold text-foreground">Need Help?</h3>
-                <p className="text-sm text-muted-foreground">Chat with Stery support on WhatsApp</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
+          {/* Info sections */}
+          <HowItWorksSection />
+          <DeliveryInfoSection />
+          <NeedHelpSection />
         </div>
       )}
 
