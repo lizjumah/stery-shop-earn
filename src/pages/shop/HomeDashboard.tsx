@@ -130,6 +130,9 @@ const HomeDashboard = () => {
           </div>
         )}
 
+        {/* Your Usuals */}
+        <YourUsuals />
+
         {/* Quick Actions Grid */}
         <div>
           <h2 className="font-bold text-foreground mb-3">Quick Actions</h2>
