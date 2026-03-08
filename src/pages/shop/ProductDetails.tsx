@@ -10,7 +10,7 @@ import { toast } from "sonner";
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useApp();
+  const { addToCart, cartItemCount } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">("delivery");
 
