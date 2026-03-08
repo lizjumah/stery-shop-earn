@@ -3,7 +3,7 @@ import { products } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight } from "lucide-react";
+import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2, MessageCircle, Smartphone, Facebook, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
