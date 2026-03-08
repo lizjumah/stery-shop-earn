@@ -54,6 +54,7 @@ interface AppContextType {
   cartItemCount: number;
   orders: PlacedOrder[];
   placeOrder: (order: PlacedOrder) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   loyaltyPoints: number;
   pointsHistory: PointsHistoryEntry[];
   addPoints: (label: string, points: number, type?: "earned" | "bonus") => void;
