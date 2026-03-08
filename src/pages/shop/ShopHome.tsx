@@ -15,6 +15,7 @@ import { HowItWorksSection } from "@/components/shop/HowItWorksSection";
 import { DeliveryInfoSection } from "@/components/shop/DeliveryInfoSection";
 import { NeedHelpSection } from "@/components/shop/NeedHelpSection";
 import { QuickBundlesSection } from "@/components/shop/QuickBundlesSection";
+import { SteryChat } from "@/components/shop/SteryChat";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   Groceries: <ShoppingBag className="w-5 h-5" />,
@@ -179,6 +180,7 @@ const ShopHome = () => {
         </div>
       )}
 
+      <SteryChat />
       <BottomNav />
     </div>
   );
