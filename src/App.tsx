@@ -64,6 +64,7 @@ const AppRoutes = () => {
 
       {/* Account */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
