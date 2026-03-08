@@ -57,15 +57,18 @@ const Checkout = () => {
     }
     const num = `STR-${String(Date.now()).slice(-4)}`;
     setOrderNumber(num);
+
+    const orderItems = cartProducts.map((item) => ({
+      productId: item.productId,
+      name: item.product!.name,
+      quantity: item.quantity,
+      price: item.product!.price,
+    }));
+
     placeOrder({
       id: Date.now().toString(),
       orderNumber: num,
-      items: cartProducts.map((item) => ({
-        productId: item.productId,
-        name: item.product!.name,
-        quantity: item.quantity,
-        price: item.product!.price,
-      })),
+      items: orderItems,
       total,
       status: paymentMethod === "mpesa" ? "pending" : "pending",
       date: new Date().toISOString().split("T")[0],
@@ -77,6 +80,27 @@ const Checkout = () => {
       notes,
       paymentMethod,
     });
+
+    // Send order to WhatsApp
+    const itemsList = orderItems.map((i) => `• ${i.name} × ${i.quantity} — KSh ${i.price * i.quantity}`).join("\n");
+    const whatsappMessage = [
+      `🛒 *New Order: ${num}*`,
+      ``,
+      `👤 *Customer:* ${name}`,
+      `📞 *Phone:* ${phone}`,
+      ``,
+      `📦 *Items Ordered:*`,
+      itemsList,
+      ``,
+      `💰 *Total:* KSh ${total}`,
+      `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
+      deliveryOption === "delivery" ? `📍 *Delivery Location:* ${location}` : `🏪 *Pickup at Store*`,
+      notes ? `📝 *Notes:* ${notes}` : "",
+    ].filter(Boolean).join("\n");
+
+    const whatsappUrl = `https://wa.me/254794560657?text=${encodeURIComponent(whatsappMessage)}`;
+    window.open(whatsappUrl, "_blank");
+
     clearCart();
     setOrderPlaced(true);
   };
