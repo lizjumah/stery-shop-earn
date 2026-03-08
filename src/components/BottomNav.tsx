@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 
 const shopNavItems = [
   { icon: Home, label: "Home", path: "/shop" },
+  { icon: ShoppingCart, label: "Shop", path: "/shop/browse" },
   { icon: LayoutGrid, label: "Categories", path: "/shop/categories" },
-  { icon: ShoppingCart, label: "Cart", path: "/shop/cart" },
-  { icon: Gift, label: "Rewards", path: "/shop/rewards" },
+  { icon: Wallet, label: "Rewards", path: "/shop/rewards" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 

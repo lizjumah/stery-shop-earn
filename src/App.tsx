@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "./contexts/AppContext";
 import Welcome from "./pages/Welcome";
+import HomeDashboard from "./pages/shop/HomeDashboard";
 import ShopHome from "./pages/shop/ShopHome";
 import Categories from "./pages/shop/Categories";
 import ProductDetails from "./pages/shop/ProductDetails";
@@ -45,7 +46,8 @@ const AppRoutes = () => {
       <Route path="/" element={<Welcome />} />
 
       {/* Shop Routes */}
-      <Route path="/shop" element={<ProtectedRoute requiredMode="shop"><ShopHome /></ProtectedRoute>} />
+      <Route path="/shop" element={<ProtectedRoute requiredMode="shop"><HomeDashboard /></ProtectedRoute>} />
+      <Route path="/shop/browse" element={<ProtectedRoute requiredMode="shop"><ShopHome /></ProtectedRoute>} />
       <Route path="/shop/categories" element={<ProtectedRoute requiredMode="shop"><Categories /></ProtectedRoute>} />
       <Route path="/shop/product/:id" element={<ProtectedRoute requiredMode="shop"><ProductDetails /></ProtectedRoute>} />
       <Route path="/shop/cart" element={<ProtectedRoute requiredMode="shop"><Cart /></ProtectedRoute>} />
