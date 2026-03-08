@@ -14,6 +14,7 @@ import { WeeklyEssentialsSection } from "@/components/shop/WeeklyEssentialsSecti
 import { HowItWorksSection } from "@/components/shop/HowItWorksSection";
 import { DeliveryInfoSection } from "@/components/shop/DeliveryInfoSection";
 import { NeedHelpSection } from "@/components/shop/NeedHelpSection";
+import { QuickBundlesSection } from "@/components/shop/QuickBundlesSection";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   Groceries: <ShoppingBag className="w-5 h-5" />,
@@ -94,6 +95,9 @@ const ShopHome = () => {
 
           {/* 3. Buy Again */}
           <BuyAgainSection />
+
+          {/* Quick Grocery Bundles */}
+          <QuickBundlesSection />
 
           {/* 4. Weekly Essentials */}
           <WeeklyEssentialsSection />
