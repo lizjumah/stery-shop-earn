@@ -177,6 +177,13 @@ const EarnHome = () => {
                       <span className="text-accent font-bold text-sm">Earn KSh {product.commission}</span>
                       <span className="text-[10px] text-accent/70">per sale</span>
                     </div>
+                    <div className="mt-1.5">
+                      <p className="text-[10px] text-muted-foreground font-medium mb-0.5">Potential Earnings:</p>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] bg-muted rounded px-1.5 py-0.5 text-foreground font-medium">10 sales → <strong className="text-accent">KSh {(product.commission || 0) * 10}</strong></span>
+                        <span className="text-[10px] bg-muted rounded px-1.5 py-0.5 text-foreground font-medium">50 sales → <strong className="text-accent">KSh {((product.commission || 0) * 50).toLocaleString()}</strong></span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Share to Sell row */}
