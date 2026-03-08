@@ -79,6 +79,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <FloatingCart />
           <AppRoutes />
         </BrowserRouter>
       </AppProvider>
