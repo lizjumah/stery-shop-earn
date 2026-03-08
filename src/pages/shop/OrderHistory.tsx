@@ -1,7 +1,8 @@
 import { useApp } from "@/contexts/AppContext";
 import { orderHistory } from "@/data/user";
 import { BottomNav } from "@/components/BottomNav";
-import { ArrowLeft, Package, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ShopHeader } from "@/components/ShopHeader";
+import { Package, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const statusConfig = {
