@@ -180,6 +180,7 @@ const ShopHome = () => {
         </div>
       )}
 
+      <SteryChat />
       <BottomNav />
     </div>
   );
