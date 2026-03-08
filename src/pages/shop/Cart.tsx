@@ -2,9 +2,10 @@ import { useApp } from "@/contexts/AppContext";
 import { products } from "@/data/products";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ShoppingBag, Truck, Store, Star } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, Truck, Store, Star, Share2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const DELIVERY_AREAS = [
   { name: "Bungoma Town", fee: 100 },
@@ -21,7 +22,7 @@ const BASKET_MILESTONES = [
 ];
 
 const Cart = () => {
-  const { cart, updateCartQuantity, removeFromCart } = useApp();
+  const { cart, updateCartQuantity, removeFromCart, generateCartShareCode } = useApp();
   const navigate = useNavigate();
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">("delivery");
   const [deliveryArea, setDeliveryArea] = useState(DELIVERY_AREAS[0].name);
@@ -37,11 +38,31 @@ const Cart = () => {
   const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD && deliveryOption === "delivery";
   const deliveryFee = freeDelivery ? 0 : rawDeliveryFee;
   const total = subtotal + deliveryFee;
-  const totalPoints = cartProducts.reduce((sum, item) => sum + (item.product!.loyaltyPoints * item.quantity), 0);
 
-  // Next basket milestone
   const nextMilestone = BASKET_MILESTONES.find((m) => subtotal < m.threshold);
-  const currentUnlocked = BASKET_MILESTONES.filter((m) => subtotal >= m.threshold);
+
+  const handleShareCart = () => {
+    const code = generateCartShareCode();
+    const shareUrl = `${window.location.origin}/shop/group-order?cart=${code}`;
+    const itemsList = cartProducts.map((i) => `• ${i.product!.name} × ${i.quantity}`).join("\n");
+    const message = [
+      `Hi 😊 I'm placing an order from Stery.`,
+      ``,
+      `🛒 My cart:`,
+      itemsList,
+      ``,
+      `💰 Total: KSh ${subtotal}`,
+      ``,
+      `Want to add something before I checkout?`,
+      ``,
+      `Join the order here:`,
+      shareUrl,
+    ].join("\n");
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+    toast.success("Cart shared on WhatsApp!");
+  };
 
   if (cart.length === 0) {
     return (
@@ -62,7 +83,16 @@ const Cart = () => {
   return (
     <div className="min-h-screen bg-background pb-40">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-xl font-bold text-foreground mb-4">My Cart ({cart.length})</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold text-foreground">My Cart ({cart.length})</h1>
+          <button
+            onClick={handleShareCart}
+            className="flex items-center gap-1.5 bg-accent/10 border border-accent/30 rounded-full px-3 py-1.5 transition-colors hover:bg-accent/20"
+          >
+            <Share2 className="w-4 h-4 text-accent" />
+            <span className="text-xs font-semibold text-accent">Share Cart</span>
+          </button>
+        </div>
 
         {/* Cart Items */}
         <div className="space-y-3 mb-6">
@@ -125,18 +155,12 @@ const Cart = () => {
         {/* Delivery Option */}
         <h2 className="font-semibold text-foreground mb-3">Delivery Option</h2>
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <button
-            onClick={() => setDeliveryOption("pickup")}
-            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${deliveryOption === "pickup" ? "border-primary bg-primary/5" : "border-border"}`}
-          >
+          <button onClick={() => setDeliveryOption("pickup")} className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${deliveryOption === "pickup" ? "border-primary bg-primary/5" : "border-border"}`}>
             <Store className={`w-5 h-5 mb-1 ${deliveryOption === "pickup" ? "text-primary" : "text-muted-foreground"}`} />
             <span className={`text-sm font-medium ${deliveryOption === "pickup" ? "text-primary" : "text-foreground"}`}>Pickup</span>
             <span className="text-xs text-muted-foreground">Free</span>
           </button>
-          <button
-            onClick={() => setDeliveryOption("delivery")}
-            className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${deliveryOption === "delivery" ? "border-primary bg-primary/5" : "border-border"}`}
-          >
+          <button onClick={() => setDeliveryOption("delivery")} className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center ${deliveryOption === "delivery" ? "border-primary bg-primary/5" : "border-border"}`}>
             <Truck className={`w-5 h-5 mb-1 ${deliveryOption === "delivery" ? "text-primary" : "text-muted-foreground"}`} />
             <span className={`text-sm font-medium ${deliveryOption === "delivery" ? "text-primary" : "text-foreground"}`}>Delivery</span>
             <span className="text-xs text-muted-foreground">From KSh 100</span>
@@ -149,11 +173,7 @@ const Cart = () => {
               <label className="text-sm text-muted-foreground mb-1 block">Delivery Area</label>
               <div className="grid grid-cols-2 gap-2">
                 {DELIVERY_AREAS.map((area) => (
-                  <button
-                    key={area.name}
-                    onClick={() => setDeliveryArea(area.name)}
-                    className={`p-2.5 rounded-lg border-2 text-left transition-colors ${deliveryArea === area.name ? "border-primary bg-primary/5" : "border-border"}`}
-                  >
+                  <button key={area.name} onClick={() => setDeliveryArea(area.name)} className={`p-2.5 rounded-lg border-2 text-left transition-colors ${deliveryArea === area.name ? "border-primary bg-primary/5" : "border-border"}`}>
                     <p className={`text-sm font-medium ${deliveryArea === area.name ? "text-primary" : "text-foreground"}`}>{area.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {subtotal >= FREE_DELIVERY_THRESHOLD ? <span className="text-accent font-medium">Free</span> : `KSh ${area.fee}`}
@@ -172,7 +192,6 @@ const Cart = () => {
 
         {deliveryOption === "pickup" && <div className="mb-6" />}
 
-        {/* Points */}
         <div className="bg-primary/10 rounded-lg p-3 mb-4">
           <p className="text-primary text-sm font-semibold">🎁 You'll earn {Math.floor(subtotal / 100)} loyalty points from this order!</p>
         </div>
@@ -185,19 +204,12 @@ const Cart = () => {
         </div>
         <div className="flex justify-between text-sm text-muted-foreground mb-2">
           <span>Delivery{deliveryOption === "delivery" ? ` (${deliveryArea})` : ""}</span>
-          <span>
-            {deliveryOption === "pickup" ? "Free" : freeDelivery ? (
-              <span className="text-accent font-medium">Free</span>
-            ) : `KSh ${deliveryFee}`}
-          </span>
+          <span>{deliveryOption === "pickup" ? "Free" : freeDelivery ? <span className="text-accent font-medium">Free</span> : `KSh ${deliveryFee}`}</span>
         </div>
         <div className="flex justify-between font-bold text-foreground text-lg mb-3">
           <span>Total</span><span>KSh {total}</span>
         </div>
-        <Button
-          onClick={() => navigate(`/shop/checkout?delivery=${deliveryOption}&area=${encodeURIComponent(deliveryArea)}`)}
-          className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-        >
+        <Button onClick={() => navigate(`/shop/checkout?delivery=${deliveryOption}&area=${encodeURIComponent(deliveryArea)}`)} className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
           Proceed to Checkout
         </Button>
       </div>

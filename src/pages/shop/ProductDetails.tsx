@@ -3,7 +3,7 @@ import { products } from "@/data/products";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, ShoppingCart, Truck, Store, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Star, ShoppingCart, Truck, Store, Minus, Plus, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -29,42 +29,51 @@ const ProductDetails = () => {
       addToCart(product.id);
     }
     toast("Item added to cart.", {
-      action: {
-        label: "View Cart",
-        onClick: () => navigate("/shop/cart"),
-      },
-      cancel: {
-        label: "Continue Shopping",
-        onClick: () => {},
-      },
+      action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
+      cancel: { label: "Continue Shopping", onClick: () => {} },
     });
+  };
+
+  const handleShareWhatsApp = () => {
+    const productUrl = `${window.location.origin}/shop/product/${product.id}`;
+    const message = [
+      `${product.name} available on Stery! ${product.category === "Bakery" ? "🍞" : "🛒"}`,
+      ``,
+      `💰 KSh ${product.price}${product.originalPrice ? ` (was KSh ${product.originalPrice})` : ""}`,
+      ``,
+      product.description,
+      ``,
+      `Order from Stery here:`,
+      productUrl,
+    ].join("\n");
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
   };
 
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="relative">
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 z-10 bg-card/80 backdrop-blur rounded-full p-2"
-        >
+        <button onClick={() => navigate(-1)} className="absolute top-4 left-4 z-10 bg-card/80 backdrop-blur rounded-full p-2">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <Link to="/shop/cart" className="absolute top-4 right-4 z-10 bg-card/80 backdrop-blur rounded-full p-2">
-          <ShoppingCart className="w-6 h-6" />
-          {cartItemCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-              {cartItemCount}
-            </span>
-          )}
-        </Link>
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full aspect-square object-cover"
-        />
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <button onClick={handleShareWhatsApp} className="bg-card/80 backdrop-blur rounded-full p-2">
+            <Share2 className="w-6 h-6 text-accent" />
+          </button>
+          <Link to="/shop/cart" className="bg-card/80 backdrop-blur rounded-full p-2 relative">
+            <ShoppingCart className="w-6 h-6" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </Link>
+        </div>
+        <img src={product.image} alt={product.name} className="w-full aspect-square object-cover" />
         {product.isOffer && (
-          <Badge className="absolute top-4 right-4 bg-destructive text-destructive-foreground text-lg px-3 py-1">
+          <Badge className="absolute top-4 right-24 bg-destructive text-destructive-foreground text-lg px-3 py-1">
             SALE
           </Badge>
         )}
@@ -83,17 +92,22 @@ const ProductDetails = () => {
         </div>
 
         <div className="flex items-center gap-3 mb-4">
-          <span className="text-3xl font-bold text-foreground">
-            KSh {product.price}
-          </span>
+          <span className="text-3xl font-bold text-foreground">KSh {product.price}</span>
           {product.originalPrice && (
-            <span className="text-lg text-muted-foreground line-through">
-              KSh {product.originalPrice}
-            </span>
+            <span className="text-lg text-muted-foreground line-through">KSh {product.originalPrice}</span>
           )}
         </div>
 
         <p className="text-muted-foreground mb-6">{product.description}</p>
+
+        {/* Share on WhatsApp */}
+        <button
+          onClick={handleShareWhatsApp}
+          className="w-full mb-6 flex items-center justify-center gap-2 bg-accent/10 border border-accent/30 rounded-xl py-3 px-4 transition-colors hover:bg-accent/20"
+        >
+          <span className="text-lg">💬</span>
+          <span className="font-semibold text-accent text-sm">Share on WhatsApp</span>
+        </button>
 
         {/* Loyalty Points */}
         <div className="bg-primary/10 rounded-lg p-4 mb-6">
@@ -106,21 +120,11 @@ const ProductDetails = () => {
         <div className="flex items-center justify-between mb-6">
           <span className="font-medium text-foreground">Quantity</span>
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="h-10 w-10 rounded-full"
-            >
+            <Button variant="outline" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-10 w-10 rounded-full">
               <Minus className="w-4 h-4" />
             </Button>
             <span className="text-xl font-bold w-8 text-center">{quantity}</span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setQuantity(quantity + 1)}
-              className="h-10 w-10 rounded-full"
-            >
+            <Button variant="outline" size="icon" onClick={() => setQuantity(quantity + 1)} className="h-10 w-10 rounded-full">
               <Plus className="w-4 h-4" />
             </Button>
           </div>
@@ -132,30 +136,18 @@ const ProductDetails = () => {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setDeliveryOption("delivery")}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                deliveryOption === "delivery"
-                  ? "border-primary bg-primary/5"
-                  : "border-border"
-              }`}
+              className={`p-4 rounded-xl border-2 transition-all ${deliveryOption === "delivery" ? "border-primary bg-primary/5" : "border-border"}`}
             >
               <Truck className={`w-6 h-6 mx-auto mb-2 ${deliveryOption === "delivery" ? "text-primary" : "text-muted-foreground"}`} />
-              <p className={`font-medium ${deliveryOption === "delivery" ? "text-primary" : "text-foreground"}`}>
-                Delivery
-              </p>
+              <p className={`font-medium ${deliveryOption === "delivery" ? "text-primary" : "text-foreground"}`}>Delivery</p>
               <p className="text-xs text-muted-foreground">KSh 100</p>
             </button>
             <button
               onClick={() => setDeliveryOption("pickup")}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                deliveryOption === "pickup"
-                  ? "border-primary bg-primary/5"
-                  : "border-border"
-              }`}
+              className={`p-4 rounded-xl border-2 transition-all ${deliveryOption === "pickup" ? "border-primary bg-primary/5" : "border-border"}`}
             >
               <Store className={`w-6 h-6 mx-auto mb-2 ${deliveryOption === "pickup" ? "text-primary" : "text-muted-foreground"}`} />
-              <p className={`font-medium ${deliveryOption === "pickup" ? "text-primary" : "text-foreground"}`}>
-                Pickup
-              </p>
+              <p className={`font-medium ${deliveryOption === "pickup" ? "text-primary" : "text-foreground"}`}>Pickup</p>
               <p className="text-xs text-muted-foreground">Free</p>
             </button>
           </div>
@@ -164,10 +156,7 @@ const ProductDetails = () => {
 
       {/* Fixed Bottom Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4">
-        <Button
-          onClick={handleAddToCart}
-          className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90"
-        >
+        <Button onClick={handleAddToCart} className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90">
           <ShoppingCart className="w-5 h-5 mr-2" />
           Add to Cart - KSh {product.price * quantity}
         </Button>

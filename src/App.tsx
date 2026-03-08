@@ -13,6 +13,7 @@ import Checkout from "./pages/shop/Checkout";
 import OrderHistory from "./pages/shop/OrderHistory";
 import Offers from "./pages/shop/Offers";
 import Rewards from "./pages/shop/Rewards";
+import GroupOrder from "./pages/shop/GroupOrder";
 import EarnHome from "./pages/earn/EarnHome";
 import EarnProducts from "./pages/earn/EarnProducts";
 import EarnProductDetails from "./pages/earn/EarnProductDetails";
@@ -52,6 +53,7 @@ const AppRoutes = () => {
       <Route path="/shop/orders" element={<ProtectedRoute requiredMode="shop"><OrderHistory /></ProtectedRoute>} />
       <Route path="/shop/offers" element={<ProtectedRoute requiredMode="shop"><Offers /></ProtectedRoute>} />
       <Route path="/shop/rewards" element={<ProtectedRoute requiredMode="shop"><Rewards /></ProtectedRoute>} />
+      <Route path="/shop/group-order" element={<GroupOrder />} />
 
       {/* Earn Routes */}
       <Route path="/earn" element={<ProtectedRoute requiredMode="earn"><EarnHome /></ProtectedRoute>} />
