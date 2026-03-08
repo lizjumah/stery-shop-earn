@@ -170,6 +170,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
+    setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status } : o));
+  };
+
   const generateCartShareCode = (): string => encodeCart(cart);
 
   const loadSharedCart = (code: string): boolean => {
