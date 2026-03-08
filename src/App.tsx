@@ -49,6 +49,7 @@ const AppRoutes = () => {
       <Route path="/shop/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
       <Route path="/shop/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
       <Route path="/shop/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      <Route path="/shop/order/:id" element={<ProtectedRoute><OrderTracker /></ProtectedRoute>} />
       <Route path="/shop/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
       <Route path="/shop/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
       <Route path="/shop/group-order" element={<GroupOrder />} />
