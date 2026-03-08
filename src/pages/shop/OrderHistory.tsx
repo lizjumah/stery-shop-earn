@@ -1,7 +1,8 @@
 import { useApp } from "@/contexts/AppContext";
 import { orderHistory } from "@/data/user";
 import { BottomNav } from "@/components/BottomNav";
-import { ArrowLeft, Package, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ShopHeader } from "@/components/ShopHeader";
+import { Package, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const statusConfig = {
@@ -18,12 +19,7 @@ const OrderHistory = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="bg-secondary rounded-full p-2">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-bold text-foreground">Order History</h1>
-      </div>
+      <ShopHeader title="Order History" showBack />
 
       <div className="px-4 space-y-3">
         {allOrders.map((order) => {

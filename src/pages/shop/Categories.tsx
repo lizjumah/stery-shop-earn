@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { products, categories } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
+import { ShopHeader } from "@/components/ShopHeader";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,8 +29,8 @@ const Categories = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-xl font-bold text-foreground mb-4">All Products</h1>
+      <ShopHeader title="All Products" showBack />
+      <div className="px-4 pb-4">
 
         {/* Search */}
         <div className="relative mb-4">

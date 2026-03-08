@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { products } from "@/data/products";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useApp();
+  const { addToCart, cartItemCount } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">("delivery");
 
@@ -41,6 +41,14 @@ const ProductDetails = () => {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
+        <Link to="/shop/cart" className="absolute top-4 right-4 z-10 bg-card/80 backdrop-blur rounded-full p-2">
+          <ShoppingCart className="w-6 h-6" />
+          {cartItemCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {cartItemCount}
+            </span>
+          )}
+        </Link>
         <img
           src={product.image}
           alt={product.name}
