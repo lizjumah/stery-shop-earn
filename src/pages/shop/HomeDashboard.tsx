@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Star, ShoppingBag, DollarSign, Gift, Flame, ChevronRight, ShoppingCart } from "lucide-react";
+import { CommunityActivity } from "@/components/shop/CommunityActivity";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -146,6 +147,9 @@ const HomeDashboard = () => {
             ))}
           </div>
         </div>
+
+        {/* Community Activity */}
+        <CommunityActivity />
 
         {/* Recent Activity Teaser */}
         <div className="bg-card rounded-xl p-4 card-elevated border border-border">
