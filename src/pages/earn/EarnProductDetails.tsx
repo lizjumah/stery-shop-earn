@@ -1,9 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { products } from "@/data/products";
+import { userData } from "@/data/user";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Share2, Star, TrendingUp } from "lucide-react";
+import { ArrowLeft, Share2, Star, TrendingUp, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const EarnProductDetails = () => {
   const { id } = useParams();
@@ -19,6 +21,13 @@ const EarnProductDetails = () => {
     );
   }
 
+  const salesMessage = `🔥 STERY DEAL\n${product.name} – KSh ${product.price}\nOrder now from Stery.\nDelivery available in Bungoma.\n${`https://stery.ke/p/${product.id}?ref=${userData.referralCode}`}`;
+
+  const copySalesText = () => {
+    navigator.clipboard.writeText(salesMessage);
+    toast.success("Sales text copied!");
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -29,36 +38,20 @@ const EarnProductDetails = () => {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full aspect-square object-cover"
-        />
+        <img src={product.image} alt={product.name} className="w-full aspect-square object-cover" />
         <Badge className="absolute top-4 right-4 bg-accent text-accent-foreground text-lg px-3 py-1">
           Earn KSh {product.commission}
         </Badge>
       </div>
 
       <div className="px-4 py-6">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <Badge variant="secondary" className="mb-2">{product.category}</Badge>
-            <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
-          </div>
-          <div className="flex items-center gap-1 bg-secondary rounded-full px-2 py-1">
-            <Star className="w-4 h-4 fill-primary text-primary" />
-            <span className="text-sm font-medium">4.5</span>
-          </div>
-        </div>
+        <Badge variant="secondary" className="mb-2">{product.category}</Badge>
+        <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
 
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-3xl font-bold text-foreground">
-            KSh {product.price}
-          </span>
+        <div className="flex items-center gap-3 mt-2 mb-4">
+          <span className="text-3xl font-bold text-foreground">KSh {product.price}</span>
           {product.originalPrice && (
-            <span className="text-lg text-muted-foreground line-through">
-              KSh {product.originalPrice}
-            </span>
+            <span className="text-lg text-muted-foreground line-through">KSh {product.originalPrice}</span>
           )}
         </div>
 
@@ -71,13 +64,22 @@ const EarnProductDetails = () => {
               <TrendingUp className="w-6 h-6 text-accent-foreground" />
             </div>
             <div>
-              <p className="text-foreground font-bold text-lg">
-                Earn KSh {product.commission} per sale
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Share this product and earn commission when someone buys
-              </p>
+              <p className="text-foreground font-bold text-lg">Earn KSh {product.commission} per sale</p>
+              <p className="text-sm text-muted-foreground">Share and earn when someone buys</p>
             </div>
+          </div>
+        </div>
+
+        {/* Suggested Sales Message */}
+        <div className="bg-secondary rounded-xl p-4 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-foreground text-sm">Suggested Sales Message</h3>
+            <Button size="sm" variant="ghost" onClick={copySalesText}>
+              <Copy className="w-4 h-4 mr-1" />Copy
+            </Button>
+          </div>
+          <div className="bg-card rounded-lg p-3">
+            <p className="text-sm text-foreground whitespace-pre-line">{salesMessage}</p>
           </div>
         </div>
 
@@ -85,24 +87,12 @@ const EarnProductDetails = () => {
         <div className="bg-secondary rounded-xl p-4 mb-6">
           <h3 className="font-bold text-foreground mb-3">How to Earn</h3>
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-                1
+            {["Share product to WhatsApp or Facebook", "Customer clicks your link and orders", `You earn KSh ${product.commission} commission!`].map((step, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">{i + 1}</div>
+                <p className="text-sm text-foreground">{step}</p>
               </div>
-              <p className="text-sm text-foreground">Share product to WhatsApp or Facebook</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-                2
-              </div>
-              <p className="text-sm text-foreground">Customer clicks your link and orders</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-                3
-              </div>
-              <p className="text-sm text-foreground">You earn KSh {product.commission} commission!</p>
-            </div>
+            ))}
           </div>
         </div>
       </div>

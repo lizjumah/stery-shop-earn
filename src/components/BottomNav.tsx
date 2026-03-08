@@ -1,24 +1,26 @@
-import { Home, Search, Gift, User, TrendingUp, Share2, Wallet } from "lucide-react";
+import { Home, ShoppingCart, Gift, User, TrendingUp, Share2, Wallet, LayoutGrid } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
 
 const shopNavItems = [
   { icon: Home, label: "Home", path: "/shop" },
-  { icon: Gift, label: "Offers", path: "/shop/offers" },
-  { icon: Wallet, label: "Rewards", path: "/shop/rewards" },
+  { icon: LayoutGrid, label: "Categories", path: "/shop/categories" },
+  { icon: ShoppingCart, label: "Cart", path: "/shop/cart" },
+  { icon: Gift, label: "Rewards", path: "/shop/rewards" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
 const earnNavItems = [
-  { icon: Home, label: "Products", path: "/earn" },
+  { icon: Home, label: "Home", path: "/earn" },
+  { icon: LayoutGrid, label: "Products", path: "/earn/products" },
   { icon: TrendingUp, label: "Earnings", path: "/earn/dashboard" },
   { icon: Share2, label: "Referrals", path: "/earn/referrals" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
 export const BottomNav = () => {
-  const { mode } = useApp();
+  const { mode, cartItemCount } = useApp();
   const location = useLocation();
   
   const navItems = mode === "earn" ? earnNavItems : shopNavItems;
@@ -34,12 +36,17 @@ export const BottomNav = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center touch-target px-4 transition-colors",
+                "flex flex-col items-center justify-center touch-target px-2 transition-colors relative",
                 isActive ? activeColor : "text-muted-foreground"
               )}
             >
-              <item.icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-xs mt-1 font-medium">{item.label}</span>
+              <item.icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+              {item.label === "Cart" && cartItemCount > 0 && (
+                <span className="absolute -top-1 right-0 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+              <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
             </Link>
           );
         })}
