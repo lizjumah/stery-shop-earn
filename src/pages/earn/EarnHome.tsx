@@ -11,7 +11,7 @@ import { useState } from "react";
 const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${userData.referralLink}`;
 
 const EarnHome = () => {
-  const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 4);
+  const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   const copyReferralLink = () => {
