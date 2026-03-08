@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { products, categories } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
+import { ShopHeader } from "@/components/ShopHeader";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
