@@ -26,17 +26,9 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children, requiredMode }: { children: React.ReactNode; requiredMode?: "shop" | "earn" }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { mode } = useApp();
-
-  if (!mode) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (requiredMode && mode !== requiredMode) {
-    return <Navigate to={mode === "shop" ? "/shop" : "/earn"} replace />;
-  }
-
+  if (!mode) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -45,27 +37,29 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Welcome />} />
 
+      {/* Home Dashboard */}
+      <Route path="/shop" element={<ProtectedRoute><HomeDashboard /></ProtectedRoute>} />
+
       {/* Shop Routes */}
-      <Route path="/shop" element={<ProtectedRoute requiredMode="shop"><HomeDashboard /></ProtectedRoute>} />
-      <Route path="/shop/browse" element={<ProtectedRoute requiredMode="shop"><ShopHome /></ProtectedRoute>} />
-      <Route path="/shop/categories" element={<ProtectedRoute requiredMode="shop"><Categories /></ProtectedRoute>} />
-      <Route path="/shop/product/:id" element={<ProtectedRoute requiredMode="shop"><ProductDetails /></ProtectedRoute>} />
-      <Route path="/shop/cart" element={<ProtectedRoute requiredMode="shop"><Cart /></ProtectedRoute>} />
-      <Route path="/shop/checkout" element={<ProtectedRoute requiredMode="shop"><Checkout /></ProtectedRoute>} />
-      <Route path="/shop/orders" element={<ProtectedRoute requiredMode="shop"><OrderHistory /></ProtectedRoute>} />
-      <Route path="/shop/offers" element={<ProtectedRoute requiredMode="shop"><Offers /></ProtectedRoute>} />
-      <Route path="/shop/rewards" element={<ProtectedRoute requiredMode="shop"><Rewards /></ProtectedRoute>} />
+      <Route path="/shop/browse" element={<ProtectedRoute><ShopHome /></ProtectedRoute>} />
+      <Route path="/shop/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
+      <Route path="/shop/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
+      <Route path="/shop/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+      <Route path="/shop/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+      <Route path="/shop/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      <Route path="/shop/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
+      <Route path="/shop/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
       <Route path="/shop/group-order" element={<GroupOrder />} />
 
       {/* Earn Routes */}
-      <Route path="/earn" element={<ProtectedRoute requiredMode="earn"><EarnHome /></ProtectedRoute>} />
-      <Route path="/earn/products" element={<ProtectedRoute requiredMode="earn"><EarnProducts /></ProtectedRoute>} />
-      <Route path="/earn/product/:id" element={<ProtectedRoute requiredMode="earn"><EarnProductDetails /></ProtectedRoute>} />
-      <Route path="/earn/share/:id" element={<ProtectedRoute requiredMode="earn"><ShareProduct /></ProtectedRoute>} />
-      <Route path="/earn/dashboard" element={<ProtectedRoute requiredMode="earn"><EarningsDashboard /></ProtectedRoute>} />
-      <Route path="/earn/referrals" element={<ProtectedRoute requiredMode="earn"><Referrals /></ProtectedRoute>} />
+      <Route path="/earn" element={<ProtectedRoute><EarnHome /></ProtectedRoute>} />
+      <Route path="/earn/products" element={<ProtectedRoute><EarnProducts /></ProtectedRoute>} />
+      <Route path="/earn/product/:id" element={<ProtectedRoute><EarnProductDetails /></ProtectedRoute>} />
+      <Route path="/earn/share/:id" element={<ProtectedRoute><ShareProduct /></ProtectedRoute>} />
+      <Route path="/earn/dashboard" element={<ProtectedRoute><EarningsDashboard /></ProtectedRoute>} />
+      <Route path="/earn/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
 
-      {/* Shared Routes */}
+      {/* Account */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFound />} />

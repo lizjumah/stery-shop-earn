@@ -1,51 +1,50 @@
-import { Home, ShoppingCart, Gift, User, TrendingUp, Share2, Wallet, LayoutGrid } from "lucide-react";
+import { Home, ShoppingBag, DollarSign, Gift, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
 
-const shopNavItems = [
+const navItems = [
   { icon: Home, label: "Home", path: "/shop" },
-  { icon: ShoppingCart, label: "Shop", path: "/shop/browse" },
-  { icon: LayoutGrid, label: "Categories", path: "/shop/categories" },
-  { icon: Wallet, label: "Rewards", path: "/shop/rewards" },
-  { icon: User, label: "Profile", path: "/profile" },
-];
-
-const earnNavItems = [
-  { icon: Home, label: "Home", path: "/earn" },
-  { icon: LayoutGrid, label: "Products", path: "/earn/products" },
-  { icon: TrendingUp, label: "Earnings", path: "/earn/dashboard" },
-  { icon: Share2, label: "Referrals", path: "/earn/referrals" },
-  { icon: User, label: "Profile", path: "/profile" },
+  { icon: ShoppingBag, label: "Shop", path: "/shop/browse" },
+  { icon: DollarSign, label: "Earn", path: "/earn" },
+  { icon: Gift, label: "Rewards", path: "/shop/rewards" },
+  { icon: User, label: "Account", path: "/profile" },
 ];
 
 export const BottomNav = () => {
-  const { mode, cartItemCount } = useApp();
   const location = useLocation();
-  
-  const navItems = mode === "earn" ? earnNavItems : shopNavItems;
-  const activeColor = mode === "earn" ? "text-accent" : "text-primary";
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-50">
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive =
+            location.pathname === item.path ||
+            (item.path === "/shop" && location.pathname === "/shop") ||
+            (item.path === "/shop/browse" && location.pathname.startsWith("/shop/") && !(["/shop/rewards"].includes(location.pathname)) && location.pathname !== "/shop") ||
+            (item.path === "/earn" && location.pathname.startsWith("/earn"));
+
+          // More precise active check
+          const active =
+            item.path === "/shop"
+              ? location.pathname === "/shop"
+              : item.path === "/shop/browse"
+              ? location.pathname === "/shop/browse" || (location.pathname.startsWith("/shop/") && !["/shop", "/shop/rewards"].includes(location.pathname) && location.pathname !== "/shop/rewards")
+              : item.path === "/earn"
+              ? location.pathname.startsWith("/earn")
+              : item.path === "/shop/rewards"
+              ? location.pathname === "/shop/rewards"
+              : location.pathname === item.path;
+
           return (
             <Link
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center touch-target px-2 transition-colors relative",
-                isActive ? activeColor : "text-muted-foreground"
+                "flex flex-col items-center justify-center touch-target px-2 transition-colors",
+                active ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <item.icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
-              {item.label === "Cart" && cartItemCount > 0 && (
-                <span className="absolute -top-1 right-0 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  {cartItemCount}
-                </span>
-              )}
+              <item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
               <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
             </Link>
           );
