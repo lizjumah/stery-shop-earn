@@ -1,9 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { Product } from "@/data/products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Share2, Star } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -12,6 +13,7 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product }: ProductCardProps) => {
   const { mode, addToCart } = useApp();
+  const navigate = useNavigate();
   const isEarnMode = mode === "earn";
 
   const handleAction = (e: React.MouseEvent) => {
@@ -22,6 +24,12 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       window.location.href = `/earn/share/${product.id}`;
     } else {
       addToCart(product.id);
+      toast(`${product.name} added to cart`, {
+        action: {
+          label: "View Cart",
+          onClick: () => navigate("/shop/cart"),
+        },
+      });
     }
   };
 
