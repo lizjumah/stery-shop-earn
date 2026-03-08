@@ -199,7 +199,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     <AppContext.Provider
       value={{
         mode, setMode, cart, setCart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartItemCount,
-        orders, placeOrder,
+        orders, placeOrder, updateOrderStatus,
         loyaltyPoints, pointsHistory, addPoints, redeemPoints,
         birthday, setBirthday, birthdayBonusClaimed,
         generateCartShareCode, loadSharedCart,
