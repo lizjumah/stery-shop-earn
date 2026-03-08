@@ -1,6 +1,7 @@
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
+import { ShopHeader } from "@/components/ShopHeader";
 import { ArrowLeft, Percent } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
