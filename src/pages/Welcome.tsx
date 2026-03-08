@@ -8,7 +8,7 @@ const Welcome = () => {
 
   const handleChoice = (choice: "shop" | "earn") => {
     setMode(choice);
-    navigate(choice === "shop" ? "/shop" : "/earn");
+    navigate("/shop");
   };
 
   return (
