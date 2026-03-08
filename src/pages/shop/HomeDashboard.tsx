@@ -148,6 +148,9 @@ const HomeDashboard = () => {
           </div>
         </div>
 
+        {/* Community Activity */}
+        <CommunityActivity />
+
         {/* Recent Activity Teaser */}
         <div className="bg-card rounded-xl p-4 card-elevated border border-border">
           <div className="flex items-center justify-between mb-2">
