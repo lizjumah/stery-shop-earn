@@ -13,6 +13,7 @@ import Checkout from "./pages/shop/Checkout";
 import OrderHistory from "./pages/shop/OrderHistory";
 import Offers from "./pages/shop/Offers";
 import Rewards from "./pages/shop/Rewards";
+import GroupOrder from "./pages/shop/GroupOrder";
 import EarnHome from "./pages/earn/EarnHome";
 import EarnProducts from "./pages/earn/EarnProducts";
 import EarnProductDetails from "./pages/earn/EarnProductDetails";

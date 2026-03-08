@@ -48,19 +48,38 @@ interface AppContextType {
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  setCart: (cart: CartItem[]) => void;
   cartItemCount: number;
   orders: PlacedOrder[];
   placeOrder: (order: PlacedOrder) => void;
-  // Loyalty
   loyaltyPoints: number;
   pointsHistory: PointsHistoryEntry[];
   addPoints: (label: string, points: number, type?: "earned" | "bonus") => void;
   redeemPoints: (points: number, label: string) => boolean;
-  // Birthday
   birthday: string;
   setBirthday: (date: string) => void;
   birthdayBonusClaimed: boolean;
+  generateCartShareCode: () => string;
+  loadSharedCart: (code: string) => boolean;
 }
+
+// Encode cart as a compact base64 string for URL sharing
+const encodeCart = (cart: CartItem[]): string => {
+  const data = cart.map((c) => `${c.productId}:${c.quantity}`).join(",");
+  return btoa(data);
+};
+
+const decodeCart = (code: string): CartItem[] => {
+  try {
+    const data = atob(code);
+    return data.split(",").map((item) => {
+      const [productId, qty] = item.split(":");
+      return { productId, quantity: parseInt(qty, 10) };
+    }).filter((i) => i.productId && !isNaN(i.quantity));
+  } catch {
+    return [];
+  }
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -78,10 +97,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [birthdayBonusClaimed, setBirthdayBonusClaimed] = useState(false);
   const [firstOrderBonusGiven, setFirstOrderBonusGiven] = useState(false);
 
-  // Birthday bonus check
   useEffect(() => {
     if (!birthday || birthdayBonusClaimed) return;
-    const today = new Date().toISOString().slice(5, 10); // MM-DD
+    const today = new Date().toISOString().slice(5, 10);
     const bday = birthday.slice(5, 10);
     if (today === bday) {
       setLoyaltyPoints((p) => p + 50);
@@ -99,9 +117,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const existing = prev.find((item) => item.productId === productId);
       if (existing) {
         return prev.map((item) =>
-          item.productId === productId
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
       return [...prev, { productId, quantity: 1 }];
@@ -113,19 +129,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setCart((prev) =>
-      prev.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
-      )
-    );
+    if (quantity <= 0) { removeFromCart(productId); return; }
+    setCart((prev) => prev.map((item) => item.productId === productId ? { ...item, quantity } : item));
   };
 
   const clearCart = () => setCart([]);
-
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const addPoints = (label: string, points: number, type: "earned" | "bonus" = "earned") => {
@@ -148,37 +156,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const placeOrder = (order: PlacedOrder) => {
     setOrders((prev) => [order, ...prev]);
-
-    // Earn points: KSh 100 = 1 point
     const earnedPoints = Math.floor(order.total / 100);
-    if (earnedPoints > 0) {
-      addPoints(`Order ${order.orderNumber}`, earnedPoints);
-    }
-
-    // Basket unlock bonus points
-    if (order.total >= 2000) {
-      addPoints(`Basket Bonus (KSh 2,000+)`, 30, "bonus");
-    } else if (order.total >= 1000) {
-      addPoints(`Basket Bonus (KSh 1,000+)`, 10, "bonus");
-    }
-
-    // First order bonus
+    if (earnedPoints > 0) addPoints(`Order ${order.orderNumber}`, earnedPoints);
+    if (order.total >= 2000) addPoints(`Basket Bonus (KSh 2,000+)`, 30, "bonus");
+    else if (order.total >= 1000) addPoints(`Basket Bonus (KSh 1,000+)`, 10, "bonus");
     if (!firstOrderBonusGiven && orders.length === 0) {
       addPoints("🎉 First App Order Bonus", 20, "bonus");
       setFirstOrderBonusGiven(true);
-      setTimeout(() => {
-        toast.success("🎉 Congratulations! You earned 20 bonus points for your first app order.");
-      }, 500);
+      setTimeout(() => toast.success("🎉 Congratulations! You earned 20 bonus points for your first app order."), 500);
     }
+  };
+
+  const generateCartShareCode = (): string => encodeCart(cart);
+
+  const loadSharedCart = (code: string): boolean => {
+    const items = decodeCart(code);
+    if (items.length === 0) return false;
+    // Merge shared items into current cart
+    setCart((prev) => {
+      const merged = [...prev];
+      items.forEach((newItem) => {
+        const existing = merged.find((m) => m.productId === newItem.productId);
+        if (existing) {
+          existing.quantity += newItem.quantity;
+        } else {
+          merged.push({ ...newItem });
+        }
+      });
+      return merged;
+    });
+    return true;
   };
 
   return (
     <AppContext.Provider
       value={{
-        mode, setMode, cart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartItemCount,
+        mode, setMode, cart, setCart, addToCart, removeFromCart, updateCartQuantity, clearCart, cartItemCount,
         orders, placeOrder,
         loyaltyPoints, pointsHistory, addPoints, redeemPoints,
         birthday, setBirthday, birthdayBonusClaimed,
+        generateCartShareCode, loadSharedCart,
       }}
     >
       {children}
