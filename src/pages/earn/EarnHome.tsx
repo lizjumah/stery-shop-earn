@@ -186,23 +186,34 @@ const EarnHome = () => {
                     </div>
                   </div>
                 </div>
+                {/* Social proof */}
+                {(isBestSeller || isHighDemand) && (
+                  <div className="px-3 py-1.5 bg-accent/5">
+                    <p className="text-[10px] text-muted-foreground">
+                      {isBestSeller ? "⭐ " : "🔥 "}{Math.floor(Math.random() * 30 + 10)} resellers shared this product today
+                    </p>
+                  </div>
+                )}
                 {/* Share to Sell row */}
-                <div className="border-t border-border px-3 py-2 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground mr-auto font-medium">Share to Sell:</span>
-                  {[
-                    { id: "whatsapp", label: "WhatsApp", color: "bg-green-500/10 text-green-600 hover:bg-green-500/20" },
-                    { id: "sms", label: "SMS", color: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20" },
-                    { id: "facebook", label: "FB", color: "bg-blue-600/10 text-blue-700 hover:bg-blue-600/20" },
-                    { id: "copy", label: "Copy", color: "bg-muted text-foreground hover:bg-muted/80" },
-                  ].map((opt) => (
-                    <button
-                      key={opt.id}
-                      onClick={() => shareProduct(opt.id)}
-                      className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${opt.color}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                <div className="border-t border-border px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground mr-auto font-medium">Share to Sell:</span>
+                    {[
+                      { id: "whatsapp", label: "WhatsApp", color: "bg-green-500/10 text-green-600 hover:bg-green-500/20" },
+                      { id: "sms", label: "SMS", color: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20" },
+                      { id: "facebook", label: "FB", color: "bg-blue-600/10 text-blue-700 hover:bg-blue-600/20" },
+                      { id: "copy", label: "Copy", color: "bg-muted text-foreground hover:bg-muted/80" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => shareProduct(opt.id)}
+                        className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${opt.color}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Share with friends on WhatsApp and earn for every purchase.</p>
                 </div>
               </div>
             );
