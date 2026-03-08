@@ -30,6 +30,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           onClick: () => navigate("/shop/cart"),
         },
       });
+    }
+  };
 
   return (
     <Link to={isEarnMode ? `/earn/product/${product.id}` : `/shop/product/${product.id}`}>
