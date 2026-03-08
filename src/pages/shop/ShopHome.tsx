@@ -96,6 +96,9 @@ const ShopHome = () => {
           {/* 3. Buy Again */}
           <BuyAgainSection />
 
+          {/* Quick Grocery Bundles */}
+          <QuickBundlesSection />
+
           {/* 4. Weekly Essentials */}
           <WeeklyEssentialsSection />
 

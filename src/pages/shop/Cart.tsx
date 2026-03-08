@@ -146,11 +146,27 @@ const Cart = () => {
           {nextMilestone && (
             <div className="mt-3 bg-primary/5 rounded-lg p-2.5">
               <p className="text-sm text-primary font-medium">
-                🎯 Add KSh {(nextMilestone.threshold - subtotal).toLocaleString()} more to earn {nextMilestone.label}!
+                🎯 Add KSh {(nextMilestone.threshold - subtotal).toLocaleString()} more to {nextMilestone.threshold === 3000 ? "unlock" : "earn"} {nextMilestone.label}!
               </p>
             </div>
           )}
         </div>
+
+        {/* Smart progress messages */}
+        {subtotal > 0 && subtotal < 3000 && deliveryOption === "delivery" && (
+          <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 mb-4">
+            <p className="text-sm text-accent font-medium">
+              🚚 Add KSh {(3000 - subtotal).toLocaleString()} more to unlock <strong>FREE delivery</strong>!
+            </p>
+          </div>
+        )}
+        {subtotal > 0 && subtotal < 1000 && (
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-4">
+            <p className="text-sm text-primary font-medium">
+              ⭐ Add KSh {(1000 - subtotal).toLocaleString()} more to earn <strong>bonus loyalty points</strong>!
+            </p>
+          </div>
+        )}
 
         {/* Delivery Option */}
         <h2 className="font-semibold text-foreground mb-3">Delivery Option</h2>

@@ -153,6 +153,8 @@ const ProductDetails = () => {
             </button>
           </div>
         </div>
+        {/* Frequently Bought Together */}
+        <FrequentlyBoughtTogether productId={product.id} />
       </div>
 
       {/* Fixed Bottom Button */}
