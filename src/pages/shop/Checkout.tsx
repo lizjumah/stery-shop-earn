@@ -7,11 +7,20 @@ import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check } from "lucide-react
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+const DELIVERY_AREAS = [
+  { name: "Bungoma Town", fee: 100 },
+  { name: "Kanduyi", fee: 200 },
+  { name: "Naitiri", fee: 200 },
+  { name: "Chwele", fee: 200 },
+];
+const FREE_DELIVERY_THRESHOLD = 3000;
+
 const Checkout = () => {
   const { cart, clearCart, placeOrder } = useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const deliveryOption = (searchParams.get("delivery") as "delivery" | "pickup") || "delivery";
+  const deliveryArea = searchParams.get("area") || "Bungoma Town";
 
   const [name, setName] = useState(userData.name);
   const [phone, setPhone] = useState(userData.phone);
@@ -31,7 +40,10 @@ const Checkout = () => {
   }).filter((item) => item.product);
 
   const subtotal = cartProducts.reduce((sum, item) => sum + (item.product!.price * item.quantity), 0);
-  const deliveryFee = deliveryOption === "delivery" ? 100 : 0;
+  const selectedArea = DELIVERY_AREAS.find((a) => a.name === deliveryArea);
+  const rawDeliveryFee = deliveryOption === "delivery" ? (selectedArea?.fee ?? 100) : 0;
+  const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD && deliveryOption === "delivery";
+  const deliveryFee = freeDelivery ? 0 : rawDeliveryFee;
   const total = subtotal + deliveryFee;
   const totalPoints = cartProducts.reduce((sum, item) => sum + (item.product!.loyaltyPoints * item.quantity), 0);
 
@@ -83,6 +95,9 @@ const Checkout = () => {
 
     // Send order to WhatsApp
     const itemsList = orderItems.map((i) => `• ${i.name} × ${i.quantity} — KSh ${i.price * i.quantity}`).join("\n");
+    const deliveryInfo = deliveryOption === "delivery"
+      ? `📍 *Delivery Area:* ${deliveryArea}\n📍 *Location:* ${location}${freeDelivery ? "\n🎉 *Free Delivery*" : `\n🚚 *Delivery Fee:* KSh ${deliveryFee}`}`
+      : `🏪 *Pickup at Store*`;
     const whatsappMessage = [
       `🛒 *New Order: ${num}*`,
       ``,
@@ -94,7 +109,7 @@ const Checkout = () => {
       ``,
       `💰 *Total:* KSh ${total}`,
       `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
-      deliveryOption === "delivery" ? `📍 *Delivery Location:* ${location}` : `🏪 *Pickup at Store*`,
+      deliveryInfo,
       notes ? `📝 *Notes:* ${notes}` : "",
     ].filter(Boolean).join("\n");
 
@@ -123,7 +138,7 @@ const Checkout = () => {
           </p>
         )}
         <p className="text-sm text-muted-foreground text-center mb-2">
-          {deliveryOption === "delivery" ? "We'll deliver to your location." : "Ready for pickup at our store."}
+          {deliveryOption === "delivery" ? `We'll deliver to ${deliveryArea}.` : "Ready for pickup at our store."}
         </p>
         <p className="text-sm text-primary font-semibold mb-6">+{totalPoints} loyalty points earned! 🎉</p>
         <Button onClick={() => navigate("/shop")} className="bg-primary hover:bg-primary/90 w-full max-w-xs">
@@ -156,6 +171,17 @@ const Checkout = () => {
           </div>
           {deliveryOption === "delivery" && (
             <>
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">Delivery Area</p>
+                <p className="font-semibold text-foreground">{deliveryArea}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {freeDelivery ? (
+                    <span className="text-accent font-medium">🎉 Free delivery (order above KSh {FREE_DELIVERY_THRESHOLD.toLocaleString()})</span>
+                  ) : (
+                    `Delivery fee: KSh ${deliveryFee}`
+                  )}
+                </p>
+              </div>
               <div>
                 <label className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />Delivery Location</label>
                 <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -185,7 +211,6 @@ const Checkout = () => {
               </div>
             </button>
 
-            {/* M-Pesa Paybill Details */}
             {paymentMethod === "mpesa" && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-4 mt-2">
                 <h3 className="font-semibold text-foreground text-center">M-Pesa Payment Details</h3>
@@ -287,9 +312,26 @@ const Checkout = () => {
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal</span><span>KSh {subtotal}</span>
             </div>
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Delivery</span><span>{deliveryFee === 0 ? "Free" : `KSh ${deliveryFee}`}</span>
-            </div>
+            {deliveryOption === "delivery" && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Delivery ({deliveryArea})</span>
+                <span>
+                  {freeDelivery ? (
+                    <span className="text-accent font-medium">Free <span className="line-through text-muted-foreground/60 ml-1">KSh {rawDeliveryFee}</span></span>
+                  ) : (
+                    `KSh ${deliveryFee}`
+                  )}
+                </span>
+              </div>
+            )}
+            {deliveryOption === "pickup" && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Pickup</span><span className="text-accent font-medium">Free</span>
+              </div>
+            )}
+            {freeDelivery && (
+              <p className="text-xs text-accent font-medium">🎉 Free delivery on orders above KSh {FREE_DELIVERY_THRESHOLD.toLocaleString()}</p>
+            )}
             <div className="flex justify-between font-bold text-foreground text-lg pt-1">
               <span>Total</span><span>KSh {total}</span>
             </div>
