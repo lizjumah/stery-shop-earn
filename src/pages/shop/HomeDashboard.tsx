@@ -19,7 +19,7 @@ const getGreeting = () => {
 const NEXT_REWARD_AT = 100;
 
 const quickActions = [
-  { icon: ShoppingBag, label: "Shop Groceries", emoji: "🛒", path: "/shop", color: "bg-primary/10 text-primary" },
+  { icon: ShoppingBag, label: "Shop Groceries", emoji: "🛒", path: "/shop/browse", color: "bg-primary/10 text-primary" },
   { icon: DollarSign, label: "Stery Earn", emoji: "💰", path: "/earn", color: "bg-accent/10 text-accent" },
   { icon: Gift, label: "Rewards Wallet", emoji: "🎁", path: "/shop/rewards", color: "bg-purple-500/10 text-purple-600" },
   { icon: Flame, label: "Today's Deals", emoji: "🔥", path: "/shop/offers", color: "bg-destructive/10 text-destructive" },
