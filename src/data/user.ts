@@ -39,7 +39,7 @@ export interface Order {
   orderNumber: string;
   items: { productId: string; name: string; quantity: number; price: number }[];
   total: number;
-  status: "pending" | "delivered" | "cancelled";
+  status: "received" | "preparing" | "out_for_delivery" | "delivered" | "cancelled";
   date: string;
   deliveryOption: "delivery" | "pickup";
   pointsEarned: number;
