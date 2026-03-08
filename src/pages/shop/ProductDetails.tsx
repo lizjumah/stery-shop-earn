@@ -28,7 +28,16 @@ const ProductDetails = () => {
     for (let i = 0; i < quantity; i++) {
       addToCart(product.id);
     }
-    toast.success(`${quantity} x ${product.name} added to cart!`);
+    toast("Item added to cart.", {
+      action: {
+        label: "View Cart",
+        onClick: () => navigate("/shop/cart"),
+      },
+      cancel: {
+        label: "Continue Shopping",
+        onClick: () => {},
+      },
+    });
   };
 
   return (

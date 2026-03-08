@@ -24,10 +24,14 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       window.location.href = `/earn/share/${product.id}`;
     } else {
       addToCart(product.id);
-      toast(`${product.name} added to cart`, {
+      toast("Item added to cart.", {
         action: {
           label: "View Cart",
           onClick: () => navigate("/shop/cart"),
+        },
+        cancel: {
+          label: "Continue Shopping",
+          onClick: () => {},
         },
       });
     }
