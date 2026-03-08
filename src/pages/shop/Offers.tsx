@@ -12,16 +12,8 @@ const Offers = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="bg-destructive px-4 pt-6 pb-8 rounded-b-3xl">
-        <div className="flex items-center gap-4 mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="bg-white/20 rounded-full p-2"
-          >
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </button>
-          <h1 className="text-white text-xl font-bold">Today's Offers</h1>
-        </div>
+      <ShopHeader title="Today's Offers" showBack />
+      <div className="bg-destructive mx-4 rounded-xl px-4 pt-4 pb-6 -mt-2 mb-2">
         
         <div className="bg-white/20 rounded-xl p-4 flex items-center gap-3">
           <div className="bg-white rounded-full p-3">
