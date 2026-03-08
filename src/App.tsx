@@ -12,6 +12,8 @@ import ProductDetails from "./pages/shop/ProductDetails";
 import Cart from "./pages/shop/Cart";
 import Checkout from "./pages/shop/Checkout";
 import OrderHistory from "./pages/shop/OrderHistory";
+import OrderTracker from "./pages/shop/OrderTracker";
+import AdminOrders from "./pages/admin/AdminOrders";
 import Offers from "./pages/shop/Offers";
 import Rewards from "./pages/shop/Rewards";
 import GroupOrder from "./pages/shop/GroupOrder";
