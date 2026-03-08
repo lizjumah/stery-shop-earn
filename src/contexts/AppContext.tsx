@@ -15,12 +15,14 @@ interface OrderItem {
   price: number;
 }
 
+export type OrderStatus = "received" | "preparing" | "out_for_delivery" | "delivered" | "cancelled";
+
 interface PlacedOrder {
   id: string;
   orderNumber: string;
   items: OrderItem[];
   total: number;
-  status: "pending" | "delivered" | "cancelled";
+  status: OrderStatus;
   date: string;
   deliveryOption: "delivery" | "pickup";
   pointsEarned: number;
