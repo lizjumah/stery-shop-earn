@@ -41,6 +41,14 @@ const ProductDetails = () => {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
+        <Link to="/shop/cart" className="absolute top-4 right-4 z-10 bg-card/80 backdrop-blur rounded-full p-2">
+          <ShoppingCart className="w-6 h-6" />
+          {cartItemCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {cartItemCount}
+            </span>
+          )}
+        </Link>
         <img
           src={product.image}
           alt={product.name}
