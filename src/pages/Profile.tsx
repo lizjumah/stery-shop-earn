@@ -3,7 +3,7 @@ import { useApp } from "@/contexts/AppContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import {
-  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList, Cake
+  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList, Cake, Shield
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 
