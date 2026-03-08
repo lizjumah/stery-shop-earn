@@ -2,18 +2,10 @@ import { userData } from "@/data/user";
 import { useApp } from "@/contexts/AppContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
-import { 
-  User, 
-  Phone, 
-  MapPin, 
-  ChevronRight, 
-  LogOut, 
-  HelpCircle, 
-  Settings,
-  Star,
-  TrendingUp
+import {
+  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -30,37 +22,36 @@ const Profile = () => {
     navigate("/");
   };
 
-  const menuItems = [
-    { icon: MapPin, label: "Delivery Addresses", path: "/profile/addresses" },
-    { icon: Settings, label: "Settings", path: "/profile/settings" },
-    { icon: HelpCircle, label: "Help & Support", path: "/profile/help" },
-  ];
-
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className={`px-4 pt-6 pb-8 rounded-b-3xl ${mode === "earn" ? "gradient-earn" : "gradient-shop"}`}>
         <h1 className="text-white text-xl font-bold mb-6">Profile</h1>
 
-        {/* Profile Card */}
         <div className="bg-white rounded-2xl p-4 card-elevated">
           <div className="flex items-center gap-4">
-            <div className={`rounded-full w-16 h-16 flex items-center justify-center ${
-              mode === "earn" ? "bg-accent/10" : "bg-primary/10"
-            }`}>
+            <div className={`rounded-full w-16 h-16 flex items-center justify-center ${mode === "earn" ? "bg-accent/10" : "bg-primary/10"}`}>
               <User className={`w-8 h-8 ${mode === "earn" ? "text-accent" : "text-primary"}`} />
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-bold text-foreground">{userData.name}</h2>
-              <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                <Phone className="w-3 h-3" />
-                <span>{userData.phone}</span>
-              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{userData.phone}</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{userData.email}</p>
             </div>
           </div>
 
+          <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="w-3 h-3" />
+            <span>{userData.address}</span>
+          </div>
+
+          <div className="mt-3 bg-secondary rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">User Type: </span>
+            <span className="text-xs font-semibold text-foreground">{mode === "earn" ? "Reseller" : "Customer"}</span>
+          </div>
+
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="grid grid-cols-2 gap-3 mt-3">
             {mode === "shop" ? (
               <>
                 <div className="bg-primary/5 rounded-lg p-3 text-center">
@@ -78,7 +69,7 @@ const Profile = () => {
               <>
                 <div className="bg-accent/5 rounded-lg p-3 text-center">
                   <TrendingUp className="w-5 h-5 text-accent mx-auto mb-1" />
-                  <p className="text-lg font-bold text-foreground">KSh {userData.totalEarnings}</p>
+                  <p className="text-lg font-bold text-foreground">KSh {userData.totalEarnings.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">Earned</p>
                 </div>
                 <div className="bg-accent/5 rounded-lg p-3 text-center">
@@ -94,49 +85,44 @@ const Profile = () => {
 
       <div className="px-4 mt-6">
         {/* Switch Mode */}
-        <Button
-          onClick={handleSwitchMode}
-          variant="outline"
-          className="w-full h-14 mb-6 justify-between"
-        >
-          <span className="font-medium">
-            Switch to {mode === "shop" ? "Earn" : "Shop"} Mode
-          </span>
+        <Button onClick={handleSwitchMode} variant="outline" className="w-full h-14 mb-4 justify-between">
+          <span className="font-medium">Switch to {mode === "shop" ? "Earn" : "Shop"} Mode</span>
           <ChevronRight className="w-5 h-5" />
         </Button>
 
-        {/* Menu Items */}
-        <div className="bg-card rounded-xl overflow-hidden card-elevated mb-6">
-          {menuItems.map((item, index) => (
-            <button
-              key={item.path}
-              className={`w-full flex items-center gap-4 p-4 hover:bg-secondary transition-colors ${
-                index !== menuItems.length - 1 ? "border-b border-border" : ""
-              }`}
-            >
+        {/* Menu */}
+        <div className="bg-card rounded-xl overflow-hidden card-elevated mb-4">
+          <Link to="/shop/orders" className="w-full flex items-center gap-4 p-4 hover:bg-secondary transition-colors border-b border-border">
+            <ClipboardList className="w-5 h-5 text-muted-foreground" />
+            <span className="flex-1 text-left font-medium text-foreground">Order History</span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </Link>
+          {[
+            { icon: MapPin, label: "Delivery Addresses" },
+            { icon: Settings, label: "Settings" },
+            { icon: HelpCircle, label: "Help & Support" },
+          ].map((item, i) => (
+            <button key={i} className={`w-full flex items-center gap-4 p-4 hover:bg-secondary transition-colors ${i < 2 ? "border-b border-border" : ""}`}>
               <item.icon className="w-5 h-5 text-muted-foreground" />
-              <span className="flex-1 text-left font-medium text-foreground">
-                {item.label}
-              </span>
+              <span className="flex-1 text-left font-medium text-foreground">{item.label}</span>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
           ))}
         </div>
 
+        {/* Edit Profile */}
+        <Button variant="outline" className="w-full h-12 mb-3">Edit Profile</Button>
+
         {/* Logout */}
         <Button
           onClick={handleLogout}
           variant="outline"
-          className="w-full h-14 text-destructive border-destructive/30 hover:bg-destructive/10"
+          className="w-full h-12 text-destructive border-destructive/30 hover:bg-destructive/10"
         >
-          <LogOut className="w-5 h-5 mr-2" />
-          Log Out
+          <LogOut className="w-5 h-5 mr-2" />Log Out
         </Button>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-muted-foreground mt-8">
-          Stery Kenya v1.0.0
-        </p>
+        <p className="text-center text-xs text-muted-foreground mt-6">Stery Kenya v1.0.0 🇰🇪</p>
       </div>
 
       <BottomNav />
