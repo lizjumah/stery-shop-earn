@@ -13,6 +13,7 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product }: ProductCardProps) => {
   const { mode, addToCart } = useApp();
+  const navigate = useNavigate();
   const isEarnMode = mode === "earn";
 
   const handleAction = (e: React.MouseEvent) => {
