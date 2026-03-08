@@ -25,6 +25,7 @@ import EarningsDashboard from "./pages/earn/EarningsDashboard";
 import Referrals from "./pages/earn/Referrals";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import { FloatingCart } from "./components/FloatingCart";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <FloatingCart />
           <AppRoutes />
         </BrowserRouter>
       </AppProvider>
