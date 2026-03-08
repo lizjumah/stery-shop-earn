@@ -98,6 +98,37 @@ const EarnHome = () => {
           </div>
         </div>
 
+        {/* Share & Earn Button + Menu */}
+        <div className="mb-6 relative">
+          <Button
+            className="w-full h-14 bg-accent hover:bg-accent/90 text-lg font-bold rounded-xl"
+            onClick={() => setShowShareMenu((v) => !v)}
+          >
+            <Share2 className="w-5 h-5 mr-2" />
+            Share & Earn
+          </Button>
+          {showShareMenu && (
+            <div className="mt-2 bg-card rounded-xl border border-border card-elevated p-3 space-y-2 animate-fade-in">
+              <p className="text-xs text-muted-foreground mb-2">Invite friends and earn rewards 🎉</p>
+              {[
+                { id: "whatsapp", label: "WhatsApp", icon: <MessageCircle className="w-4 h-4" />, color: "bg-green-500/10 text-green-600" },
+                { id: "sms", label: "SMS", icon: <Smartphone className="w-4 h-4" />, color: "bg-blue-500/10 text-blue-600" },
+                { id: "facebook", label: "Facebook", icon: <Facebook className="w-4 h-4" />, color: "bg-blue-600/10 text-blue-700" },
+                { id: "copy", label: "Copy Link", icon: <LinkIcon className="w-4 h-4" />, color: "bg-muted text-foreground" },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => shareVia(opt.id)}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <div className={`rounded-full p-2 ${opt.color}`}>{opt.icon}</div>
+                  <span className="font-medium text-sm text-foreground">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Top Products to Resell */}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-foreground">🔥 Top Products to Resell</h2>
