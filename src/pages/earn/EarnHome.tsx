@@ -6,13 +6,37 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2, MessageCircle, Smartphone, Facebook, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { useState } from "react";
+
+const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${userData.referralLink}`;
 
 const EarnHome = () => {
   const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 4);
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(userData.referralLink);
     toast.success("Referral link copied!");
+  };
+
+  const shareVia = (channel: string) => {
+    const encoded = encodeURIComponent(SHARE_MESSAGE);
+    setShowShareMenu(false);
+    switch (channel) {
+      case "whatsapp":
+        window.open(`https://wa.me/?text=${encoded}`, "_blank");
+        break;
+      case "sms":
+        window.open(`sms:?body=${encoded}`, "_blank");
+        break;
+      case "facebook":
+        window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encoded}&u=${encodeURIComponent(userData.referralLink)}`, "_blank");
+        break;
+      case "copy":
+        navigator.clipboard.writeText(SHARE_MESSAGE);
+        toast.success("Message copied to clipboard!");
+        break;
+    }
   };
 
   return (
