@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { products, categories } from "@/data/products";
-import { userData } from "@/data/user";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
 import { useApp } from "@/contexts/AppContext";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { Search, Star, ChevronRight, ShoppingCart, ShoppingBag, Zap, Baby, Home as HomeIcon, Gem } from "lucide-react";
 import { Link } from "react-router-dom";
