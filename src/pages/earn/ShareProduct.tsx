@@ -11,6 +11,8 @@ const ShareProduct = () => {
   const { customer } = useCustomer();
   const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
 
+  const product = products.find((p) => p.id === id);
+
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
