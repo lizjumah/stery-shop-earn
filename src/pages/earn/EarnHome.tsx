@@ -65,7 +65,7 @@ const EarnHome = () => {
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Clock className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh {userData.pendingEarnings}</p>
+            <p className="text-white font-bold text-sm">KSh 0</p>
             <p className="text-white/70 text-[10px]">Pending</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
