@@ -3,7 +3,7 @@ import { useApp } from "@/contexts/AppContext";
 import { products } from "@/data/products";
 import { userData } from "@/data/user";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, MessageCircle, Loader2, ShoppingBag } from "lucide-react";
+import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, Loader2, ShoppingBag } from "lucide-react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 
