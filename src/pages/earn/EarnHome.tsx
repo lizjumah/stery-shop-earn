@@ -1,4 +1,3 @@
-import { userData } from "@/data/user";
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
@@ -7,10 +6,13 @@ import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2, MessageCi
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useState } from "react";
-
-const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${userData.referralLink}`;
+import { useCustomer } from "@/contexts/CustomerContext";
 
 const EarnHome = () => {
+  const { customer } = useCustomer();
+  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
+  const referralLink = `https://stery.ke/ref/${referralCode}`;
+  const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${referralLink}`;
   const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
