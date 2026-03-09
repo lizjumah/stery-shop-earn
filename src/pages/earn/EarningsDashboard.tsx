@@ -47,7 +47,7 @@ const EarningsDashboard = () => {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white rounded-xl p-3 card-elevated text-center">
             <Wallet className="w-4 h-4 text-accent mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground">KSh {userData.totalEarnings.toLocaleString()}</p>
+            <p className="text-lg font-bold text-foreground">KSh {(paidTotal + pendingTotal).toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">Total Earned</p>
           </div>
           <div className="bg-white rounded-xl p-3 card-elevated text-center">
