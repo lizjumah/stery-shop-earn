@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { products } from "@/data/products";
 import { userData } from "@/data/user";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, MessageCircle } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, MessageCircle, Loader2, ShoppingBag } from "lucide-react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 
 const DELIVERY_AREAS = [
@@ -32,11 +32,35 @@ const Checkout = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [applyPoints, setApplyPoints] = useState(false);
   const [pointsToApply, setPointsToApply] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
-  const cartProducts = cart.map((item) => {
-    const product = products.find((p) => p.id === item.productId);
-    return { ...item, product };
-  }).filter((item) => item.product);
+  // Simulate a brief loading state for smooth transition from cart
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        setIsLoading(false);
+      } catch {
+        setHasError(true);
+        setIsLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Resolve cart items safely
+  const cartProducts = (() => {
+    try {
+      return cart
+        .map((item) => {
+          const product = products.find((p) => p.id === item.productId);
+          return { ...item, product };
+        })
+        .filter((item) => item.product);
+    } catch {
+      return [];
+    }
+  })();
 
   const subtotal = cartProducts.reduce((sum, item) => sum + (item.product!.price * item.quantity), 0);
   const selectedArea = DELIVERY_AREAS.find((a) => a.name === deliveryArea);
@@ -62,7 +86,7 @@ const Checkout = () => {
   };
 
   const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => {});
     setCopiedField(field);
     toast("Copied to clipboard");
     setTimeout(() => setCopiedField(null), 2000);
@@ -95,63 +119,104 @@ const Checkout = () => {
       return;
     }
 
-    const num = `STR-${String(Date.now()).slice(-4)}`;
-    setOrderNumber(num);
+    try {
+      const num = `STR-${String(Date.now()).slice(-4)}`;
+      setOrderNumber(num);
 
-    const orderItems = cartProducts.map((item) => ({
-      productId: item.productId,
-      name: item.product!.name,
-      quantity: item.quantity,
-      price: item.product!.price,
-    }));
+      const orderItems = cartProducts.map((item) => ({
+        productId: item.productId,
+        name: item.product!.name,
+        quantity: item.quantity,
+        price: item.product!.price,
+      }));
 
-    if (pointsDiscount > 0) {
-      redeemPoints(pointsDiscount, `Redeemed on Order ${num}`);
+      if (pointsDiscount > 0) {
+        redeemPoints(pointsDiscount, `Redeemed on Order ${num}`);
+      }
+
+      placeOrder({
+        id: Date.now().toString(),
+        orderNumber: num,
+        items: orderItems,
+        total,
+        status: "received",
+        date: new Date().toISOString().split("T")[0],
+        deliveryOption,
+        pointsEarned: earnedPoints,
+        customerName: userData.name,
+        phone,
+        location,
+        paymentMethod,
+        pointsRedeemed: pointsDiscount,
+      });
+
+      const itemsList = orderItems.map((i) => `• ${i.name} × ${i.quantity} — KSh ${i.price * i.quantity}`).join("\n");
+      const deliveryInfo = deliveryOption === "delivery"
+        ? `📍 *Delivery Area:* ${deliveryArea}\n📍 *Location:* ${location}${freeDelivery ? "\n🎉 *Free Delivery*" : `\n🚚 *Delivery Fee:* KSh ${deliveryFee}`}`
+        : `🏪 *Pickup at Store*`;
+      const pointsInfo = pointsDiscount > 0 ? `\n🎁 *Points Redeemed:* ${pointsDiscount} pts (- KSh ${pointsDiscount})` : "";
+      const whatsappMessage = [
+        `🛒 *New Order: ${num}*`,
+        ``,
+        `📞 *Phone:* ${phone}`,
+        ``,
+        `📦 *Items Ordered:*`,
+        itemsList,
+        ``,
+        `💰 *Total:* KSh ${total}`,
+        `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
+        pointsInfo,
+        deliveryInfo,
+      ].filter(Boolean).join("\n");
+
+      const whatsappUrl = `https://wa.me/254794560657?text=${encodeURIComponent(whatsappMessage)}`;
+      window.open(whatsappUrl, "_blank");
+
+      clearCart();
+      setOrderPlaced(true);
+    } catch {
+      toast.error("Something went wrong placing your order. Please try again.");
     }
-
-    placeOrder({
-      id: Date.now().toString(),
-      orderNumber: num,
-      items: orderItems,
-      total,
-      status: "received",
-      date: new Date().toISOString().split("T")[0],
-      deliveryOption,
-      pointsEarned: earnedPoints,
-      customerName: userData.name,
-      phone,
-      location,
-      paymentMethod,
-      pointsRedeemed: pointsDiscount,
-    });
-
-    // Send order to WhatsApp
-    const itemsList = orderItems.map((i) => `• ${i.name} × ${i.quantity} — KSh ${i.price * i.quantity}`).join("\n");
-    const deliveryInfo = deliveryOption === "delivery"
-      ? `📍 *Delivery Area:* ${deliveryArea}\n📍 *Location:* ${location}${freeDelivery ? "\n🎉 *Free Delivery*" : `\n🚚 *Delivery Fee:* KSh ${deliveryFee}`}`
-      : `🏪 *Pickup at Store*`;
-    const pointsInfo = pointsDiscount > 0 ? `\n🎁 *Points Redeemed:* ${pointsDiscount} pts (- KSh ${pointsDiscount})` : "";
-    const whatsappMessage = [
-      `🛒 *New Order: ${num}*`,
-      ``,
-      `📞 *Phone:* ${phone}`,
-      ``,
-      `📦 *Items Ordered:*`,
-      itemsList,
-      ``,
-      `💰 *Total:* KSh ${total}`,
-      `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
-      pointsInfo,
-      deliveryInfo,
-    ].filter(Boolean).join("\n");
-
-    const whatsappUrl = `https://wa.me/254794560657?text=${encodeURIComponent(whatsappMessage)}`;
-    window.open(whatsappUrl, "_blank");
-
-    clearCart();
-    setOrderPlaced(true);
   };
 
+  // Loading spinner
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground text-sm font-medium">Loading checkout…</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-4">
+        <p className="text-xl font-bold text-foreground">Something went wrong</p>
+        <p className="text-muted-foreground text-sm">Something went wrong loading checkout. Please try again.</p>
+        <Button onClick={() => navigate(-1)} className="bg-primary hover:bg-primary/90">Go Back</Button>
+      </div>
+    );
+  }
+
+  // Empty or incomplete cart guard
+  if (cartProducts.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-4">
+        <div className="bg-secondary rounded-full p-6">
+          <ShoppingBag className="w-12 h-12 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Cart is empty or incomplete</h2>
+        <p className="text-muted-foreground text-sm">Your cart is empty or incomplete. Please add items before checking out.</p>
+        <Link to="/shop">
+          <Button className="bg-primary hover:bg-primary/90">Continue Shopping</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // Order placed success screen
   if (orderPlaced) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
@@ -167,10 +232,10 @@ const Checkout = () => {
         ) : (
           <p className="text-sm text-muted-foreground text-center mb-2">Pay when your order is delivered.</p>
         )}
-        <p className="text-sm text-muted-foreground text-center mb-2">
+        <p className="text-sm text-muted-foreground text-center mb-4">
           {deliveryOption === "delivery" ? `We'll deliver to ${deliveryArea}.` : "Ready for pickup at our store."}
         </p>
-        <div className="bg-primary/10 rounded-xl p-4 mb-4 text-center">
+        <div className="bg-primary/10 rounded-xl p-4 mb-6 text-center w-full max-w-xs">
           <p className="text-primary font-semibold">+{earnedPoints} loyalty points earned! 🎉</p>
           {pointsDiscount > 0 && (
             <p className="text-sm text-muted-foreground mt-1">You saved KSh {pointsDiscount} with loyalty points</p>
@@ -184,7 +249,7 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-6">
+    <div className="min-h-screen bg-background pb-10">
       <div className="px-4 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="bg-secondary rounded-full p-2">
           <ArrowLeft className="w-5 h-5" />
@@ -193,7 +258,7 @@ const Checkout = () => {
       </div>
 
       <div className="px-4 space-y-4">
-        {/* Order Summary — shown first for clarity */}
+        {/* Order Summary */}
         <div className="bg-card rounded-xl p-4 card-elevated">
           <h2 className="font-semibold text-foreground mb-3">Order Summary</h2>
           {cartProducts.map(({ productId, quantity, product }) => (
@@ -242,9 +307,7 @@ const Checkout = () => {
           </div>
           {canRedeem ? (
             <div className="mt-3">
-              <p className="text-xs text-muted-foreground mb-2">
-                Apply points to reduce your total?
-              </p>
+              <p className="text-xs text-muted-foreground mb-2">Apply points to reduce your total?</p>
               <div className="flex items-center gap-3">
                 <Button
                   size="sm"
@@ -271,7 +334,7 @@ const Checkout = () => {
           )}
         </div>
 
-        {/* Phone Number */}
+        {/* Phone + Delivery Details */}
         <div className="bg-card rounded-xl p-4 card-elevated space-y-3">
           <h2 className="font-semibold text-foreground">Your Details</h2>
           <div>
@@ -287,7 +350,6 @@ const Checkout = () => {
             />
           </div>
 
-          {/* Delivery Location */}
           {deliveryOption === "delivery" && (
             <>
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
@@ -297,15 +359,10 @@ const Checkout = () => {
                     <p className="font-semibold text-foreground">{deliveryArea}</p>
                   </div>
                   <span className="text-sm font-semibold text-foreground">
-                    {freeDelivery ? (
-                      <span className="text-accent">🎉 Free</span>
-                    ) : (
-                      `KSh ${deliveryFee}`
-                    )}
+                    {freeDelivery ? <span className="text-accent">🎉 Free</span> : `KSh ${deliveryFee}`}
                   </span>
                 </div>
               </div>
-
               <div>
                 <label className="text-sm text-muted-foreground flex items-center gap-1">
                   <MapPin className="w-3 h-3" /> Delivery Location
@@ -317,8 +374,6 @@ const Checkout = () => {
                   className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                 />
               </div>
-
-              {/* Send Location on WhatsApp */}
               <button
                 onClick={handleSendLocation}
                 className="w-full flex items-center justify-center gap-2 bg-accent/10 border border-accent/30 rounded-xl py-3 transition-colors hover:bg-accent/20"
@@ -334,6 +389,7 @@ const Checkout = () => {
         <div className="bg-card rounded-xl p-4 card-elevated">
           <h2 className="font-semibold text-foreground mb-3">Payment Method</h2>
           <div className="space-y-2">
+            {/* M-Pesa */}
             <button
               onClick={() => { setPaymentMethod("mpesa"); setPaymentSubmitted(false); }}
               className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "mpesa" ? "border-primary bg-primary/5" : "border-border"}`}
@@ -398,6 +454,7 @@ const Checkout = () => {
               </div>
             )}
 
+            {/* Cash on Delivery */}
             <button
               onClick={() => setPaymentMethod("cash")}
               className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border"}`}
