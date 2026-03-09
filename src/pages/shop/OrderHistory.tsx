@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { ShopHeader } from "@/components/ShopHeader";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { Package, CheckCircle, Clock, XCircle, ChefHat, Truck, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,14 +26,23 @@ const statusConfig: Record<string, { icon: any; color: string; bg: string; label
 
 const OrderHistory = () => {
   const navigate = useNavigate();
+  const { customer } = useCustomer();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = async () => {
     setLoading(true);
+
+    if (!customer) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("orders")
       .select("*")
+      .eq("customer_id", customer.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -45,7 +55,7 @@ const OrderHistory = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [customer?.id]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -60,7 +70,6 @@ const OrderHistory = () => {
     <div className="min-h-screen bg-background pb-20">
       <ShopHeader title="My Orders" showBack />
 
-      {/* Refresh button */}
       <div className="px-4 pb-3 flex justify-end">
         <button
           onClick={fetchOrders}
@@ -71,14 +80,12 @@ const OrderHistory = () => {
         </button>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
       )}
 
-      {/* Orders list */}
       {!loading && (
         <div className="px-4 space-y-3">
           {orders.map((order) => {

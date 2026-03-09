@@ -1,5 +1,5 @@
 import { useApp } from "@/contexts/AppContext";
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { products } from "@/data/products";
 import { getTodayDeals } from "@/data/dailyDeals";
 import { BottomNav } from "@/components/BottomNav";
@@ -28,14 +28,15 @@ const quickActions = [
 ];
 
 const HomeDashboard = () => {
-  const { loyaltyPoints, addToCart } = useApp();
+  const { addToCart } = useApp();
+  const { customer } = useCustomer();
   const navigate = useNavigate();
-  const firstName = userData.name.split(" ")[0];
+  const firstName = customer?.name?.split(" ")[0] || "there";
+  const loyaltyPoints = customer?.loyalty_points || 0;
 
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
   const progress = ((loyaltyPoints % NEXT_REWARD_AT) / NEXT_REWARD_AT) * 100;
 
-  // Get today's featured deal
   const todayDeals = getTodayDeals();
   const featuredDeal = todayDeals.find((d) => d.featured) || todayDeals[0];
   const dealProduct = featuredDeal ? products.find((p) => p.id === featuredDeal.productId) : null;

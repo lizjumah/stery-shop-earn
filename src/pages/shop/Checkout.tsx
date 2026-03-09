@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { products } from "@/data/products";
-import { userData } from "@/data/user";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, Loader2, ShoppingBag } from "lucide-react";
+import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, Loader2, ShoppingBag, User, Mail, FileText } from "lucide-react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,14 +17,18 @@ const DELIVERY_AREAS = [
 const FREE_DELIVERY_THRESHOLD = 3000;
 
 const Checkout = () => {
-  const { cart, clearCart, placeOrder, loyaltyPoints, redeemPoints } = useApp();
+  const { cart, clearCart, placeOrder } = useApp();
+  const { customer, createOrLoadCustomer, addPoints, redeemPoints: customerRedeemPoints } = useCustomer();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const deliveryOption = (searchParams.get("delivery") as "delivery" | "pickup") || "delivery";
   const deliveryArea = searchParams.get("area") || "Bungoma Town";
 
-  const [phone, setPhone] = useState(userData.phone);
-  const [location, setLocation] = useState("");
+  const [customerName, setCustomerName] = useState(customer?.name || "");
+  const [phone, setPhone] = useState(customer?.phone || "");
+  const [email, setEmail] = useState(customer?.email || "");
+  const [location, setLocation] = useState(customer?.delivery_location || "");
+  const [deliveryNotes, setDeliveryNotes] = useState(customer?.delivery_notes || "");
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "cash">("mpesa");
   const [mpesaCode, setMpesaCode] = useState("");
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
@@ -37,20 +41,15 @@ const Checkout = () => {
   const [hasError, setHasError] = useState(false);
   const cartProductsRef = useRef<typeof cartProducts>([]);
 
-  // Simulate a brief loading state for smooth transition from cart
+  const loyaltyPoints = customer?.loyalty_points || 0;
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      try {
-        setIsLoading(false);
-      } catch {
-        setHasError(true);
-        setIsLoading(false);
-      }
+      try { setIsLoading(false); } catch { setHasError(true); setIsLoading(false); }
     }, 400);
     return () => clearTimeout(timer);
   }, []);
 
-  // Resolve cart items safely
   const cartProducts = (() => {
     try {
       return cart
@@ -59,9 +58,7 @@ const Checkout = () => {
           return { ...item, product };
         })
         .filter((item) => item.product);
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   })();
 
   const subtotal = cartProducts.reduce((sum, item) => sum + (item.product!.price * item.quantity), 0);
@@ -102,8 +99,11 @@ const Checkout = () => {
     setPaymentSubmitted(true);
   };
 
-
   const handlePlaceOrder = async () => {
+    if (!customerName.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
     if (!phone.trim()) {
       toast.error("Please enter your phone number");
       return;
@@ -118,10 +118,22 @@ const Checkout = () => {
     }
 
     try {
+      // Create or load customer account
+      const cust = await createOrLoadCustomer({
+        name: customerName,
+        phone,
+        email: email || undefined,
+        delivery_location: location || undefined,
+        delivery_notes: deliveryNotes || undefined,
+      });
+
+      if (!cust) {
+        toast.error("Failed to create account. Please try again.");
+        return;
+      }
+
       const num = `STR-${String(Date.now()).slice(-4)}`;
       setOrderNumber(num);
-
-      // Save cart products ref before clearing
       cartProductsRef.current = [...cartProducts];
 
       const orderItems = cartProducts.map((item) => ({
@@ -133,16 +145,16 @@ const Checkout = () => {
       }));
 
       if (pointsDiscount > 0) {
-        redeemPoints(pointsDiscount, `Redeemed on Order ${num}`);
+        await customerRedeemPoints(pointsDiscount, `Redeemed on Order ${num}`);
       }
 
-      // Save order to database
       const { data: orderData, error: dbError } = await supabase
         .from("orders")
         .insert({
           order_number: num,
-          customer_name: userData.name || null,
-          customer_phone: phone,
+          customer_name: cust.name,
+          customer_phone: cust.phone,
+          customer_id: cust.id,
           items: orderItems as any,
           subtotal,
           delivery_fee: deliveryFee,
@@ -162,7 +174,6 @@ const Checkout = () => {
       if (dbError) {
         console.error("Failed to save order to database:", dbError);
       } else if (orderData) {
-        // Save order items to order_items table
         const itemsToInsert = orderItems.map((item) => ({
           order_id: orderData.id,
           product_name: item.name,
@@ -170,16 +181,21 @@ const Checkout = () => {
           price_per_item: item.price,
           subtotal: item.subtotal,
         }));
-
-        const { error: itemsError } = await supabase
-          .from("order_items")
-          .insert(itemsToInsert);
-
-        if (itemsError) {
-          console.error("Failed to save order items:", itemsError);
-        }
+        const { error: itemsError } = await supabase.from("order_items").insert(itemsToInsert);
+        if (itemsError) console.error("Failed to save order items:", itemsError);
       }
 
+      // Add loyalty points
+      if (earnedPoints > 0) {
+        await addPoints(`Order ${num}`, earnedPoints);
+      }
+      if (total >= 2000) {
+        await addPoints(`Basket Bonus (KSh 2,000+)`, 30, "bonus");
+      } else if (total >= 1000) {
+        await addPoints(`Basket Bonus (KSh 1,000+)`, 10, "bonus");
+      }
+
+      // Also update local AppContext for in-session display
       placeOrder({
         id: Date.now().toString(),
         orderNumber: num,
@@ -189,8 +205,8 @@ const Checkout = () => {
         date: new Date().toISOString().split("T")[0],
         deliveryOption,
         pointsEarned: earnedPoints,
-        customerName: userData.name,
-        phone,
+        customerName: cust.name,
+        phone: cust.phone,
         location,
         paymentMethod,
         pointsRedeemed: pointsDiscount,
@@ -203,7 +219,6 @@ const Checkout = () => {
     }
   };
 
-  // Loading spinner
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
@@ -213,7 +228,6 @@ const Checkout = () => {
     );
   }
 
-  // Error state
   if (hasError) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-4">
@@ -224,7 +238,6 @@ const Checkout = () => {
     );
   }
 
-  // Empty or incomplete cart guard
   if (cartProducts.length === 0) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-4">
@@ -240,7 +253,6 @@ const Checkout = () => {
     );
   }
 
-  // Order placed success screen
   if (orderPlaced) {
     const orderItems = cartProductsRef.current;
     const itemsList = orderItems.map((i) => `• ${i.product!.name} × ${i.quantity} — KSh ${i.product!.price * i.quantity}`).join("\n");
@@ -251,6 +263,7 @@ const Checkout = () => {
     const whatsappMessage = [
       `🛒 *New Order: ${orderNumber}*`,
       ``,
+      `👤 *Name:* ${customerName}`,
       `📞 *Phone:* ${phone}`,
       ``,
       `📦 *Items Ordered:*`,
@@ -270,7 +283,6 @@ const Checkout = () => {
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">Order Created Successfully</h1>
 
-        {/* Order Details Card */}
         <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mb-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Order Number</span>
@@ -286,7 +298,6 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/* Loyalty points */}
         <div className="bg-primary/10 rounded-xl p-3 mb-5 text-center w-full max-w-sm">
           <p className="text-primary font-semibold text-sm">+{earnedPoints} loyalty points earned! 🎉</p>
           {pointsDiscount > 0 && (
@@ -294,24 +305,20 @@ const Checkout = () => {
           )}
         </div>
 
-        {/* Next step instruction */}
         <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
           Next step: Send your order to <span className="font-semibold text-foreground">Stery Supermarket</span> on WhatsApp so our team can confirm and prepare it.
         </p>
 
-        {/* WhatsApp CTA */}
         <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full max-w-sm">
           <Button className="w-full h-14 text-lg font-semibold bg-[hsl(142,70%,40%)] hover:bg-[hsl(142,70%,35%)] text-white rounded-xl gap-2">
             <span className="text-xl">💬</span> Send Order on WhatsApp
           </Button>
         </a>
 
-        {/* Reassurance */}
         <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
           After sending the message, our team will confirm your order and arrange delivery.
         </p>
 
-        {/* Support */}
         <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mt-5 text-center space-y-2">
           <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
           <div className="flex gap-2 justify-center">
@@ -383,52 +390,77 @@ const Checkout = () => {
         </div>
 
         {/* Points Redemption */}
-        <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
-          <div className="flex items-center gap-2">
-            <Star className="w-5 h-5 text-primary fill-primary" />
-            <span className="text-sm font-medium text-foreground">Your Stery Points: {loyaltyPoints}</span>
-          </div>
-          {canRedeem ? (
-            <div className="mt-3">
-              <p className="text-xs text-muted-foreground mb-2">Apply points to reduce your total?</p>
-              <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  variant={applyPoints ? "default" : "outline"}
-                  onClick={handleTogglePoints}
-                  className={applyPoints ? "bg-primary hover:bg-primary/90" : ""}
-                >
-                  {applyPoints ? `✅ -KSh ${pointsDiscount}` : "Apply Points"}
-                </Button>
-                {applyPoints && (
-                  <input
-                    type="number"
-                    min={50}
-                    max={maxRedeemable}
-                    value={pointsToApply}
-                    onChange={(e) => setPointsToApply(Math.max(50, Math.min(maxRedeemable, Number(e.target.value))))}
-                    className="w-20 bg-secondary rounded-lg py-1.5 px-2 text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                )}
-              </div>
+        {customer && (
+          <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
+            <div className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary fill-primary" />
+              <span className="text-sm font-medium text-foreground">Your Stery Points: {loyaltyPoints}</span>
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1">{50 - loyaltyPoints} more points to start redeeming</p>
-          )}
-        </div>
+            {canRedeem ? (
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground mb-2">Apply points to reduce your total?</p>
+                <div className="flex items-center gap-3">
+                  <Button
+                    size="sm"
+                    variant={applyPoints ? "default" : "outline"}
+                    onClick={handleTogglePoints}
+                    className={applyPoints ? "bg-primary hover:bg-primary/90" : ""}
+                  >
+                    {applyPoints ? `✅ -KSh ${pointsDiscount}` : "Apply Points"}
+                  </Button>
+                  {applyPoints && (
+                    <input
+                      type="number"
+                      min={50}
+                      max={maxRedeemable}
+                      value={pointsToApply}
+                      onChange={(e) => setPointsToApply(Math.max(50, Math.min(maxRedeemable, Number(e.target.value))))}
+                      className="w-20 bg-secondary rounded-lg py-1.5 px-2 text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">{50 - loyaltyPoints} more points to start redeeming</p>
+            )}
+          </div>
+        )}
 
-        {/* Phone + Delivery Details */}
+        {/* Customer Details */}
         <div className="bg-card rounded-xl p-4 card-elevated space-y-3">
           <h2 className="font-semibold text-foreground">Your Details</h2>
           <div>
             <label className="text-sm text-muted-foreground flex items-center gap-1">
-              <Phone className="w-3 h-3" /> Phone Number
+              <User className="w-3 h-3" /> Customer Name <span className="text-primary">*</span>
+            </label>
+            <input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="e.g. Jane Wanjiku"
+              className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground flex items-center gap-1">
+              <Phone className="w-3 h-3" /> Phone Number <span className="text-primary">*</span>
             </label>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               type="tel"
               placeholder="e.g. 0712 345 678"
+              className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-muted-foreground flex items-center gap-1">
+              <Mail className="w-3 h-3" /> Email (optional)
+            </label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder="e.g. jane@email.com"
               className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
             />
           </div>
@@ -458,6 +490,17 @@ const Checkout = () => {
                 />
                 <p className="text-xs text-muted-foreground mt-1">📍 Please include a nearby landmark to help our driver find you quickly.</p>
               </div>
+              <div>
+                <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
+                  <FileText className="w-3 h-3" /> Delivery Notes (optional)
+                </label>
+                <input
+                  value={deliveryNotes}
+                  onChange={(e) => setDeliveryNotes(e.target.value)}
+                  placeholder="e.g. Gate is blue, call on arrival"
+                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+                />
+              </div>
             </>
           )}
         </div>
@@ -466,7 +509,6 @@ const Checkout = () => {
         <div className="bg-card rounded-xl p-4 card-elevated">
           <h2 className="font-semibold text-foreground mb-3">Payment Method</h2>
           <div className="space-y-2">
-            {/* M-Pesa */}
             <button
               onClick={() => { setPaymentMethod("mpesa"); setPaymentSubmitted(false); }}
               className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "mpesa" ? "border-primary bg-primary/5" : "border-border"}`}
@@ -531,7 +573,6 @@ const Checkout = () => {
               </div>
             )}
 
-            {/* Cash on Delivery */}
             <button
               onClick={() => setPaymentMethod("cash")}
               className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border"}`}
