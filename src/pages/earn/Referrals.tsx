@@ -10,7 +10,7 @@ const Referrals = () => {
   const navigate = useNavigate();
   const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
   const referralLink = `https://stery.ke/ref/${referralCode}`;
-    navigator.clipboard.writeText(userData.referralCode);
+    navigator.clipboard.writeText(referralCode);
     toast.success("Referral code copied!");
   };
 
