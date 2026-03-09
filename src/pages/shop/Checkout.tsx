@@ -214,30 +214,76 @@ const Checkout = () => {
 
   // Order placed success screen
   if (orderPlaced) {
+    const orderItems = cartProductsRef.current;
+    const itemsList = orderItems.map((i) => `• ${i.product!.name} × ${i.quantity} — KSh ${i.product!.price * i.quantity}`).join("\n");
+    const deliveryInfo = deliveryOption === "delivery"
+      ? `📍 *Delivery Area:* ${deliveryArea}\n📍 *Location:* ${location}${freeDelivery ? "\n🎉 *Free Delivery*" : `\n🚚 *Delivery Fee:* KSh ${deliveryFee}`}`
+      : `🏪 *Pickup at Store*`;
+    const pointsInfo = pointsDiscount > 0 ? `\n🎁 *Points Redeemed:* ${pointsDiscount} pts (- KSh ${pointsDiscount})` : "";
+    const whatsappMessage = [
+      `🛒 *New Order: ${orderNumber}*`,
+      ``,
+      `📞 *Phone:* ${phone}`,
+      ``,
+      `📦 *Items Ordered:*`,
+      itemsList,
+      ``,
+      `💰 *Total:* KSh ${total}`,
+      `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
+      pointsInfo,
+      deliveryInfo,
+    ].filter(Boolean).join("\n");
+    const whatsappUrl = `https://wa.me/254794560657?text=${encodeURIComponent(whatsappMessage)}`;
+
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
         <div className="bg-accent/10 rounded-full p-6 mb-4">
           <CheckCircle className="w-16 h-16 text-accent" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Order Received!</h1>
-        <p className="text-muted-foreground text-center mb-2">
-          Your order <span className="font-bold text-foreground">{orderNumber}</span> has been placed.
-        </p>
-        {paymentMethod === "mpesa" ? (
-          <p className="text-sm text-primary font-medium text-center mb-2">Payment submitted. We will confirm and dispatch.</p>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center mb-2">Pay when your order is delivered.</p>
-        )}
-        <p className="text-sm text-muted-foreground text-center mb-4">
-          {deliveryOption === "delivery" ? `We'll deliver to ${deliveryArea}.` : "Ready for pickup at our store."}
-        </p>
-        <div className="bg-primary/10 rounded-xl p-4 mb-6 text-center w-full max-w-xs">
-          <p className="text-primary font-semibold">+{earnedPoints} loyalty points earned! 🎉</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Order Created Successfully</h1>
+
+        {/* Order Details Card */}
+        <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mb-4 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Order Number</span>
+            <span className="font-bold text-foreground">{orderNumber}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Total Amount</span>
+            <span className="font-bold text-foreground">KSh {total}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">{deliveryOption === "delivery" ? "Delivery Area" : "Fulfillment"}</span>
+            <span className="font-bold text-foreground">{deliveryOption === "delivery" ? deliveryArea : "Store Pickup"}</span>
+          </div>
+        </div>
+
+        {/* Loyalty points */}
+        <div className="bg-primary/10 rounded-xl p-3 mb-5 text-center w-full max-w-sm">
+          <p className="text-primary font-semibold text-sm">+{earnedPoints} loyalty points earned! 🎉</p>
           {pointsDiscount > 0 && (
-            <p className="text-sm text-muted-foreground mt-1">You saved KSh {pointsDiscount} with loyalty points</p>
+            <p className="text-xs text-muted-foreground mt-1">You saved KSh {pointsDiscount} with loyalty points</p>
           )}
         </div>
-        <Button onClick={() => navigate("/shop")} className="bg-primary hover:bg-primary/90 w-full max-w-xs">
+
+        {/* Next step instruction */}
+        <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
+          Next step: Send your order to <span className="font-semibold text-foreground">Stery Supermarket</span> on WhatsApp so our team can confirm and prepare it.
+        </p>
+
+        {/* WhatsApp CTA */}
+        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full max-w-sm">
+          <Button className="w-full h-14 text-lg font-semibold bg-[hsl(142,70%,40%)] hover:bg-[hsl(142,70%,35%)] text-white rounded-xl gap-2">
+            <span className="text-xl">💬</span> Send Order on WhatsApp
+          </Button>
+        </a>
+
+        {/* Reassurance */}
+        <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
+          After sending the message on WhatsApp, our team will confirm your order and arrange delivery.
+        </p>
+
+        <Button variant="ghost" onClick={() => navigate("/shop")} className="mt-4 text-muted-foreground">
           Back to Home
         </Button>
       </div>
