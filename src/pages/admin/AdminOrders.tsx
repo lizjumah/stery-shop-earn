@@ -214,7 +214,9 @@ const AdminOrders = () => {
 
           {filtered.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No orders in this category</p>
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+              <p className="text-muted-foreground font-medium">No orders yet.</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Orders will appear here when customers place them.</p>
             </div>
           )}
         </div>
