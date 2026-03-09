@@ -21,9 +21,9 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   pending: { label: "New", className: "bg-primary/10 text-primary border-primary/20" },
-  confirmed: { label: "Confirmed", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  confirmed: { label: "Preparing", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   out_for_delivery: { label: "Out for Delivery", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  delivered: { label: "Delivered", className: "bg-accent/10 text-accent border-accent/20" },
+  delivered: { label: "Completed", className: "bg-accent/10 text-accent border-accent/20" },
 };
 
 interface OrderItem {
