@@ -6,9 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const Referrals = () => {
+  const { customer } = useCustomer();
   const navigate = useNavigate();
-
-  const copyReferralCode = () => {
+  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
+  const referralLink = `https://stery.ke/ref/${referralCode}`;
     navigator.clipboard.writeText(userData.referralCode);
     toast.success("Referral code copied!");
   };
