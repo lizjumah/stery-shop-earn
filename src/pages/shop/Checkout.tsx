@@ -129,10 +129,34 @@ const Checkout = () => {
         name: item.product!.name,
         quantity: item.quantity,
         price: item.product!.price,
+        subtotal: item.product!.price * item.quantity,
       }));
 
       if (pointsDiscount > 0) {
         redeemPoints(pointsDiscount, `Redeemed on Order ${num}`);
+      }
+
+      // Save order to database
+      const { error: dbError } = await supabase.from("orders").insert({
+        order_number: num,
+        customer_name: userData.name || null,
+        customer_phone: phone,
+        items: orderItems as any,
+        subtotal,
+        delivery_fee: deliveryFee,
+        points_redeemed: pointsDiscount,
+        total,
+        payment_method: paymentMethod,
+        delivery_option: deliveryOption,
+        delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
+        delivery_location: deliveryOption === "delivery" ? location : null,
+        points_earned: earnedPoints,
+        status: "pending",
+      });
+
+      if (dbError) {
+        console.error("Failed to save order to database:", dbError);
+        // Still continue — save locally as fallback
       }
 
       placeOrder({
