@@ -456,7 +456,7 @@ const Checkout = () => {
                   placeholder="e.g. Bungoma Town, near Quickmart"
                   className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Include your area and a nearby landmark for faster delivery.</p>
+                <p className="text-xs text-muted-foreground mt-1">📍 Please include a nearby landmark to help our driver find you quickly.</p>
               </div>
             </>
           )}
