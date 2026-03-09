@@ -65,7 +65,7 @@ const EarningsDashboard = () => {
         <div className="grid grid-cols-2 gap-3 mt-3">
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <p className="text-white/80 text-xs">Paid Out</p>
-            <p className="text-white font-bold">KSh {userData.paidEarnings.toLocaleString()}</p>
+            <p className="text-white font-bold">KSh {paidTotal.toLocaleString()}</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <p className="text-white/80 text-xs">Orders Sold</p>
