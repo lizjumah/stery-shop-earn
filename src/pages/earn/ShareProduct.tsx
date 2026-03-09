@@ -8,8 +8,8 @@ import { toast } from "sonner";
 const ShareProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const product = products.find((p) => p.id === id);
+  const { customer } = useCustomer();
+  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
 
   if (!product) {
     return (
