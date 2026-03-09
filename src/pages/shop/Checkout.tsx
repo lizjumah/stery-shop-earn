@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { products } from "@/data/products";
 import { userData } from "@/data/user";
