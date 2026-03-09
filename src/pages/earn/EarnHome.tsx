@@ -70,7 +70,7 @@ const EarnHome = () => {
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Users className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">{userData.referredUsers}</p>
+            <p className="text-white font-bold text-sm">0</p>
             <p className="text-white/70 text-[10px]">Referrals</p>
           </div>
         </div>
