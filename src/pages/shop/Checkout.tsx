@@ -103,7 +103,7 @@ const Checkout = () => {
   };
 
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!phone.trim()) {
       toast.error("Please enter your phone number");
       return;
