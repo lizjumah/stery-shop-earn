@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { products } from "@/data/products";
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Share2, Star, TrendingUp, Copy } from "lucide-react";
