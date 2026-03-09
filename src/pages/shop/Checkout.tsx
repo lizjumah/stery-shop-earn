@@ -119,6 +119,9 @@ const Checkout = () => {
       const num = `STR-${String(Date.now()).slice(-4)}`;
       setOrderNumber(num);
 
+      // Save cart products ref before clearing
+      cartProductsRef.current = [...cartProducts];
+
       const orderItems = cartProducts.map((item) => ({
         productId: item.productId,
         name: item.product!.name,
@@ -145,28 +148,6 @@ const Checkout = () => {
         paymentMethod,
         pointsRedeemed: pointsDiscount,
       });
-
-      const itemsList = orderItems.map((i) => `• ${i.name} × ${i.quantity} — KSh ${i.price * i.quantity}`).join("\n");
-      const deliveryInfo = deliveryOption === "delivery"
-        ? `📍 *Delivery Area:* ${deliveryArea}\n📍 *Location:* ${location}${freeDelivery ? "\n🎉 *Free Delivery*" : `\n🚚 *Delivery Fee:* KSh ${deliveryFee}`}`
-        : `🏪 *Pickup at Store*`;
-      const pointsInfo = pointsDiscount > 0 ? `\n🎁 *Points Redeemed:* ${pointsDiscount} pts (- KSh ${pointsDiscount})` : "";
-      const whatsappMessage = [
-        `🛒 *New Order: ${num}*`,
-        ``,
-        `📞 *Phone:* ${phone}`,
-        ``,
-        `📦 *Items Ordered:*`,
-        itemsList,
-        ``,
-        `💰 *Total:* KSh ${total}`,
-        `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
-        pointsInfo,
-        deliveryInfo,
-      ].filter(Boolean).join("\n");
-
-      const whatsappUrl = `https://wa.me/254794560657?text=${encodeURIComponent(whatsappMessage)}`;
-      window.open(whatsappUrl, "_blank");
 
       clearCart();
       setOrderPlaced(true);
