@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { ShoppingBag, TrendingUp, Truck, Gift, Users, ShoppingCart } from "lucide-react";
 import { products } from "@/data/products";
@@ -10,6 +10,11 @@ const FEATURED_IDS = ["1", "2", "14", "3"]; // Bread, Milk, Eggs, Sugar
 const Welcome = () => {
   const navigate = useNavigate();
   const { setMode, addToCart } = useApp();
+
+  // Redirect to onboarding if first visit
+  if (!localStorage.getItem("stery_onboarded")) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   const handleChoice = (choice: "shop" | "earn") => {
     setMode(choice);
