@@ -34,6 +34,7 @@ const Checkout = () => {
   const [pointsToApply, setPointsToApply] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const cartProductsRef = useRef<typeof cartProducts>([]);
 
   // Simulate a brief loading state for smooth transition from cart
   useEffect(() => {
