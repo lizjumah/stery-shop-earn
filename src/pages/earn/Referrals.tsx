@@ -54,7 +54,7 @@ const Referrals = () => {
             <div>
               <p className="text-muted-foreground text-sm">Total Bonus Earned</p>
               <p className="text-3xl font-bold text-foreground">
-                KSh {userData.referralBonus.toLocaleString()}
+                KSh 0
               </p>
             </div>
             <div className="bg-accent/10 rounded-full p-4">
