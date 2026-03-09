@@ -14,9 +14,9 @@ type FilterKey = "all" | "pending" | "confirmed" | "out_for_delivery" | "deliver
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
   { key: "pending", label: "New" },
-  { key: "confirmed", label: "Confirmed" },
+  { key: "confirmed", label: "Preparing" },
   { key: "out_for_delivery", label: "Out for Delivery" },
-  { key: "delivered", label: "Delivered" },
+  { key: "delivered", label: "Completed" },
 ];
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
