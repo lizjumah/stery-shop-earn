@@ -100,7 +100,7 @@ const Checkout = () => {
     }
     setPaymentSubmitted(true);
   };
-  const cartProductsRef = useRef<typeof cartProducts>([]);
+
 
   const handlePlaceOrder = () => {
     if (!phone.trim()) {
