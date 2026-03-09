@@ -17,7 +17,7 @@ const EarnHome = () => {
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(userData.referralLink);
+    navigator.clipboard.writeText(referralLink);
     toast.success("Referral link copied!");
   };
 
