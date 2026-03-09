@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { ShoppingBag, TrendingUp, Truck, Gift, Users, ShoppingCart } from "lucide-react";
 import { products } from "@/data/products";
