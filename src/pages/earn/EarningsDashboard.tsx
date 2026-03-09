@@ -69,7 +69,7 @@ const EarningsDashboard = () => {
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <p className="text-white/80 text-xs">Orders Sold</p>
-            <p className="text-white font-bold">{userData.ordersSold}</p>
+            <p className="text-white font-bold">{earnings.length}</p>
           </div>
         </div>
       </div>

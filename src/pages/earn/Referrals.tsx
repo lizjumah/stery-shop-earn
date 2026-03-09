@@ -90,7 +90,7 @@ const Referrals = () => {
           <p className="text-sm text-muted-foreground mb-2">Your Referral Link</p>
           <div className="flex items-center gap-2">
             <p className="text-sm text-foreground truncate flex-1">
-              {userData.referralLink}
+              {referralLink}
             </p>
             <Button size="sm" variant="outline" onClick={copyReferralLink}>
               <Copy className="w-4 h-4" />
