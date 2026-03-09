@@ -100,10 +100,6 @@ const Checkout = () => {
     setPaymentSubmitted(true);
   };
 
-  const handleSendLocation = () => {
-    const msg = encodeURIComponent("Hi Stery, this is my delivery location.");
-    window.open(`https://wa.me/254794560657?text=${msg}`, "_blank");
-  };
 
   const handlePlaceOrder = () => {
     if (!phone.trim()) {
