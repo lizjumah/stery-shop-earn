@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { products } from "@/data/products";
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Share2, Star, TrendingUp, Copy } from "lucide-react";
@@ -10,6 +10,8 @@ import { toast } from "sonner";
 const EarnProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { customer } = useCustomer();
+  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
 
   const product = products.find((p) => p.id === id);
 
@@ -21,7 +23,7 @@ const EarnProductDetails = () => {
     );
   }
 
-  const salesMessage = `🔥 STERY DEAL\n${product.name} – KSh ${product.price}\nOrder now from Stery.\nDelivery available in Bungoma.\n${`https://stery.ke/p/${product.id}?ref=${userData.referralCode}`}`;
+  const salesMessage = `🔥 STERY DEAL\n${product.name} – KSh ${product.price}\nOrder now from Stery.\nDelivery available in Bungoma.\n${`https://stery.ke/p/${product.id}?ref=${referralCode}`}`;
 
   const copySalesText = () => {
     navigator.clipboard.writeText(salesMessage);

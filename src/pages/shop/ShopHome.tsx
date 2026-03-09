@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { products, categories } from "@/data/products";
-import { userData } from "@/data/user";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
 import { useApp } from "@/contexts/AppContext";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { Search, Star, ChevronRight, ShoppingCart, ShoppingBag, Zap, Baby, Home as HomeIcon, Gem } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -28,7 +28,9 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 const ShopHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { cartItemCount, loyaltyPoints } = useApp();
+  const { cartItemCount } = useApp();
+  const { customer } = useCustomer();
+  const loyaltyPoints = customer?.loyalty_points || 0;
 
   const featuredProducts = products.filter((p) => !p.isOffer).slice(0, 4);
   const offerProducts = products.filter((p) => p.isOffer);
@@ -43,7 +45,7 @@ const ShopHome = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white/80 text-sm">Welcome back,</p>
-            <h1 className="text-white text-xl font-bold">{userData.name.split(" ")[0]} 👋</h1>
+            <h1 className="text-white text-xl font-bold">{customer?.name?.split(" ")[0] || "there"} 👋</h1>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/shop/rewards" className="bg-white/20 rounded-full px-3 py-2 flex items-center gap-1.5">

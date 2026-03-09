@@ -1,4 +1,4 @@
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Copy, Share2 } from "lucide-react";
@@ -6,20 +6,23 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const Referrals = () => {
+  const { customer } = useCustomer();
   const navigate = useNavigate();
+  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
+  const referralLink = `https://stery.ke/ref/${referralCode}`;
 
   const copyReferralCode = () => {
-    navigator.clipboard.writeText(userData.referralCode);
+    navigator.clipboard.writeText(referralCode);
     toast.success("Referral code copied!");
   };
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(userData.referralLink);
+    navigator.clipboard.writeText(referralLink);
     toast.success("Referral link copied!");
   };
 
   const shareReferral = () => {
-    const message = `Join me on Stery and start earning! Use my code ${userData.referralCode} or sign up here: ${userData.referralLink}`;
+    const message = `Join me on Stery and start earning! Use my code ${referralCode} or sign up here: ${referralLink}`;
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
@@ -53,7 +56,7 @@ const Referrals = () => {
             <div>
               <p className="text-muted-foreground text-sm">Total Bonus Earned</p>
               <p className="text-3xl font-bold text-foreground">
-                KSh {userData.referralBonus.toLocaleString()}
+                KSh 0
               </p>
             </div>
             <div className="bg-accent/10 rounded-full p-4">
@@ -63,7 +66,7 @@ const Referrals = () => {
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-accent" />
             <span className="text-foreground font-medium">
-              {userData.referredUsers} people joined using your link
+              0 people joined using your link
             </span>
           </div>
         </div>
@@ -75,7 +78,7 @@ const Referrals = () => {
           <p className="text-sm text-muted-foreground mb-2">Your Referral Code</p>
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-foreground tracking-wider">
-              {userData.referralCode}
+              {referralCode}
             </span>
             <Button size="sm" variant="outline" onClick={copyReferralCode}>
               <Copy className="w-4 h-4 mr-1" />
@@ -89,7 +92,7 @@ const Referrals = () => {
           <p className="text-sm text-muted-foreground mb-2">Your Referral Link</p>
           <div className="flex items-center gap-2">
             <p className="text-sm text-foreground truncate flex-1">
-              {userData.referralLink}
+              {referralLink}
             </p>
             <Button size="sm" variant="outline" onClick={copyReferralLink}>
               <Copy className="w-4 h-4" />

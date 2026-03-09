@@ -1,4 +1,5 @@
-import { userData, earnings } from "@/data/user";
+import { earnings } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, TrendingUp, Wallet, Clock, CheckCircle, ShoppingBag, Smartphone, BadgeDollarSign } from "lucide-react";
@@ -7,14 +8,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 const EarningsDashboard = () => {
+  const { customer } = useCustomer();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<"week" | "month" | "all">("all");
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const [mpesaPhone, setMpesaPhone] = useState(userData.phone);
+  const [mpesaPhone, setMpesaPhone] = useState(customer?.phone || "");
 
   const paidTotal = earnings.filter((e) => e.status === "paid").reduce((s, e) => s + e.amount, 0);
   const pendingTotal = earnings.filter((e) => e.status === "pending").reduce((s, e) => s + e.amount, 0);
-  const availableToWithdraw = userData.paidEarnings;
+  const availableToWithdraw = paidTotal;
   const canWithdraw = availableToWithdraw >= 500;
 
   const handleWithdraw = () => {
@@ -45,7 +47,7 @@ const EarningsDashboard = () => {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white rounded-xl p-3 card-elevated text-center">
             <Wallet className="w-4 h-4 text-accent mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground">KSh {userData.totalEarnings.toLocaleString()}</p>
+            <p className="text-lg font-bold text-foreground">KSh {(paidTotal + pendingTotal).toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">Total Earned</p>
           </div>
           <div className="bg-white rounded-xl p-3 card-elevated text-center">
@@ -63,11 +65,11 @@ const EarningsDashboard = () => {
         <div className="grid grid-cols-2 gap-3 mt-3">
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <p className="text-white/80 text-xs">Paid Out</p>
-            <p className="text-white font-bold">KSh {userData.paidEarnings.toLocaleString()}</p>
+            <p className="text-white font-bold">KSh {paidTotal.toLocaleString()}</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <p className="text-white/80 text-xs">Orders Sold</p>
-            <p className="text-white font-bold">{userData.ordersSold}</p>
+            <p className="text-white font-bold">{earnings.length}</p>
           </div>
         </div>
       </div>

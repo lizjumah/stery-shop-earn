@@ -1,4 +1,3 @@
-import { userData } from "@/data/user";
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { BottomNav } from "@/components/BottomNav";
@@ -7,15 +6,18 @@ import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2, MessageCi
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useState } from "react";
-
-const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${userData.referralLink}`;
+import { useCustomer } from "@/contexts/CustomerContext";
 
 const EarnHome = () => {
+  const { customer } = useCustomer();
+  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
+  const referralLink = `https://stery.ke/ref/${referralCode}`;
+  const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${referralLink}`;
   const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(userData.referralLink);
+    navigator.clipboard.writeText(referralLink);
     toast.success("Referral link copied!");
   };
 
@@ -30,7 +32,7 @@ const EarnHome = () => {
         window.open(`sms:?body=${encoded}`, "_blank");
         break;
       case "facebook":
-        window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encoded}&u=${encodeURIComponent(userData.referralLink)}`, "_blank");
+        window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encoded}&u=${encodeURIComponent(referralLink)}`, "_blank");
         break;
       case "copy":
         navigator.clipboard.writeText(SHARE_MESSAGE);
@@ -46,11 +48,11 @@ const EarnHome = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white/80 text-sm">Welcome Reseller,</p>
-            <h1 className="text-white text-xl font-bold">{userData.name.split(" ")[0]} 💰</h1>
+            <h1 className="text-white text-xl font-bold">{customer?.name?.split(" ")[0] || "Reseller"} 💰</h1>
           </div>
           <Link to="/earn/dashboard" className="bg-white/20 rounded-full px-3 py-2 flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-white" />
-            <span className="text-white font-semibold text-sm">KSh {userData.totalEarnings.toLocaleString()}</span>
+            <span className="text-white font-semibold text-sm">KSh 0</span>
           </Link>
         </div>
 
@@ -58,17 +60,17 @@ const EarnHome = () => {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Wallet className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh {userData.paidEarnings.toLocaleString()}</p>
+            <p className="text-white font-bold text-sm">KSh 0</p>
             <p className="text-white/70 text-[10px]">Paid Out</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Clock className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh {userData.pendingEarnings}</p>
+            <p className="text-white font-bold text-sm">KSh 0</p>
             <p className="text-white/70 text-[10px]">Pending</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Users className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">{userData.referredUsers}</p>
+            <p className="text-white font-bold text-sm">0</p>
             <p className="text-white/70 text-[10px]">Referrals</p>
           </div>
         </div>
@@ -90,7 +92,7 @@ const EarnHome = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-foreground font-semibold text-sm">My Referral Link</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{userData.referralLink}</p>
+              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{referralLink}</p>
             </div>
             <Button size="sm" onClick={copyReferralLink} className="bg-accent hover:bg-accent/90">
               <Copy className="w-4 h-4 mr-1" />Copy
@@ -140,7 +142,7 @@ const EarnHome = () => {
           {topProducts.map((product) => {
             const isBestSeller = (product.commission || 0) >= 100;
             const isHighDemand = (product.commission || 0) >= 60 && !isBestSeller;
-            const productUrl = `${window.location.origin}/shop/product/${product.id}?ref=${userData.referralCode}`;
+            const productUrl = `${window.location.origin}/shop/product/${product.id}?ref=${referralCode}`;
             const shareMsg = `Great deal at Stery!\n${product.name} now KSh ${product.price}.\nOrder through my link and enjoy this offer.\n${productUrl}`;
 
             const shareProduct = (channel: string) => {

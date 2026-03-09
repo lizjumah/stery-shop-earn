@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { products } from "@/data/products";
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageCircle, Facebook, Copy, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { toast } from "sonner";
 const ShareProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { customer } = useCustomer();
+  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
 
   const product = products.find((p) => p.id === id);
 
@@ -19,7 +21,7 @@ const ShareProduct = () => {
     );
   }
 
-  const shareLink = `https://stery.ke/p/${product.id}?ref=${userData.referralCode}`;
+  const shareLink = `https://stery.ke/p/${product.id}?ref=${referralCode}`;
   const shareMessage = `🛒 Check out ${product.name} for only KSh ${product.price}! Shop now: ${shareLink}`;
 
   const shareToWhatsApp = () => {
