@@ -1,4 +1,4 @@
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Copy, Share2 } from "lucide-react";
