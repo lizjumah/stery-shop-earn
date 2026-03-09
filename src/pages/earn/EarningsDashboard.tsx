@@ -8,10 +8,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 const EarningsDashboard = () => {
+  const { customer } = useCustomer();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<"week" | "month" | "all">("all");
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const [mpesaPhone, setMpesaPhone] = useState(userData.phone);
+  const [mpesaPhone, setMpesaPhone] = useState(customer?.phone || "");
 
   const paidTotal = earnings.filter((e) => e.status === "paid").reduce((s, e) => s + e.amount, 0);
   const pendingTotal = earnings.filter((e) => e.status === "pending").reduce((s, e) => s + e.amount, 0);
