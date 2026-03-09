@@ -1,4 +1,5 @@
-import { userData, earnings } from "@/data/user";
+import { earnings } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, TrendingUp, Wallet, Clock, CheckCircle, ShoppingBag, Smartphone, BadgeDollarSign } from "lucide-react";
