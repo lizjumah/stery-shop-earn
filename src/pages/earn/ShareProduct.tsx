@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { products } from "@/data/products";
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageCircle, Facebook, Copy, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
