@@ -77,8 +77,10 @@ const Rewards = () => {
             <h2 className="text-lg font-bold text-foreground">Available Vouchers</h2>
           </div>
           {availableVouchers.length === 0 && lockedVouchers.length === 0 ? (
-            <div className="bg-muted rounded-xl p-4 text-center">
-              <p className="text-sm text-muted-foreground">Keep earning points to unlock vouchers!</p>
+            <div className="bg-muted rounded-xl p-6 text-center">
+              <Gift className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium text-muted-foreground">No rewards yet.</p>
+              <p className="text-xs text-muted-foreground mt-1">Shop with Stery to start earning rewards! 🎉</p>
             </div>
           ) : (
             <div className="space-y-3">

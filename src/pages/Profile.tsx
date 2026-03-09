@@ -139,6 +139,19 @@ const Profile = () => {
           ))}
         </div>
 
+        {/* Customer Support */}
+        <div className="bg-card rounded-xl p-4 card-elevated mb-4 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
+          <div className="flex gap-2 justify-center">
+            <a href="tel:+254794560657">
+              <Button size="sm" variant="outline" className="text-xs gap-1">📞 Call Stery</Button>
+            </a>
+            <a href="https://wa.me/254794560657" target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="text-xs gap-1">💬 WhatsApp Stery</Button>
+            </a>
+          </div>
+        </div>
+
         {/* Edit Profile */}
         <Button variant="outline" className="w-full h-12 mb-3">Edit Profile</Button>
 

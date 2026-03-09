@@ -231,8 +231,8 @@ const Checkout = () => {
         <div className="bg-secondary rounded-full p-6">
           <ShoppingBag className="w-12 h-12 text-muted-foreground" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Cart is empty or incomplete</h2>
-        <p className="text-muted-foreground text-sm">Your cart is empty or incomplete. Please add items before checking out.</p>
+        <h2 className="text-xl font-bold text-foreground">Cart is empty</h2>
+        <p className="text-muted-foreground text-sm">Your cart is empty. Please add items before checking out.</p>
         <Link to="/shop">
           <Button className="bg-primary hover:bg-primary/90">Continue Shopping</Button>
         </Link>
