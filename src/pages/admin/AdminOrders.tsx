@@ -195,7 +195,7 @@ const AdminOrders = () => {
                   <div className="flex gap-2 flex-wrap">
                     {order.status === "pending" && (
                       <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "confirmed")}>
-                        <ChefHat className="w-3 h-3" /> Confirm Order
+                        <ChefHat className="w-3 h-3" /> Mark Preparing
                       </Button>
                     )}
                     {(order.status === "pending" || order.status === "confirmed") && (
