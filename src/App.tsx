@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "./contexts/AppContext";
 import Welcome from "./pages/Welcome";
+import Onboarding from "./pages/Onboarding";
 import HomeDashboard from "./pages/shop/HomeDashboard";
 import ShopHome from "./pages/shop/ShopHome";
 import Categories from "./pages/shop/Categories";
