@@ -64,7 +64,7 @@ const Referrals = () => {
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-accent" />
             <span className="text-foreground font-medium">
-              {userData.referredUsers} people joined using your link
+              0 people joined using your link
             </span>
           </div>
         </div>
