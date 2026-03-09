@@ -71,9 +71,9 @@ const Cart = () => {
           <ShoppingBag className="w-12 h-12 text-muted-foreground" />
         </div>
         <h2 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h2>
-        <p className="text-muted-foreground text-sm text-center mb-6">Browse products and add items to get started</p>
+        <p className="text-muted-foreground text-sm text-center mb-6">Start shopping to add items.</p>
         <Link to="/shop">
-          <Button className="bg-primary hover:bg-primary/90">Continue Shopping</Button>
+          <Button className="bg-primary hover:bg-primary/90">Start Shopping</Button>
         </Link>
         <BottomNav />
       </div>

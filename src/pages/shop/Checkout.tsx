@@ -231,8 +231,8 @@ const Checkout = () => {
         <div className="bg-secondary rounded-full p-6">
           <ShoppingBag className="w-12 h-12 text-muted-foreground" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Cart is empty or incomplete</h2>
-        <p className="text-muted-foreground text-sm">Your cart is empty or incomplete. Please add items before checking out.</p>
+        <h2 className="text-xl font-bold text-foreground">Cart is empty</h2>
+        <p className="text-muted-foreground text-sm">Your cart is empty. Please add items before checking out.</p>
         <Link to="/shop">
           <Button className="bg-primary hover:bg-primary/90">Continue Shopping</Button>
         </Link>
@@ -308,8 +308,21 @@ const Checkout = () => {
 
         {/* Reassurance */}
         <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
-          After sending the message on WhatsApp, our team will confirm your order and arrange delivery.
+          After sending the message, our team will confirm your order and arrange delivery.
         </p>
+
+        {/* Support */}
+        <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mt-5 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
+          <div className="flex gap-2 justify-center">
+            <a href="tel:+254794560657">
+              <Button size="sm" variant="outline" className="text-xs gap-1">📞 Call Stery</Button>
+            </a>
+            <a href="https://wa.me/254794560657" target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="text-xs gap-1">💬 WhatsApp Stery</Button>
+            </a>
+          </div>
+        </div>
 
         <Button variant="ghost" onClick={() => navigate("/shop")} className="mt-4 text-muted-foreground">
           Back to Home
@@ -443,7 +456,7 @@ const Checkout = () => {
                   placeholder="e.g. Bungoma Town, near Quickmart"
                   className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Include your area and a nearby landmark for faster delivery.</p>
+                <p className="text-xs text-muted-foreground mt-1">📍 Please include a nearby landmark to help our driver find you quickly.</p>
               </div>
             </>
           )}
@@ -542,6 +555,19 @@ const Checkout = () => {
             ? "Complete Payment First"
             : `Place Order — KSh ${total}`}
         </Button>
+
+        {/* Customer Support */}
+        <div className="bg-card rounded-xl p-4 card-elevated text-center space-y-2">
+          <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
+          <div className="flex gap-2 justify-center">
+            <a href="tel:+254794560657">
+              <Button size="sm" variant="outline" className="text-xs gap-1">📞 Call Stery</Button>
+            </a>
+            <a href="https://wa.me/254794560657" target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="text-xs gap-1">💬 WhatsApp Stery</Button>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

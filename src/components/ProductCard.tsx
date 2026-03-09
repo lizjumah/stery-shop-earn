@@ -3,7 +3,7 @@ import { useApp } from "@/contexts/AppContext";
 import { Product } from "@/data/products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Share2, Star, Clock } from "lucide-react";
+import { ShoppingCart, Share2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isTodayDeal } from "@/data/dailyDeals";
@@ -59,10 +59,13 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
         <div className="p-3">
           <h3 className="font-semibold text-sm line-clamp-2 text-foreground">{product.name}</h3>
           
-          <div className="flex items-center gap-1 mt-1">
-            <Star className="w-3 h-3 fill-primary text-primary" />
-            <span className="text-xs text-muted-foreground">4.5</span>
-          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {product.inStock !== false ? (
+              <span className="text-accent font-medium">In Stock</span>
+            ) : (
+              <span className="text-destructive font-medium">Out of Stock</span>
+            )}
+          </p>
           
           <div className="flex items-center justify-between mt-2">
             <div>
