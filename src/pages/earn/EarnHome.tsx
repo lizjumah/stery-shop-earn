@@ -52,7 +52,7 @@ const EarnHome = () => {
           </div>
           <Link to="/earn/dashboard" className="bg-white/20 rounded-full px-3 py-2 flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-white" />
-            <span className="text-white font-semibold text-sm">KSh {userData.totalEarnings.toLocaleString()}</span>
+            <span className="text-white font-semibold text-sm">KSh 0</span>
           </Link>
         </div>
 
