@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          price_per_item: number
+          product_name: string
+          quantity: number
+          subtotal: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          price_per_item?: number
+          product_name: string
+          quantity?: number
+          subtotal?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          price_per_item?: number
+          product_name?: string
+          quantity?: number
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
@@ -26,6 +64,7 @@ export type Database = {
           id: string
           items: Json
           order_number: string
+          order_source: string | null
           payment_method: string
           points_earned: number
           points_redeemed: number
@@ -45,6 +84,7 @@ export type Database = {
           id?: string
           items?: Json
           order_number: string
+          order_source?: string | null
           payment_method?: string
           points_earned?: number
           points_redeemed?: number
@@ -64,6 +104,7 @@ export type Database = {
           id?: string
           items?: Json
           order_number?: string
+          order_source?: string | null
           payment_method?: string
           points_earned?: number
           points_redeemed?: number
