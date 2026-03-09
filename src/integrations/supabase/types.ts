@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      customers: {
+        Row: {
+          birthday: string | null
+          birthday_bonus_claimed: boolean
+          created_at: string
+          delivery_location: string | null
+          delivery_notes: string | null
+          email: string | null
+          id: string
+          loyalty_points: number
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          birthday?: string | null
+          birthday_bonus_claimed?: boolean
+          created_at?: string
+          delivery_location?: string | null
+          delivery_notes?: string | null
+          email?: string | null
+          id?: string
+          loyalty_points?: number
+          name: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          birthday?: string | null
+          birthday_bonus_claimed?: boolean
+          created_at?: string
+          delivery_location?: string | null
+          delivery_notes?: string | null
+          email?: string | null
+          id?: string
+          loyalty_points?: number
+          name?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -55,6 +97,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          customer_id: string | null
           customer_name: string | null
           customer_phone: string
           delivery_area: string | null
@@ -75,6 +118,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           customer_name?: string | null
           customer_phone: string
           delivery_area?: string | null
@@ -95,6 +139,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string
           delivery_area?: string | null
@@ -113,7 +158,50 @@ export type Database = {
           total?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      points_history: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          label: string
+          points: number
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          label: string
+          points: number
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          label?: string
+          points?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "points_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
