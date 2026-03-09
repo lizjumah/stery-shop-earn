@@ -40,6 +40,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Welcome />} />
+      <Route path="/onboarding" element={<Onboarding />} />
 
       {/* Home Dashboard */}
       <Route path="/shop" element={<ProtectedRoute><HomeDashboard /></ProtectedRoute>} />

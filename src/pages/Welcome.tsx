@@ -11,6 +11,11 @@ const Welcome = () => {
   const navigate = useNavigate();
   const { setMode, addToCart } = useApp();
 
+  // Redirect to onboarding if first visit
+  if (!localStorage.getItem("stery_onboarded")) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   const handleChoice = (choice: "shop" | "earn") => {
     setMode(choice);
     navigate("/shop");
