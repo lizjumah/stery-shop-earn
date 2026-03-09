@@ -137,26 +137,47 @@ const Checkout = () => {
       }
 
       // Save order to database
-      const { error: dbError } = await supabase.from("orders").insert({
-        order_number: num,
-        customer_name: userData.name || null,
-        customer_phone: phone,
-        items: orderItems as any,
-        subtotal,
-        delivery_fee: deliveryFee,
-        points_redeemed: pointsDiscount,
-        total,
-        payment_method: paymentMethod,
-        delivery_option: deliveryOption,
-        delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
-        delivery_location: deliveryOption === "delivery" ? location : null,
-        points_earned: earnedPoints,
-        status: "pending",
-      });
+      const { data: orderData, error: dbError } = await supabase
+        .from("orders")
+        .insert({
+          order_number: num,
+          customer_name: userData.name || null,
+          customer_phone: phone,
+          items: orderItems as any,
+          subtotal,
+          delivery_fee: deliveryFee,
+          points_redeemed: pointsDiscount,
+          total,
+          payment_method: paymentMethod,
+          delivery_option: deliveryOption,
+          delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
+          delivery_location: deliveryOption === "delivery" ? location : null,
+          points_earned: earnedPoints,
+          status: "pending",
+          order_source: "app",
+        })
+        .select("id")
+        .single();
 
       if (dbError) {
         console.error("Failed to save order to database:", dbError);
-        // Still continue — save locally as fallback
+      } else if (orderData) {
+        // Save order items to order_items table
+        const itemsToInsert = orderItems.map((item) => ({
+          order_id: orderData.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          price_per_item: item.price,
+          subtotal: item.subtotal,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("order_items")
+          .insert(itemsToInsert);
+
+        if (itemsError) {
+          console.error("Failed to save order items:", itemsError);
+        }
       }
 
       placeOrder({
