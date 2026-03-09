@@ -132,7 +132,7 @@ const AdminOrders = () => {
         <div className="px-4 space-y-3">
           {filtered.map((order) => {
             const badge = STATUS_BADGE[order.status] || STATUS_BADGE.pending;
-            const items = (order.items as OrderItem[]) || [];
+            const items = (order.items as unknown as OrderItem[]) || [];
 
             return (
               <div key={order.id} className="bg-card rounded-xl p-4 card-elevated space-y-3">
