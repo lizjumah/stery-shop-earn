@@ -28,7 +28,9 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 const ShopHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { cartItemCount, loyaltyPoints } = useApp();
+  const { cartItemCount } = useApp();
+  const { customer } = useCustomer();
+  const loyaltyPoints = customer?.loyalty_points || 0;
 
   const featuredProducts = products.filter((p) => !p.isOffer).slice(0, 4);
   const offerProducts = products.filter((p) => p.isOffer);
