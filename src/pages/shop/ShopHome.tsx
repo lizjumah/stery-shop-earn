@@ -45,7 +45,7 @@ const ShopHome = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white/80 text-sm">Welcome back,</p>
-            <h1 className="text-white text-xl font-bold">{userData.name.split(" ")[0]} 👋</h1>
+            <h1 className="text-white text-xl font-bold">{customer?.name?.split(" ")[0] || "there"} 👋</h1>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/shop/rewards" className="bg-white/20 rounded-full px-3 py-2 flex items-center gap-1.5">

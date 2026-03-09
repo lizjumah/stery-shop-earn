@@ -90,12 +90,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [mode, setMode] = useState<AppMode>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<PlacedOrder[]>([]);
-  const [loyaltyPoints, setLoyaltyPoints] = useState(85);
-  const [pointsHistory, setPointsHistory] = useState<PointsHistoryEntry[]>([
-    { id: "h1", label: "Order STR-001", points: 13, date: "2026-03-05", type: "earned" },
-    { id: "h2", label: "Referral Bonus", points: 10, date: "2026-03-03", type: "bonus" },
-    { id: "h3", label: "Order STR-002", points: 44, date: "2026-03-07", type: "earned" },
-  ]);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [pointsHistory, setPointsHistory] = useState<PointsHistoryEntry[]>([]);
   const [birthday, setBirthday] = useState("");
   const [birthdayBonusClaimed, setBirthdayBonusClaimed] = useState(false);
   const [firstOrderBonusGiven, setFirstOrderBonusGiven] = useState(false);
