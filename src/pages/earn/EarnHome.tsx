@@ -48,7 +48,7 @@ const EarnHome = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white/80 text-sm">Welcome Reseller,</p>
-            <h1 className="text-white text-xl font-bold">{userData.name.split(" ")[0]} 💰</h1>
+            <h1 className="text-white text-xl font-bold">{customer?.name?.split(" ")[0] || "Reseller"} 💰</h1>
           </div>
           <Link to="/earn/dashboard" className="bg-white/20 rounded-full px-3 py-2 flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-white" />
