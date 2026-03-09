@@ -15,7 +15,7 @@ const Referrals = () => {
   };
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(userData.referralLink);
+    navigator.clipboard.writeText(referralLink);
     toast.success("Referral link copied!");
   };
 
