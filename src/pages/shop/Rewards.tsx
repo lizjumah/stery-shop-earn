@@ -1,4 +1,4 @@
-import { useApp } from "@/contexts/AppContext";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { vouchers } from "@/data/user";
 import { BottomNav } from "@/components/BottomNav";
 import { Progress } from "@/components/ui/progress";
@@ -11,16 +11,17 @@ const NEXT_REWARD_AT = 100;
 
 const Rewards = () => {
   const navigate = useNavigate();
-  const { loyaltyPoints, pointsHistory, redeemPoints } = useApp();
+  const { customer, pointsHistory, redeemPoints } = useCustomer();
 
+  const loyaltyPoints = customer?.loyalty_points || 0;
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
   const progress = ((loyaltyPoints % NEXT_REWARD_AT) / NEXT_REWARD_AT) * 100;
 
   const availableVouchers = vouchers.filter((v) => !v.isRedeemed && loyaltyPoints >= v.pointsCost);
   const lockedVouchers = vouchers.filter((v) => !v.isRedeemed && loyaltyPoints < v.pointsCost);
 
-  const handleRedeem = (pointsCost: number, title: string) => {
-    const success = redeemPoints(pointsCost, `Redeemed: ${title}`);
+  const handleRedeem = async (pointsCost: number, title: string) => {
+    const success = await redeemPoints(pointsCost, `Redeemed: ${title}`);
     if (success) {
       toast.success(`🎁 ${title} redeemed! Apply it at checkout.`);
     } else {
@@ -148,7 +149,7 @@ const Rewards = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">{entry.label}</p>
-                      <p className="text-xs text-muted-foreground">{entry.date}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                   </div>
                   <span className={`font-bold text-sm ${entry.points > 0 ? "text-primary" : "text-destructive"}`}>

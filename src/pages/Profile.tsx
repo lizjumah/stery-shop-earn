@@ -1,15 +1,23 @@
-import { userData } from "@/data/user";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { useApp } from "@/contexts/AppContext";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import {
-  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList, Cake, Shield, LayoutDashboard
+  User, Phone, Mail, MapPin, ChevronRight, LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList, Cake, LayoutDashboard
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { mode, setMode, loyaltyPoints, birthday, setBirthday } = useApp();
+  const { mode, setMode } = useApp();
+  const { customer, updateCustomer, logout: customerLogout } = useCustomer();
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const { loginByPhone } = useCustomer();
+
+  const loyaltyPoints = customer?.loyalty_points || 0;
 
   const handleSwitchMode = () => {
     const newMode = mode === "shop" ? "earn" : "shop";
@@ -18,9 +26,79 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
+    customerLogout();
     setMode(null);
     navigate("/");
   };
+
+  const handleRetrieveAccount = async () => {
+    if (!phoneInput.trim()) {
+      toast.error("Please enter your phone number");
+      return;
+    }
+    const found = await loginByPhone(phoneInput);
+    if (found) {
+      toast.success(`Welcome back, ${found.name}!`);
+      setShowPhoneInput(false);
+    } else {
+      toast.error("No account found with this phone number. Place your first order to create an account.");
+    }
+  };
+
+  // No customer yet - show onboarding state
+  if (!customer) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className={`px-4 pt-6 pb-8 rounded-b-3xl ${mode === "earn" ? "gradient-earn" : "gradient-shop"}`}>
+          <h1 className="text-white text-xl font-bold mb-6">Profile</h1>
+          <div className="bg-white rounded-2xl p-6 card-elevated text-center">
+            <div className="rounded-full w-16 h-16 flex items-center justify-center bg-primary/10 mx-auto mb-4">
+              <User className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground mb-2">Welcome to Stery!</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Complete your first order to create your profile and start earning rewards.
+            </p>
+
+            {!showPhoneInput ? (
+              <div className="space-y-2">
+                <Button onClick={() => navigate("/shop/browse")} className="w-full bg-primary hover:bg-primary/90">
+                  Start Shopping
+                </Button>
+                <Button onClick={() => setShowPhoneInput(true)} variant="outline" className="w-full">
+                  I Have an Account
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Enter your phone number to retrieve your account:</p>
+                <input
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  type="tel"
+                  placeholder="e.g. 0712345678"
+                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+                />
+                <div className="flex gap-2">
+                  <Button onClick={() => setShowPhoneInput(false)} variant="outline" className="flex-1">Cancel</Button>
+                  <Button onClick={handleRetrieveAccount} className="flex-1 bg-primary hover:bg-primary/90">Find Account</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-4 mt-6">
+          <Button onClick={handleSwitchMode} variant="outline" className="w-full h-14 mb-4 justify-between">
+            <span className="font-medium">Switch to {mode === "shop" ? "Earn" : "Shop"} Mode</span>
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -34,16 +112,20 @@ const Profile = () => {
               <User className={`w-8 h-8 ${mode === "earn" ? "text-accent" : "text-primary"}`} />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-bold text-foreground">{userData.name}</h2>
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{userData.phone}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{userData.email}</p>
+              <h2 className="text-lg font-bold text-foreground">{customer.name}</h2>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" />{customer.phone}</p>
+              {customer.email && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />{customer.email}</p>
+              )}
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="w-3 h-3" />
-            <span>{userData.address}</span>
-          </div>
+          {customer.delivery_location && (
+            <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="w-3 h-3" />
+              <span>{customer.delivery_location}</span>
+            </div>
+          )}
 
           <div className="mt-3 bg-secondary rounded-lg px-3 py-2">
             <span className="text-xs text-muted-foreground">User Type: </span>
@@ -69,12 +151,12 @@ const Profile = () => {
               <>
                 <div className="bg-accent/5 rounded-lg p-3 text-center">
                   <TrendingUp className="w-5 h-5 text-accent mx-auto mb-1" />
-                  <p className="text-lg font-bold text-foreground">KSh {userData.totalEarnings.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-foreground">KSh 0</p>
                   <p className="text-xs text-muted-foreground">Earned</p>
                 </div>
                 <div className="bg-accent/5 rounded-lg p-3 text-center">
                   <User className="w-5 h-5 text-accent mx-auto mb-1" />
-                  <p className="text-lg font-bold text-foreground">{userData.referredUsers}</p>
+                  <p className="text-lg font-bold text-foreground">0</p>
                   <p className="text-xs text-muted-foreground">Referrals</p>
                 </div>
               </>
@@ -94,8 +176,8 @@ const Profile = () => {
             <p className="text-xs text-muted-foreground mb-2">Set your birthday to earn 50 bonus points! 🎂</p>
             <input
               type="date"
-              value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
+              value={customer.birthday || ""}
+              onChange={(e) => updateCustomer({ birthday: e.target.value })}
               className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -151,9 +233,6 @@ const Profile = () => {
             </a>
           </div>
         </div>
-
-        {/* Edit Profile */}
-        <Button variant="outline" className="w-full h-12 mb-3">Edit Profile</Button>
 
         {/* Logout */}
         <Button
