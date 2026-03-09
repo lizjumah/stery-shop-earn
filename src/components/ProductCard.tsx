@@ -3,7 +3,7 @@ import { useApp } from "@/contexts/AppContext";
 import { Product } from "@/data/products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Share2, Star, Clock } from "lucide-react";
+import { ShoppingCart, Share2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isTodayDeal } from "@/data/dailyDeals";
