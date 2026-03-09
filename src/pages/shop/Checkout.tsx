@@ -308,8 +308,21 @@ const Checkout = () => {
 
         {/* Reassurance */}
         <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
-          After sending the message on WhatsApp, our team will confirm your order and arrange delivery.
+          After sending the message, our team will confirm your order and arrange delivery.
         </p>
+
+        {/* Support */}
+        <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mt-5 text-center space-y-2">
+          <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
+          <div className="flex gap-2 justify-center">
+            <a href="tel:+254794560657">
+              <Button size="sm" variant="outline" className="text-xs gap-1">📞 Call Stery</Button>
+            </a>
+            <a href="https://wa.me/254794560657" target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="text-xs gap-1">💬 WhatsApp Stery</Button>
+            </a>
+          </div>
+        </div>
 
         <Button variant="ghost" onClick={() => navigate("/shop")} className="mt-4 text-muted-foreground">
           Back to Home
