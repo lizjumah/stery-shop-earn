@@ -80,12 +80,14 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AppProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <FloatingCart />
-          <AppRoutes />
-        </BrowserRouter>
+        <CustomerProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <FloatingCart />
+            <AppRoutes />
+          </BrowserRouter>
+        </CustomerProvider>
       </AppProvider>
     </TooltipProvider>
   </QueryClientProvider>
