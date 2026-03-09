@@ -360,23 +360,17 @@ const Checkout = () => {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> Delivery Location
+                <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
+                  <MapPin className="w-3 h-3" /> Delivery Location <span className="text-primary">*</span>
                 </label>
                 <input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Near Equity Bank, Kanduyi"
-                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+                  placeholder="e.g. Bungoma Town, near Quickmart"
+                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Include your area and a nearby landmark for faster delivery.</p>
               </div>
-              <button
-                onClick={handleSendLocation}
-                className="w-full flex items-center justify-center gap-2 bg-accent/10 border border-accent/30 rounded-xl py-3 transition-colors hover:bg-accent/20"
-              >
-                <MessageCircle className="w-5 h-5 text-accent" />
-                <span className="font-semibold text-accent text-sm">Send Location on WhatsApp</span>
-              </button>
             </>
           )}
         </div>
