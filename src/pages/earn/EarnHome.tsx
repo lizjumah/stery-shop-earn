@@ -32,7 +32,7 @@ const EarnHome = () => {
         window.open(`sms:?body=${encoded}`, "_blank");
         break;
       case "facebook":
-        window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encoded}&u=${encodeURIComponent(userData.referralLink)}`, "_blank");
+        window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encoded}&u=${encodeURIComponent(referralLink)}`, "_blank");
         break;
       case "copy":
         navigator.clipboard.writeText(SHARE_MESSAGE);
