@@ -20,7 +20,7 @@ const Referrals = () => {
   };
 
   const shareReferral = () => {
-    const message = `Join me on Stery and start earning! Use my code ${userData.referralCode} or sign up here: ${userData.referralLink}`;
+    const message = `Join me on Stery and start earning! Use my code ${referralCode} or sign up here: ${referralLink}`;
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
