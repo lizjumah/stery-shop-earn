@@ -92,7 +92,7 @@ const EarnHome = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-foreground font-semibold text-sm">My Referral Link</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{userData.referralLink}</p>
+              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{referralLink}</p>
             </div>
             <Button size="sm" onClick={copyReferralLink} className="bg-accent hover:bg-accent/90">
               <Copy className="w-4 h-4 mr-1" />Copy
