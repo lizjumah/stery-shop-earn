@@ -60,7 +60,7 @@ const EarnHome = () => {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Wallet className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh {userData.paidEarnings.toLocaleString()}</p>
+            <p className="text-white font-bold text-sm">KSh 0</p>
             <p className="text-white/70 text-[10px]">Paid Out</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
