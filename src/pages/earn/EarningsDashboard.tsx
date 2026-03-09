@@ -16,7 +16,7 @@ const EarningsDashboard = () => {
 
   const paidTotal = earnings.filter((e) => e.status === "paid").reduce((s, e) => s + e.amount, 0);
   const pendingTotal = earnings.filter((e) => e.status === "pending").reduce((s, e) => s + e.amount, 0);
-  const availableToWithdraw = userData.paidEarnings;
+  const availableToWithdraw = paidTotal;
   const canWithdraw = availableToWithdraw >= 500;
 
   const handleWithdraw = () => {
