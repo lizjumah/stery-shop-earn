@@ -76,7 +76,7 @@ const Referrals = () => {
           <p className="text-sm text-muted-foreground mb-2">Your Referral Code</p>
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-foreground tracking-wider">
-              {userData.referralCode}
+              {referralCode}
             </span>
             <Button size="sm" variant="outline" onClick={copyReferralCode}>
               <Copy className="w-4 h-4 mr-1" />
