@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:backend": "tsx watch src/server/index.ts",
+    "start": "node dist/server/index.js",
     "start:backend": "node dist/server/index.js",
     "build": "vite build",
     "build:backend": "tsc --project tsconfig.node.json && esbuild src/server/index.ts --bundle --platform=node --outfile=dist/server/index.js",
