@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { products, categories } from "@/data/products";
 import { getTodayDeals } from "@/data/dailyDeals";
+import { useProducts } from "@/hooks/useProducts";
 import { useApp } from "@/contexts/AppContext";
-import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ShoppingCart, Clock, Flame, ChevronRight, Zap } from "lucide-react";
@@ -17,6 +16,7 @@ const Offers = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [hoursLeft, setHoursLeft] = useState(0);
   const [minutesLeft, setMinutesLeft] = useState(0);
+  const { data: liveProducts = [] } = useProducts();
 
   // Countdown to end of day
   useEffect(() => {
@@ -33,15 +33,15 @@ const Offers = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const offerProducts = products.filter((p) => p.isOffer && p.inStock);
+  const offerProducts = liveProducts.filter((p) => p.isOffer && p.inStock);
   const todayDealIds = getTodayDeals().map((d) => d.productId);
   const todayDealProducts = todayDealIds
-    .map((id) => products.find((p) => p.id === id))
+    .map((id) => liveProducts.find((p) => p.id === id))
     .filter((p): p is NonNullable<typeof p> => !!p && p.inStock);
 
   // Featured deal of the day
   const featuredDeal = getTodayDeals().find((d) => d.featured);
-  const featuredProduct = featuredDeal ? products.find((p) => p.id === featuredDeal.productId) : offerProducts[0];
+  const featuredProduct = featuredDeal ? liveProducts.find((p) => p.id === featuredDeal.productId) : offerProducts[0];
 
   // Filter by category
   const filteredDeals =
@@ -225,7 +225,6 @@ const Offers = () => {
         </div>
       </div>
 
-      <BottomNav />
     </div>
   );
 };

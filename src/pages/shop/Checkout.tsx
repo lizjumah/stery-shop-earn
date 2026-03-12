@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { useQueryClient } from "@tanstack/react-query";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, Loader2, ShoppingBag, User, Mail, FileText } from "lucide-react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
@@ -19,6 +22,8 @@ const FREE_DELIVERY_THRESHOLD = 3000;
 const Checkout = () => {
   const { cart, clearCart, placeOrder } = useApp();
   const { customer, createOrLoadCustomer, addPoints, redeemPoints: customerRedeemPoints } = useCustomer();
+  const { data: liveProducts = [] } = useProducts();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const deliveryOption = (searchParams.get("delivery") as "delivery" | "pickup") || "delivery";
@@ -54,7 +59,7 @@ const Checkout = () => {
     try {
       return cart
         .map((item) => {
-          const product = products.find((p) => p.id === item.productId);
+          const product = liveProducts.find((p) => p.id === item.productId);
           return { ...item, product };
         })
         .filter((item) => item.product);
@@ -118,6 +123,27 @@ const Checkout = () => {
     }
 
     try {
+      // Pre-flight: check current stock from DB to block overselling
+      const productIds = cartProducts.map((i) => i.productId);
+      const { data: stockCheck } = await supabase
+        .from("products")
+        .select("id, name, stock_quantity")
+        .in("id", productIds);
+
+      if (stockCheck) {
+        for (const item of cartProducts) {
+          const stockRow = stockCheck.find((p) => p.id === item.productId);
+          if (stockRow && stockRow.stock_quantity !== null && item.quantity > stockRow.stock_quantity) {
+            toast.error(
+              stockRow.stock_quantity === 0
+                ? `"${item.product!.name}" is out of stock`
+                : `Only ${stockRow.stock_quantity} of "${item.product!.name}" available`
+            );
+            return;
+          }
+        }
+      }
+
       // Create or load customer account
       const cust = await createOrLoadCustomer({
         name: customerName,
@@ -165,7 +191,7 @@ const Checkout = () => {
           delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
           delivery_location: deliveryOption === "delivery" ? location : null,
           points_earned: earnedPoints,
-          status: "pending",
+          status: "received",
           order_source: "app",
         })
         .select("id")
@@ -183,6 +209,21 @@ const Checkout = () => {
         }));
         const { error: itemsError } = await supabase.from("order_items").insert(itemsToInsert);
         if (itemsError) console.error("Failed to save order items:", itemsError);
+
+        // Deduct stock via backend (fire-and-forget — don't block order completion)
+        const customerId = localStorage.getItem("stery_customer_id") || "";
+        fetch(`${BACKEND_URL}/api/admin/orders/${orderData.id}/deduct-stock`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Customer-ID": customerId },
+          body: JSON.stringify({
+            items: orderItems.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          }),
+        })
+          .then(() => {
+            // Invalidate product cache so updated stock shows on next browse
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+          })
+          .catch((err) => console.warn("Stock deduction failed (backend may be offline):", err));
       }
 
       // Add loyalty points
@@ -238,21 +279,6 @@ const Checkout = () => {
     );
   }
 
-  if (cartProducts.length === 0) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-4">
-        <div className="bg-secondary rounded-full p-6">
-          <ShoppingBag className="w-12 h-12 text-muted-foreground" />
-        </div>
-        <h2 className="text-xl font-bold text-foreground">Cart is empty</h2>
-        <p className="text-muted-foreground text-sm">Your cart is empty. Please add items before checking out.</p>
-        <Link to="/shop">
-          <Button className="bg-primary hover:bg-primary/90">Continue Shopping</Button>
-        </Link>
-      </div>
-    );
-  }
-
   if (orderPlaced) {
     const orderItems = cartProductsRef.current;
     const itemsList = orderItems.map((i) => `• ${i.product!.name} × ${i.quantity} — KSh ${i.product!.price * i.quantity}`).join("\n");
@@ -282,6 +308,9 @@ const Checkout = () => {
           <CheckCircle className="w-16 h-16 text-accent" />
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">Order Created Successfully</h1>
+        <p className="text-sm text-accent font-medium text-center mb-4 max-w-sm">
+          Order received and reserved. Processing starts immediately.
+        </p>
 
         <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mb-4 space-y-2">
           <div className="flex justify-between text-sm">
@@ -319,6 +348,10 @@ const Checkout = () => {
           After sending the message, our team will confirm your order and arrange delivery.
         </p>
 
+        <p className="text-xs font-medium text-center mt-2 max-w-sm text-accent">
+          ✅ Order already saved. WhatsApp is only for confirmation.
+        </p>
+
         <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mt-5 text-center space-y-2">
           <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
           <div className="flex gap-2 justify-center">
@@ -334,6 +367,21 @@ const Checkout = () => {
         <Button variant="ghost" onClick={() => navigate("/shop")} className="mt-4 text-muted-foreground">
           Back to Home
         </Button>
+      </div>
+    );
+  }
+
+  if (cartProducts.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-4">
+        <div className="bg-secondary rounded-full p-6">
+          <ShoppingBag className="w-12 h-12 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Cart is empty</h2>
+        <p className="text-muted-foreground text-sm">Your cart is empty. Please add items before checking out.</p>
+        <Link to="/shop">
+          <Button className="bg-primary hover:bg-primary/90">Continue Shopping</Button>
+        </Link>
       </div>
     );
   }

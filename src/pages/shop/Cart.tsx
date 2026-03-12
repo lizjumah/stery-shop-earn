@@ -1,6 +1,5 @@
 import { useApp } from "@/contexts/AppContext";
-import { products } from "@/data/products";
-import { BottomNav } from "@/components/BottomNav";
+import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ShoppingBag, Truck, Store, Star, Share2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -26,9 +25,10 @@ const Cart = () => {
   const navigate = useNavigate();
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">("delivery");
   const [deliveryArea, setDeliveryArea] = useState(DELIVERY_AREAS[0].name);
+  const { data: liveProducts = [] } = useProducts();
 
   const cartProducts = cart.map((item) => {
-    const product = products.find((p) => p.id === item.productId);
+    const product = liveProducts.find((p) => p.id === item.productId);
     return { ...item, product };
   }).filter((item) => item.product);
 
@@ -75,7 +75,6 @@ const Cart = () => {
         <Link to="/shop">
           <Button className="bg-primary hover:bg-primary/90">Start Shopping</Button>
         </Link>
-        <BottomNav />
       </div>
     );
   }
@@ -108,7 +107,18 @@ const Cart = () => {
                       <Minus className="w-3 h-3" />
                     </button>
                     <span className="font-bold text-sm w-6 text-center">{quantity}</span>
-                    <button onClick={() => updateCartQuantity(productId, quantity + 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center">
+                    <button
+                      onClick={() => {
+                        const maxQty = product!.stockQuantity ?? Infinity;
+                        if (quantity >= maxQty) {
+                          toast.error(`Only ${maxQty} available`);
+                          return;
+                        }
+                        updateCartQuantity(productId, quantity + 1);
+                      }}
+                      disabled={product!.stockQuantity !== undefined && quantity >= product!.stockQuantity}
+                      className="w-7 h-7 rounded-full border border-border flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
@@ -229,8 +239,6 @@ const Cart = () => {
           Proceed to Checkout
         </Button>
       </div>
-
-      <BottomNav />
     </div>
   );
 };

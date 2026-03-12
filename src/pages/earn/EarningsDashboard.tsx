@@ -1,8 +1,7 @@
-import { earnings } from "@/data/user";
 import { useCustomer } from "@/contexts/CustomerContext";
-import { BottomNav } from "@/components/BottomNav";
+import { useCommissions } from "@/hooks/useCommissions";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, TrendingUp, Wallet, Clock, CheckCircle, ShoppingBag, Smartphone, BadgeDollarSign } from "lucide-react";
+import { ArrowLeft, TrendingUp, Wallet, Clock, CheckCircle, ShoppingBag, Smartphone, BadgeDollarSign, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,8 +13,28 @@ const EarningsDashboard = () => {
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [mpesaPhone, setMpesaPhone] = useState(customer?.phone || "");
 
-  const paidTotal = earnings.filter((e) => e.status === "paid").reduce((s, e) => s + e.amount, 0);
-  const pendingTotal = earnings.filter((e) => e.status === "pending").reduce((s, e) => s + e.amount, 0);
+  const { data: commissions = [], isLoading } = useCommissions();
+
+  // Filter by period
+  const now = new Date();
+  const filtered = commissions.filter((c) => {
+    if (period === "all") return true;
+    const date = new Date(c.created_at);
+    if (period === "week") {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(now.getDate() - 7);
+      return date >= weekAgo;
+    }
+    if (period === "month") {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(now.getMonth() - 1);
+      return date >= monthAgo;
+    }
+    return true;
+  });
+
+  const paidTotal = filtered.filter((c) => c.status === "paid" || c.status === "confirmed").reduce((s, c) => s + Number(c.amount), 0);
+  const pendingTotal = filtered.filter((c) => c.status === "pending").reduce((s, c) => s + Number(c.amount), 0);
   const availableToWithdraw = paidTotal;
   const canWithdraw = availableToWithdraw >= 500;
 
@@ -31,6 +50,9 @@ const EarningsDashboard = () => {
     toast.success(`Withdrawal of KSh ${availableToWithdraw.toLocaleString()} requested to ${mpesaPhone}. You'll receive it within 24 hours.`);
     setShowWithdraw(false);
   };
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -69,7 +91,7 @@ const EarningsDashboard = () => {
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <p className="text-white/80 text-xs">Orders Sold</p>
-            <p className="text-white font-bold">{earnings.length}</p>
+            <p className="text-white font-bold">{commissions.length}</p>
           </div>
         </div>
       </div>
@@ -111,7 +133,7 @@ const EarningsDashboard = () => {
           </div>
         )}
 
-        {!canWithdraw && (
+        {!canWithdraw && !isLoading && commissions.length > 0 && (
           <div className="bg-secondary rounded-xl p-3 mb-4">
             <p className="text-xs text-muted-foreground text-center">
               💡 You need KSh {(500 - availableToWithdraw).toLocaleString()} more to reach the minimum withdrawal of KSh 500.
@@ -134,46 +156,45 @@ const EarningsDashboard = () => {
           ))}
         </div>
 
-        {/* Earnings Chart */}
-        <div className="bg-card rounded-xl p-4 card-elevated mb-6">
-          <h3 className="font-semibold text-foreground mb-3">Earnings Overview</h3>
-          <div className="flex items-end gap-2 h-24">
-            {[40, 100, 200, 120, 12, 60].map((amount, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-full bg-accent rounded-t-md"
-                  style={{ height: `${(amount / 200) * 100}%` }}
-                />
-                <span className="text-[9px] text-muted-foreground mt-1">
-                  {["Mar 2", "Mar 3", "Mar 4", "Mar 5", "Mar 6", "Mar 7"][i]}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Sales */}
+        {/* Sales Activity */}
         <h2 className="text-lg font-bold text-foreground mb-4">Recent Sales Activity</h2>
+
+        {isLoading && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-accent" />
+          </div>
+        )}
+
+        {!isLoading && filtered.length === 0 && (
+          <div className="bg-secondary rounded-xl p-6 text-center mb-4">
+            <ShoppingBag className="w-10 h-10 text-muted-foreground mx-auto mb-2 opacity-50" />
+            <p className="text-muted-foreground font-medium text-sm">No sales yet.</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">Share products with customers to start earning commissions.</p>
+          </div>
+        )}
+
         <div className="space-y-3">
-          {earnings.map((earning) => (
-            <div key={earning.id} className="bg-card rounded-xl p-4 flex items-center justify-between card-elevated">
+          {filtered.map((commission) => (
+            <div key={commission.id} className="bg-card rounded-xl p-4 flex items-center justify-between card-elevated">
               <div className="flex items-center gap-3">
-                <div className={`rounded-full p-2 ${earning.status === "paid" ? "bg-accent/10" : "bg-primary/10"}`}>
-                  {earning.status === "paid" ? <CheckCircle className="w-5 h-5 text-accent" /> : <Clock className="w-5 h-5 text-primary" />}
+                <div className={`rounded-full p-2 ${commission.status === "paid" || commission.status === "confirmed" ? "bg-accent/10" : "bg-primary/10"}`}>
+                  {commission.status === "paid" || commission.status === "confirmed"
+                    ? <CheckCircle className="w-5 h-5 text-accent" />
+                    : <Clock className="w-5 h-5 text-primary" />}
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">{earning.productName}</p>
-                  <p className="text-xs text-muted-foreground">{earning.date}</p>
+                  <p className="font-medium text-foreground">{commission.product_name}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(commission.created_at)}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold text-foreground">+KSh {earning.amount}</p>
+                <p className="font-bold text-foreground">+KSh {Number(commission.amount).toLocaleString()}</p>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                  earning.status === "paid"
+                  commission.status === "paid" || commission.status === "confirmed"
                     ? "bg-accent/10 text-accent"
                     : "bg-primary/10 text-primary"
                 }`}>
-                  {earning.status === "paid" ? "✓ Confirmed" : "⏳ Pending"}
+                  {commission.status === "paid" || commission.status === "confirmed" ? "✓ Confirmed" : "⏳ Pending"}
                 </span>
               </div>
             </div>
@@ -189,8 +210,6 @@ const EarningsDashboard = () => {
           </ul>
         </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 };

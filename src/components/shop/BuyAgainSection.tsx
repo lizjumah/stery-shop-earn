@@ -1,5 +1,4 @@
 import { products } from "@/data/products";
-import { orderHistory } from "@/data/user";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, RotateCcw } from "lucide-react";
@@ -10,11 +9,10 @@ export const BuyAgainSection = () => {
   const { addToCart, orders } = useApp();
   const navigate = useNavigate();
 
-  // Combine static order history + app-placed orders to get previously purchased product IDs
-  const allOrders = [...orders, ...orderHistory];
+  // Get previously purchased product IDs from placed orders
   const purchasedIds = Array.from(
     new Set(
-      allOrders
+      orders
         .filter((o) => o.status !== "cancelled")
         .flatMap((o) => o.items.map((i) => i.productId))
     )

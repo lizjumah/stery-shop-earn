@@ -1,6 +1,4 @@
 import { useCustomer } from "@/contexts/CustomerContext";
-import { vouchers } from "@/data/user";
-import { BottomNav } from "@/components/BottomNav";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, Gift, TrendingUp, Ticket, Clock } from "lucide-react";
@@ -8,6 +6,15 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const NEXT_REWARD_AT = 100;
+
+// Reward tiers available at specific point thresholds
+const VOUCHER_TIERS = [
+  { id: "v1", title: "KSh 50 Voucher",      description: "KSh 50 off any purchase",                     pointsCost: 50,  discount: 50,  expiresAt: "Ongoing" },
+  { id: "v2", title: "Free Delivery",        description: "Free delivery on your next order",             pointsCost: 50,  discount: 0,   expiresAt: "Ongoing" },
+  { id: "v3", title: "KSh 100 Off",          description: "KSh 100 off on orders above KSh 500",         pointsCost: 100, discount: 100, expiresAt: "Ongoing" },
+  { id: "v4", title: "KSh 200 Voucher",      description: "KSh 200 off on orders above KSh 1,000",       pointsCost: 200, discount: 200, expiresAt: "Ongoing" },
+  { id: "v5", title: "KSh 500 Super Reward", description: "KSh 500 off on orders above KSh 2,000",       pointsCost: 500, discount: 500, expiresAt: "Ongoing" },
+];
 
 const Rewards = () => {
   const navigate = useNavigate();
@@ -17,8 +24,8 @@ const Rewards = () => {
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
   const progress = ((loyaltyPoints % NEXT_REWARD_AT) / NEXT_REWARD_AT) * 100;
 
-  const availableVouchers = vouchers.filter((v) => !v.isRedeemed && loyaltyPoints >= v.pointsCost);
-  const lockedVouchers = vouchers.filter((v) => !v.isRedeemed && loyaltyPoints < v.pointsCost);
+  const availableVouchers = VOUCHER_TIERS.filter((v) => loyaltyPoints >= v.pointsCost);
+  const lockedVouchers = VOUCHER_TIERS.filter((v) => loyaltyPoints < v.pointsCost);
 
   const handleRedeem = async (pointsCost: number, title: string) => {
     const success = await redeemPoints(pointsCost, `Redeemed: ${title}`);
@@ -182,7 +189,6 @@ const Rewards = () => {
         </div>
       </div>
 
-      <BottomNav />
     </div>
   );
 };

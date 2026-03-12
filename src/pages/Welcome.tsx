@@ -1,8 +1,10 @@
 import { useNavigate, Navigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
+import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 import { ShoppingBag, TrendingUp, Truck, Gift, Users, ShoppingCart } from "lucide-react";
 import { products } from "@/data/products";
 import { Button } from "@/components/ui/button";
+import { TopBar } from "@/components/TopBar";
 import { toast } from "sonner";
 
 const FEATURED_IDS = ["1", "2", "14", "3"]; // Bread, Milk, Eggs, Sugar
@@ -10,10 +12,16 @@ const FEATURED_IDS = ["1", "2", "14", "3"]; // Bread, Milk, Eggs, Sugar
 const Welcome = () => {
   const navigate = useNavigate();
   const { setMode, addToCart } = useApp();
+  const { customer, isLoading } = useCustomer();
 
   // Redirect to onboarding if first visit
   if (!localStorage.getItem("stery_onboarded")) {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  // Staff go straight to admin — they have no use for the mode selector
+  if (!isLoading && customer && getCustomerRole(customer) === "staff") {
+    return <Navigate to="/admin/orders" replace />;
   }
 
   const handleChoice = (choice: "shop" | "earn") => {
@@ -34,6 +42,7 @@ const Welcome = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <TopBar />
       <div className="flex-1 flex flex-col items-center px-6 py-10">
         {/* Logo & Headline */}
         <div className="text-center mb-6 animate-fade-in">
@@ -46,13 +55,13 @@ const Welcome = () => {
           <p className="text-primary font-semibold text-lg mt-1">
             Shop smart. Earn more.
           </p>
-          <p className="text-muted-foreground text-sm mt-2 max-w-[320px] mx-auto leading-relaxed">
+          <p className="text-muted-foreground text-sm mt-2 max-w-[320px] lg:max-w-lg mx-auto leading-relaxed">
             Fresh groceries, daily bakery items, and household essentials delivered locally with easy M-Pesa payments.
           </p>
         </div>
 
         {/* Choice Cards */}
-        <div className="w-full max-w-sm space-y-3">
+        <div className="w-full lg:max-w-xl space-y-3">
           <button
             onClick={() => handleChoice("shop")}
             className="w-full gradient-shop rounded-2xl p-6 text-left card-elevated transform transition-transform active:scale-[0.98]"
@@ -89,7 +98,7 @@ const Welcome = () => {
         </div>
 
         {/* Fresh Today Section */}
-        <div className="w-full max-w-sm mt-8">
+        <div className="w-full lg:max-w-xl mt-8">
           <h2 className="text-lg font-bold text-foreground mb-3">🛒 Fresh Today</h2>
           <div className="grid grid-cols-2 gap-3">
             {featuredProducts.map((product) => (

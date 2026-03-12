@@ -14,10 +14,15 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps) => {
-  const { mode, addToCart } = useApp();
+  const { mode, addToCart, cart } = useApp();
   const navigate = useNavigate();
   const isEarnMode = mode === "earn";
   const isDeal = showDealBadge && isTodayDeal(product.id);
+  const outOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity <= 0);
+
+  // How many of this product are already in the cart
+  const cartQty = cart.find((i) => i.productId === product.id)?.quantity ?? 0;
+  const atStockLimit = !isEarnMode && product.stockQuantity !== undefined && cartQty >= product.stockQuantity;
 
   const handleAction = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -25,6 +30,14 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
     if (isEarnMode) {
       window.location.href = `/earn/share/${product.id}`;
     } else {
+      if (outOfStock) {
+        toast.error("This item is currently out of stock.");
+        return;
+      }
+      if (atStockLimit) {
+        toast.error(`Only ${product.stockQuantity} available — you already have ${cartQty} in your cart.`);
+        return;
+      }
       addToCart(product.id);
       toast("Item added to cart.", {
         action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
@@ -60,10 +73,12 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
           <h3 className="font-semibold text-sm line-clamp-2 text-foreground">{product.name}</h3>
           
           <p className="text-xs text-muted-foreground mt-1">
-            {product.inStock !== false ? (
-              <span className="text-accent font-medium">In Stock</span>
-            ) : (
+            {outOfStock ? (
               <span className="text-destructive font-medium">Out of Stock</span>
+            ) : product.stockQuantity !== undefined && product.stockQuantity <= 5 ? (
+              <span className="text-amber-500 font-medium">Only {product.stockQuantity} left</span>
+            ) : (
+              <span className="text-accent font-medium">In Stock</span>
             )}
           </p>
           
@@ -77,6 +92,7 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
             
             <Button
               size="icon"
+              disabled={!isEarnMode && (outOfStock || atStockLimit)}
               className={cn("h-9 w-9 rounded-full", isEarnMode ? "bg-accent hover:bg-accent/90" : "bg-primary hover:bg-primary/90")}
               onClick={handleAction}
             >

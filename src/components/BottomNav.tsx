@@ -1,34 +1,32 @@
-import { Home, ShoppingBag, DollarSign, Gift, User } from "lucide-react";
+import { Home, Package, DollarSign, Gift, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { icon: Home, label: "Home", path: "/shop" },
-  { icon: ShoppingBag, label: "Shop", path: "/shop/browse" },
+  { icon: Home,    label: "Home",    path: "/shop" },
+  { icon: Package, label: "Orders",  path: "/shop/orders" },
   { icon: DollarSign, label: "Earn", path: "/earn" },
-  { icon: Gift, label: "Rewards", path: "/shop/rewards" },
-  { icon: User, label: "Account", path: "/profile" },
+  { icon: Gift,    label: "Rewards", path: "/shop/rewards" },
+  { icon: User,    label: "Account", path: "/profile" },
 ];
 
-export const BottomNav = () => {
+export const BottomNav: React.FC<{className?: string}> = ({ className = "" }) => {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-50">
+    <nav className={cn("fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-50 lg:hidden", className)}>
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {navItems.map((item) => {
-          const isActive =
-            location.pathname === item.path ||
-            (item.path === "/shop" && location.pathname === "/shop") ||
-            (item.path === "/shop/browse" && location.pathname.startsWith("/shop/") && !(["/shop/rewards"].includes(location.pathname)) && location.pathname !== "/shop") ||
-            (item.path === "/earn" && location.pathname.startsWith("/earn"));
-
-          // More precise active check
+          // Home is active for all /shop/* routes not owned by another tab
+          const ORDERS_PATHS = ["/shop/orders", "/shop/order/"];
           const active =
             item.path === "/shop"
-              ? location.pathname === "/shop"
-              : item.path === "/shop/browse"
-              ? location.pathname === "/shop/browse" || (location.pathname.startsWith("/shop/") && !["/shop", "/shop/rewards"].includes(location.pathname) && location.pathname !== "/shop/rewards")
+              ? location.pathname === "/shop" ||
+                (location.pathname.startsWith("/shop/") &&
+                  !ORDERS_PATHS.some((p) => location.pathname.startsWith(p)) &&
+                  location.pathname !== "/shop/rewards")
+              : item.path === "/shop/orders"
+              ? location.pathname.startsWith("/shop/order")
               : item.path === "/earn"
               ? location.pathname.startsWith("/earn")
               : item.path === "/shop/rewards"

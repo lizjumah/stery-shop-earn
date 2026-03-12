@@ -6,24 +6,30 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 type Order = Tables<"orders">;
 type OrderStatus = Order["status"];
 
-type FilterKey = "all" | "pending" | "confirmed" | "out_for_delivery" | "delivered";
+type FilterKey = "all" | "received" | "preparing" | "processed_at_pos" | "out_for_delivery" | "delivered" | "cancelled";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "pending", label: "New" },
-  { key: "confirmed", label: "Preparing" },
+  { key: "received", label: "New" },
+  { key: "preparing", label: "Preparing" },
+  { key: "processed_at_pos", label: "POS Processed" },
   { key: "out_for_delivery", label: "Out for Delivery" },
-  { key: "delivered", label: "Completed" },
+  { key: "delivered", label: "Delivered" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  pending: { label: "New", className: "bg-primary/10 text-primary border-primary/20" },
-  confirmed: { label: "Preparing", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  out_for_delivery: { label: "Out for Delivery", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  delivered: { label: "Completed", className: "bg-accent/10 text-accent border-accent/20" },
+  received: { label: "New", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  preparing: { label: "Preparing", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  processed_at_pos: { label: "POS Processed", className: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  out_for_delivery: { label: "Out for Delivery", className: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
+  delivered: { label: "Delivered", className: "bg-accent/10 text-accent border-accent/20" },
+  cancelled: { label: "Cancelled", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 interface OrderItem {
@@ -62,21 +68,66 @@ const AdminOrders = () => {
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
   const handleStatus = async (orderId: string, newStatus: OrderStatus) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: newStatus })
-      .eq("id", orderId);
+    const customerId = localStorage.getItem("stery_customer_id") || "";
 
-    if (error) {
-      console.error("Failed to update status:", error);
-      toast.error("Failed to update order status");
-      return;
+    // Try backend first (uses service role key — bypasses RLS)
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/orders/${orderId}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Customer-ID": customerId,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (res.ok) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+        );
+        toast.success(`Order marked as ${STATUS_BADGE[newStatus]?.label || newStatus}`);
+        return;
+      }
+
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    } catch (backendErr: any) {
+      // Backend not reachable — fall back to direct Supabase update
+      const isNetworkError =
+        backendErr instanceof TypeError ||
+        backendErr.message?.includes("fetch") ||
+        backendErr.message?.includes("Failed to fetch") ||
+        backendErr.message?.includes("NetworkError");
+
+      if (!isNetworkError) {
+        console.error("Backend order status error:", backendErr.message);
+        toast.error(`Failed to update status: ${backendErr.message}`);
+        return;
+      }
+
+      // Backend offline — try direct update (only works if RLS allows it)
+      const { data, error } = await supabase
+        .from("orders")
+        .update({ status: newStatus })
+        .eq("id", orderId)
+        .select("id");
+
+      if (error) {
+        console.error("Direct update error:", error);
+        toast.error("Failed to update status. Run: npm run dev:backend");
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        toast.error("Status not saved — backend server is required. Run: npm run dev:backend");
+        return;
+      }
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
+      toast.success(`Order marked as ${STATUS_BADGE[newStatus]?.label || newStatus}`);
     }
-
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
-    toast.success(`Order marked as ${STATUS_BADGE[newStatus]?.label || newStatus}`);
   };
 
   const formatDate = (dateStr: string) => {
@@ -131,7 +182,7 @@ const AdminOrders = () => {
       {!loading && (
         <div className="px-4 space-y-3">
           {filtered.map((order) => {
-            const badge = STATUS_BADGE[order.status] || STATUS_BADGE.pending;
+            const badge = STATUS_BADGE[order.status] || STATUS_BADGE.received;
             const items = (order.items as unknown as OrderItem[]) || [];
 
             return (
@@ -191,22 +242,38 @@ const AdminOrders = () => {
                 )}
 
                 {/* Status actions */}
-                {order.status !== "delivered" && (
+                {order.status !== "delivered" && order.status !== "cancelled" && (
                   <div className="flex gap-2 flex-wrap">
-                    {order.status === "pending" && (
-                      <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "confirmed")}>
-                        <ChefHat className="w-3 h-3" /> Mark Preparing
+                    {order.status === "received" && (
+                      <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "preparing")}>
+                        <ChefHat className="w-3 h-3" /> Preparing
                       </Button>
                     )}
-                    {(order.status === "pending" || order.status === "confirmed") && (
+                    {order.status === "preparing" && (
+                      <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "processed_at_pos")}>
+                        <CreditCard className="w-3 h-3" /> POS Processed
+                      </Button>
+                    )}
+                    {order.status === "processed_at_pos" && (
                       <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "out_for_delivery")}>
                         <Truck className="w-3 h-3" /> Out for Delivery
                       </Button>
                     )}
-                    <Button size="sm" className="text-xs gap-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleStatus(order.id, "delivered")}>
-                      <CheckCircle className="w-3 h-3" /> Mark Delivered
+                    {order.status === "out_for_delivery" && (
+                      <Button size="sm" className="text-xs gap-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleStatus(order.id, "delivered")}>
+                        <CheckCircle className="w-3 h-3" /> Delivered
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="text-xs gap-1 text-destructive hover:bg-destructive/10" onClick={() => handleStatus(order.id, "cancelled")}>
+                      Cancel Order
                     </Button>
                   </div>
+                )}
+                {order.status === "delivered" && (
+                  <div className="text-xs font-medium text-accent">✓ Order Delivered</div>
+                )}
+                {order.status === "cancelled" && (
+                  <div className="text-xs font-medium text-destructive">✗ Order Cancelled</div>
                 )}
               </div>
             );

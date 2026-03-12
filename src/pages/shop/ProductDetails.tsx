@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { products } from "@/data/products";
+import { useProduct } from "@/hooks/useProducts";
 import { FrequentlyBoughtTogether } from "@/components/shop/FrequentlyBoughtTogether";
 import { CustomersAlsoBuy } from "@/components/shop/CustomersAlsoBuy";
 import { useApp } from "@/contexts/AppContext";
@@ -12,11 +12,19 @@ import { toast } from "sonner";
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, cartItemCount } = useApp();
+  const { addToCart, cartItemCount, cart } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">("delivery");
 
-  const product = products.find((p) => p.id === id);
+  const { product, isLoading } = useProduct(id);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -26,8 +34,23 @@ const ProductDetails = () => {
     );
   }
 
+  // How many of this product are already in the cart
+  const cartQty = cart.find((i) => i.productId === product.id)?.quantity ?? 0;
+  const stockLimit = product.stockQuantity ?? Infinity;
+  // How many MORE the customer can add
+  const maxAddable = Math.max(0, stockLimit === Infinity ? Infinity : stockLimit - cartQty);
+
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
+    if (maxAddable === 0) {
+      toast.error(
+        cartQty > 0
+          ? `You already have all ${stockLimit} available in your cart.`
+          : `"${product.name}" is out of stock.`
+      );
+      return;
+    }
+    const addQty = Math.min(quantity, maxAddable);
+    for (let i = 0; i < addQty; i++) {
       addToCart(product.id);
     }
     toast("Item added to cart.", {
@@ -119,18 +142,35 @@ const ProductDetails = () => {
         </div>
 
         {/* Quantity */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-1">
           <span className="font-medium text-foreground">Quantity</span>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-10 w-10 rounded-full">
               <Minus className="w-4 h-4" />
             </Button>
             <span className="text-xl font-bold w-8 text-center">{quantity}</span>
-            <Button variant="outline" size="icon" onClick={() => setQuantity(quantity + 1)} className="h-10 w-10 rounded-full">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={quantity >= maxAddable}
+              onClick={() => setQuantity(Math.min(quantity + 1, maxAddable))}
+              className="h-10 w-10 rounded-full"
+            >
               <Plus className="w-4 h-4" />
             </Button>
           </div>
         </div>
+        {/* Stock hint */}
+        {product.stockQuantity !== undefined && product.stockQuantity <= 10 && (
+          <p className="text-xs text-amber-500 font-medium text-right mb-5">
+            {product.stockQuantity === 0
+              ? "Out of stock"
+              : cartQty > 0
+              ? `${maxAddable} more available (${cartQty} already in cart)`
+              : `Only ${product.stockQuantity} left`}
+          </p>
+        )}
+        {!(product.stockQuantity !== undefined && product.stockQuantity <= 10) && <div className="mb-6" />}
 
         {/* Delivery Options */}
         <div className="mb-6">
@@ -163,9 +203,15 @@ const ProductDetails = () => {
 
       {/* Fixed Bottom Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4">
-        <Button onClick={handleAddToCart} className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90">
+        <Button
+          onClick={handleAddToCart}
+          disabled={maxAddable === 0}
+          className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 disabled:opacity-60"
+        >
           <ShoppingCart className="w-5 h-5 mr-2" />
-          Add to Cart - KSh {product.price * quantity}
+          {maxAddable === 0
+            ? cartQty > 0 ? "Max in Cart" : "Out of Stock"
+            : `Add to Cart - KSh ${product.price * quantity}`}
         </Button>
       </div>
     </div>

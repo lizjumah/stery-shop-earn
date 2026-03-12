@@ -13,30 +13,33 @@
     --popover: 0 0% 100%;
     --popover-foreground: 20 15% 15%;
 
-    --primary: 25 95% 53%;
+    /* primary teal-ish */
+    --primary: 175 65% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 15% 95%;
-    --secondary-foreground: 20 15% 25%;
+    /* secondary light grey */
+    --secondary: 210 20% 95%;
+    --secondary-foreground: 210 15% 25%;
 
-    --muted: 30 10% 92%;
-    --muted-foreground: 20 10% 45%;
+    --muted: 210 20% 90%;
+    --muted-foreground: 210 15% 50%;
 
-    --accent: 145 65% 42%;
+    /* accent indigo */
+    --accent: 250 60% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 15% 88%;
-    --input: 30 15% 88%;
-    --ring: 25 95% 53%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 175 65% 45%;
 
     --radius: 1rem;
 
     /* Custom tokens */
-    --earn-gradient: linear-gradient(135deg, hsl(145 65% 42%), hsl(160 60% 35%));
-    --shop-gradient: linear-gradient(135deg, hsl(25 95% 53%), hsl(35 90% 50%));
+    --earn-gradient: linear-gradient(135deg, hsl(250 60% 50%), hsl(260 55% 45%));
+    --shop-gradient: linear-gradient(135deg, hsl(175 65% 45%), hsl(185 60% 40%));
     --card-shadow: 0 4px 20px -4px hsl(20 15% 15% / 0.1);
     --card-shadow-hover: 0 8px 30px -4px hsl(20 15% 15% / 0.15);
   }
@@ -51,16 +54,16 @@
     --popover: 20 15% 14%;
     --popover-foreground: 30 20% 95%;
 
-    --primary: 25 95% 55%;
+    --primary: 175 65% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 20 12% 20%;
+    --secondary: 210 12% 20%;
     --secondary-foreground: 30 20% 90%;
 
-    --muted: 20 12% 22%;
+    --muted: 210 12% 22%;
     --muted-foreground: 30 10% 60%;
 
-    --accent: 145 60% 45%;
+    --accent: 250 55% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 45%;
@@ -68,7 +71,7 @@
 
     --border: 20 12% 22%;
     --input: 20 12% 22%;
-    --ring: 25 95% 55%;
+    --ring: 175 65% 50%;
   }
 }
 
@@ -80,6 +83,43 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Desktop: show a nice background behind the centered app shell */
+  @media (min-width: 768px) {
+    body {
+      background: linear-gradient(135deg, hsl(25 95% 53% / 0.08) 0%, hsl(145 65% 42% / 0.08) 100%),
+                  hsl(30 20% 96%);
+    }
+  }
+}
+
+/* App shell — mobile: full screen, desktop: centered card */
+#app-shell {
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+}
+
+/* mobile-centred card behaviour up to tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  #app-shell {
+    max-width: 480px;
+    min-height: 100svh;
+    margin: 0 auto;
+    background: hsl(var(--background));
+    box-shadow: 0 0 0 1px hsl(var(--border)), 0 25px 60px -12px hsl(20 15% 15% / 0.25);
+  }
+}
+
+/* desktop: full width so sidebar + content can span */
+@media (min-width: 1024px) {
+  #app-shell {
+    max-width: none;
+    min-height: 100svh;
+    margin: 0; /* allow sidebar to sit flush */
+    background: hsl(var(--background));
+    box-shadow: none;
   }
 }
 

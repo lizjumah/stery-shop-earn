@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { products, categories } from "@/data/products";
+import { categories } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { ProductCard } from "@/components/ProductCard";
-import { BottomNav } from "@/components/BottomNav";
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
@@ -31,11 +31,12 @@ const ShopHome = () => {
   const { cartItemCount } = useApp();
   const { customer } = useCustomer();
   const loyaltyPoints = customer?.loyalty_points || 0;
+  const { data: liveProducts = [] } = useProducts();
 
-  const featuredProducts = products.filter((p) => !p.isOffer).slice(0, 4);
-  const offerProducts = products.filter((p) => p.isOffer);
+  const featuredProducts = liveProducts.filter((p) => !p.isOffer).slice(0, 4);
+  const offerProducts = liveProducts.filter((p) => p.isOffer);
   const filteredProducts = searchQuery
-    ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? liveProducts.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : null;
 
   return (
@@ -75,7 +76,7 @@ const ShopHome = () => {
           />
           {/* Instant suggestions dropdown */}
           {searchQuery.length >= 1 && (() => {
-            const suggestions = products.filter((p) =>
+            const suggestions = liveProducts.filter((p) =>
               p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
               p.category.toLowerCase().includes(searchQuery.toLowerCase())
             ).slice(0, 6);
@@ -209,7 +210,6 @@ const ShopHome = () => {
       )}
 
       <SteryChat />
-      <BottomNav />
     </div>
   );
 };

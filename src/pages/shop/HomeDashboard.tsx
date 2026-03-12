@@ -1,183 +1,248 @@
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
-import { products } from "@/data/products";
-import { getTodayDeals } from "@/data/dailyDeals";
-import { BottomNav } from "@/components/BottomNav";
+import { useProducts } from "@/hooks/useProducts";
+import { categories, categoryConfig, Product } from "@/data/products";
+import { ProductCard } from "@/components/ProductCard";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Star, ShoppingBag, DollarSign, Gift, Flame, ChevronRight, ShoppingCart } from "lucide-react";
-import { CommunityActivity } from "@/components/shop/CommunityActivity";
-import { YourUsuals } from "@/components/shop/YourUsuals";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import {
+  Search, ShoppingCart, Star, Gift, ChevronRight,
+  Phone, RefreshCw, UserCircle,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-};
+/** Business contact — update here when number changes */
+const STERY_PHONE = "+254712426918";
+const STERY_PHONE_DISPLAY = "+254 712 426 918";
 
 const NEXT_REWARD_AT = 100;
 
-const quickActions = [
-  { icon: ShoppingBag, label: "Shop Groceries", emoji: "🛒", path: "/shop/browse", color: "bg-primary/10 text-primary" },
-  { icon: DollarSign, label: "Stery Earn", emoji: "💰", path: "/earn", color: "bg-accent/10 text-accent" },
-  { icon: Gift, label: "Rewards Wallet", emoji: "🎁", path: "/shop/rewards", color: "bg-purple-500/10 text-purple-600" },
-  { icon: Flame, label: "Today's Deals", emoji: "🔥", path: "/shop/offers", color: "bg-destructive/10 text-destructive" },
-];
+/** Horizontal scrolling product shelf */
+const ProductShelf = ({
+  title,
+  products,
+  seeAllPath,
+}: {
+  title: string;
+  products: Product[];
+  seeAllPath: string;
+}) => {
+  if (!products.length) return null;
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between px-4 mb-3">
+        <h2 className="font-bold text-foreground text-base">{title}</h2>
+        <Link to={seeAllPath} className="text-xs text-primary font-medium flex items-center gap-0.5">
+          See all <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+      <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+        {products.slice(0, 6).map((p) => (
+          <div key={p.id} className="w-36 shrink-0">
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const HomeDashboard = () => {
-  const { addToCart } = useApp();
+  const { cartItemCount } = useApp();
   const { customer } = useCustomer();
-  const navigate = useNavigate();
-  const firstName = customer?.name?.split(" ")[0] || "there";
-  const loyaltyPoints = customer?.loyalty_points || 0;
+  const { data: liveProducts = [] } = useProducts();
 
+  const firstName = customer?.name?.split(" ")[0] || null;
+  const loyaltyPoints = customer?.loyalty_points || 0;
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
   const progress = ((loyaltyPoints % NEXT_REWARD_AT) / NEXT_REWARD_AT) * 100;
 
-  const todayDeals = getTodayDeals();
-  const featuredDeal = todayDeals.find((d) => d.featured) || todayDeals[0];
-  const dealProduct = featuredDeal ? products.find((p) => p.id === featuredDeal.productId) : null;
-
-  const handleAddDeal = () => {
-    if (!dealProduct) return;
-    addToCart(dealProduct.id);
-    toast.success(`${dealProduct.name} added to cart!`, {
-      action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
-    });
-  };
+  const dealProducts       = liveProducts.filter((p) => p.isOffer || p.originalPrice);
+  const popularProducts    = liveProducts.filter((p) => p.inStock !== false).slice(0, 8);
+  const groceryProducts    = liveProducts.filter((p) => p.category === "Groceries" || p.category === "Bakery");
+  const householdProducts  = liveProducts.filter((p) => p.category === "Household" || p.category === "Electronics");
+  const specialtyProducts  = liveProducts.filter((p) => p.category === "Baby Items" || p.category === "Jewelry");
+  const newProducts        = [...liveProducts].reverse().slice(0, 4);
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="gradient-shop px-4 pt-8 pb-6 rounded-b-3xl">
-        <p className="text-white/80 text-sm">{getGreeting()},</p>
-        <h1 className="text-white text-2xl font-bold mb-5">{firstName} 👋</h1>
 
-        {/* Loyalty Summary Card */}
-        <div className="bg-card rounded-2xl p-5 card-elevated">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Points Balance</p>
-              <div className="flex items-center gap-2 mt-1">
-                <Star className="w-6 h-6 text-primary fill-primary" />
-                <span className="text-3xl font-bold text-foreground">{loyaltyPoints}</span>
-                <span className="text-sm text-muted-foreground">pts</span>
-              </div>
-            </div>
-            <Link to="/shop/rewards">
-              <div className="bg-primary/10 rounded-full p-3">
-                <Gift className="w-6 h-6 text-primary" />
-              </div>
+      {/* ── Sticky storefront header ── */}
+      <div className="sticky top-0 z-40 bg-card border-b border-border">
+
+        {/* Utility row — phone / reorder / sign-in */}
+        <div className="flex items-center justify-between px-4 py-1.5 bg-muted/60 border-b border-border/60">
+          {/* Business phone */}
+          <a
+            href={`https://wa.me/${STERY_PHONE.replace("+", "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-accent transition-colors"
+          >
+            <Phone className="w-3 h-3" />
+            <span>{STERY_PHONE_DISPLAY}</span>
+          </a>
+
+          <div className="flex items-center gap-3">
+            {/* Reorder — links to order history (real flow) */}
+            <Link
+              to="/shop/orders"
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Reorder</span>
             </Link>
+
+            {/* Sign in / profile */}
+            {customer ? (
+              <Link
+                to="/profile"
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+              >
+                <UserCircle className="w-3 h-3" />
+                <span>{firstName}</span>
+              </Link>
+            ) : (
+              <Link
+                to="/onboarding"
+                className="flex items-center gap-1 text-[11px] text-primary font-semibold"
+              >
+                <UserCircle className="w-3 h-3" />
+                <span>Sign in</span>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Main header row — logo / search / cart */}
+        <div className="flex items-center gap-3 px-4 py-3">
+          {/* Logo */}
+          <div className="w-9 h-9 rounded-xl gradient-shop flex items-center justify-center shrink-0">
+            <span className="text-white font-black text-lg leading-none">S</span>
           </div>
 
-          <div className="mb-1.5">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>Progress to next reward</span>
-              <span>{pointsToNext} pts to go</span>
+          {/* Search bar — taps through to /shop/browse where real search + suggestions live */}
+          <Link to="/shop/browse" className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="w-full bg-muted rounded-full py-2.5 pl-9 pr-4 text-muted-foreground text-sm select-none">
+              Search products at Stery…
             </div>
-            <Progress value={progress} className="h-2.5" />
-          </div>
-          <p className="text-xs text-primary font-medium mt-1">
-            {pointsToNext} more points to unlock your next voucher ✨
-          </p>
+          </Link>
+
+          {/* Cart */}
+          <Link to="/shop/cart" className="relative shrink-0">
+            <ShoppingCart className="w-6 h-6 text-foreground" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
 
-      <div className="px-4 mt-5 space-y-5">
-        {/* Today's Deal Card */}
-        {dealProduct && (
-          <div className="bg-card rounded-2xl overflow-hidden card-elevated border border-destructive/20">
-            <div className="bg-destructive/5 px-4 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-destructive" />
-                <h2 className="font-bold text-foreground">Today's Deal</h2>
-              </div>
-              <Link to="/shop/offers" className="text-xs text-primary font-medium flex items-center gap-0.5">
-                See all <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="p-4 flex items-center gap-4">
-              <img
-                src={dealProduct.image}
-                alt={dealProduct.name}
-                className="w-20 h-20 rounded-xl object-cover shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-foreground truncate">{dealProduct.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-lg font-bold text-primary">KSh {dealProduct.price}</span>
-                  {dealProduct.originalPrice && (
-                    <span className="text-sm text-muted-foreground line-through">KSh {dealProduct.originalPrice}</span>
-                  )}
-                </div>
-                {dealProduct.originalPrice && (
-                  <span className="inline-block mt-1 text-[10px] font-semibold bg-destructive/10 text-destructive rounded-full px-2 py-0.5">
-                    {Math.round(((dealProduct.originalPrice - dealProduct.price) / dealProduct.originalPrice) * 100)}% OFF
-                  </span>
-                )}
-              </div>
-              <Button
-                size="icon"
-                className="bg-primary hover:bg-primary/90 rounded-full h-11 w-11 shrink-0"
-                onClick={handleAddDeal}
-              >
-                <ShoppingCart className="w-5 h-5" />
-              </Button>
-            </div>
+      {/* ── Greeting band ── */}
+      <div className="gradient-shop px-4 py-2.5">
+        <p className="text-white/90 text-sm font-medium">
+          {firstName
+            ? `Hey ${firstName} 👋 — what are you shopping for today?`
+            : "Welcome to Stery 👋 — your local supermarket"}
+        </p>
+      </div>
+
+      {/* ── Category chips — structured from categoryConfig ── */}
+      <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
+        {categories.filter((c) => c !== "All").map((cat) => {
+          const cfg = categoryConfig[cat];
+          return (
+            <Link
+              key={cat}
+              to={`/shop/categories?cat=${encodeURIComponent(cat)}`}
+              className="flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-1.5 shrink-0 card-elevated"
+            >
+              <span className="text-sm">{cfg?.emoji ?? "🏪"}</span>
+              <span className="text-xs font-medium text-foreground whitespace-nowrap">{cfg?.label ?? cat}</span>
+            </Link>
+          );
+        })}
+        <Link
+          to="/shop/categories"
+          className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-3 py-1.5 shrink-0"
+        >
+          <span className="text-xs font-medium text-primary whitespace-nowrap">All categories</span>
+        </Link>
+      </div>
+
+      {/* ── Today's Deals shelf ── */}
+      <ProductShelf
+        title="🔥 Today's Deals"
+        products={dealProducts}
+        seeAllPath="/shop/offers"
+      />
+
+      {/* ── Popular Products shelf ── */}
+      <ProductShelf
+        title="⭐ Popular Products"
+        products={popularProducts}
+        seeAllPath="/shop/browse"
+      />
+
+      {/* ── Fresh & Groceries shelf ── */}
+      <ProductShelf
+        title="🛒 Fresh & Groceries"
+        products={groceryProducts}
+        seeAllPath="/shop/categories?cat=Groceries"
+      />
+
+      {/* ── Household & Electronics shelf ── */}
+      <ProductShelf
+        title="🏠 Household & Electronics"
+        products={householdProducts}
+        seeAllPath="/shop/categories?cat=Household"
+      />
+
+      {/* ── Specialty shelf (Baby, Jewelry) ── */}
+      <ProductShelf
+        title="✨ More from Stery"
+        products={specialtyProducts}
+        seeAllPath="/shop/categories"
+      />
+
+      {/* ── New Arrivals — 2-col grid ── */}
+      {newProducts.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between px-4 mb-3">
+            <h2 className="font-bold text-foreground text-base">🆕 New Arrivals</h2>
+            <Link to="/shop/browse" className="text-xs text-primary font-medium flex items-center gap-0.5">
+              See all <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-        )}
-
-        {/* Your Usuals */}
-        <YourUsuals />
-
-        {/* Quick Actions Grid */}
-        <div>
-          <h2 className="font-bold text-foreground mb-3">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action) => (
-              <Link
-                key={action.path}
-                to={action.path}
-                className="bg-card rounded-xl p-4 flex items-center gap-3 card-elevated border border-border active:scale-[0.98] transition-transform"
-              >
-                <div className={`rounded-xl p-2.5 ${action.color}`}>
-                  <span className="text-xl">{action.emoji}</span>
-                </div>
-                <span className="font-semibold text-sm text-foreground">{action.label}</span>
-              </Link>
+          <div className="grid grid-cols-2 gap-3 px-4">
+            {newProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
             ))}
           </div>
         </div>
+      )}
 
-        {/* Community Activity */}
-        <CommunityActivity />
-
-        {/* Recent Activity Teaser */}
-        <div className="bg-card rounded-xl p-4 card-elevated border border-border">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-foreground text-sm">Your Rewards Activity</h3>
-            <Link to="/shop/rewards" className="text-xs text-primary font-medium">View all</Link>
+      {/* ── Rewards strip — compact, below all products ── */}
+      <div className="mx-4 mb-6 bg-card rounded-xl p-4 border border-primary/20 card-elevated">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-primary fill-primary" />
+            <span className="font-bold text-sm text-foreground">{loyaltyPoints} loyalty points</span>
           </div>
-          <div className="space-y-2">
-            {loyaltyPoints >= 50 && (
-              <div className="flex items-center gap-2 bg-primary/5 rounded-lg p-2.5">
-                <span className="text-sm">🎁</span>
-                <p className="text-xs text-foreground font-medium">You have a <strong className="text-primary">KSh 50 voucher</strong> ready to redeem!</p>
-              </div>
-            )}
-            <div className="flex items-center gap-2 bg-muted rounded-lg p-2.5">
-              <span className="text-sm">🛒</span>
-              <p className="text-xs text-muted-foreground">Shop to earn more points and unlock bigger rewards.</p>
-            </div>
-          </div>
+          <Link to="/shop/rewards" className="flex items-center gap-1 text-xs text-primary font-medium">
+            <Gift className="w-3.5 h-3.5" />
+            Redeem
+            <ChevronRight className="w-3 h-3" />
+          </Link>
         </div>
+        <Progress value={progress} className="h-1.5" />
+        <p className="text-xs text-muted-foreground mt-1.5">
+          {pointsToNext} more points to your next voucher
+        </p>
       </div>
 
-      <BottomNav />
     </div>
   );
 };

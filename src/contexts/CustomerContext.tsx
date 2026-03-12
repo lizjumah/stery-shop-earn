@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export type CustomerRole = "customer" | "staff" | "owner";
+
 interface Customer {
   id: string;
   name: string;
@@ -12,6 +14,23 @@ interface Customer {
   loyalty_points: number;
   birthday: string | null;
   birthday_bonus_claimed: boolean;
+  is_admin: boolean;
+  referral_code: string | null;
+  /** V1 role system. Falls back to is_admin if column not yet present. */
+  role?: CustomerRole;
+}
+
+/**
+ * Returns the effective role for a customer.
+ * Falls back to is_admin for rows that pre-date the role column.
+ */
+export function getCustomerRole(customer: Customer | null): CustomerRole {
+  if (!customer) return "customer";
+  const r = customer.role;
+  if (r === "staff" || r === "owner") return r;
+  // Legacy fallback: is_admin without a role → treat as owner
+  if (r === "customer") return "customer";
+  return customer.is_admin ? "owner" : "customer";
 }
 
 interface PointsHistoryEntry {

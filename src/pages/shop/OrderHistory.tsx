@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { BottomNav } from "@/components/BottomNav";
 import { ShopHeader } from "@/components/ShopHeader";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { Package, CheckCircle, Clock, XCircle, ChefHat, Truck, Loader2, RefreshCw } from "lucide-react";
@@ -17,8 +16,9 @@ interface OrderItem {
 }
 
 const statusConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
-  pending: { icon: Clock, color: "text-primary", bg: "bg-primary/10", label: "Order Received" },
-  confirmed: { icon: ChefHat, color: "text-amber-600", bg: "bg-amber-500/10", label: "Confirmed" },
+  received: { icon: Clock, color: "text-primary", bg: "bg-primary/10", label: "Order Received" },
+  preparing: { icon: ChefHat, color: "text-amber-600", bg: "bg-amber-500/10", label: "Preparing" },
+  processed_at_pos: { icon: ChefHat, color: "text-purple-600", bg: "bg-purple-500/10", label: "POS Processed" },
   out_for_delivery: { icon: Truck, color: "text-blue-600", bg: "bg-blue-500/10", label: "Out for Delivery" },
   delivered: { icon: CheckCircle, color: "text-accent", bg: "bg-accent/10", label: "Delivered" },
   cancelled: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", label: "Cancelled" },
@@ -89,7 +89,7 @@ const OrderHistory = () => {
       {!loading && (
         <div className="px-4 space-y-3">
           {orders.map((order) => {
-            const config = statusConfig[order.status] || statusConfig.pending;
+            const config = statusConfig[order.status] || statusConfig.received;
             const StatusIcon = config.icon;
             const items = (order.items as unknown as OrderItem[]) || [];
 
@@ -135,7 +135,6 @@ const OrderHistory = () => {
         </div>
       )}
 
-      <BottomNav />
     </div>
   );
 };

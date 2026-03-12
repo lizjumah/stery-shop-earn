@@ -1,29 +1,69 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useApp, OrderStatus } from "@/contexts/AppContext";
-import { orderHistory } from "@/data/user";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { ShopHeader } from "@/components/ShopHeader";
-import { BottomNav } from "@/components/BottomNav";
-import { Package, ChefHat, Truck, CheckCircle, Circle } from "lucide-react";
+import { Package, ChefHat, Truck, CheckCircle, Circle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-const STAGES: { key: OrderStatus; label: string; icon: typeof Package }[] = [
-  { key: "received", label: "Order Received", icon: Package },
-  { key: "preparing", label: "Preparing Your Order", icon: ChefHat },
-  { key: "out_for_delivery", label: "Out for Delivery", icon: Truck },
-  { key: "delivered", label: "Delivered", icon: CheckCircle },
+type Order = Tables<"orders">;
+
+interface OrderItem {
+  productId?: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+const STAGES: { key: string; label: string; icon: typeof Package }[] = [
+  { key: "received",         label: "Order Received",      icon: Package },
+  { key: "preparing",        label: "Preparing Your Order", icon: ChefHat },
+  { key: "out_for_delivery", label: "Out for Delivery",     icon: Truck },
+  { key: "delivered",        label: "Delivered",            icon: CheckCircle },
 ];
 
-const stageIndex = (status: OrderStatus) => {
+const stageIndex = (status: string) => {
   if (status === "cancelled") return -1;
+  // processed_at_pos sits between preparing and out_for_delivery
+  if (status === "processed_at_pos") return STAGES.findIndex((s) => s.key === "preparing");
   return STAGES.findIndex((s) => s.key === status);
 };
 
+const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
 const OrderTracker = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { orders } = useApp();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const allOrders = [...orders, ...orderHistory];
-  const order = allOrders.find((o) => o.id === id);
+  useEffect(() => {
+    if (!id) { setLoading(false); return; }
+
+    supabase
+      .from("orders")
+      .select("*")
+      .eq("id", id)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) setOrder(data);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <ShopHeader title="Order Status" showBack />
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (!order) {
     return (
@@ -32,31 +72,31 @@ const OrderTracker = () => {
         <div className="flex flex-col items-center justify-center py-20">
           <p className="text-muted-foreground">Order not found</p>
         </div>
-        <BottomNav />
       </div>
     );
   }
 
-  const currentIdx = stageIndex(order.status as OrderStatus);
+  const items = (order.items as unknown as OrderItem[]) || [];
+  const currentIdx = stageIndex(order.status);
   const isCancelled = order.status === "cancelled";
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <ShopHeader title={`Order ${order.orderNumber}`} showBack />
+      <ShopHeader title={`Order ${order.order_number}`} showBack />
 
       <div className="px-4 space-y-4">
         {/* Order info card */}
         <div className="bg-card rounded-xl p-4 card-elevated">
           <div className="flex justify-between items-center mb-2">
-            <span className="font-bold text-foreground text-lg">{order.orderNumber}</span>
-            <span className="text-xs text-muted-foreground">{order.date}</span>
+            <span className="font-bold text-foreground text-lg">{order.order_number}</span>
+            <span className="text-xs text-muted-foreground">{formatDate(order.created_at)}</span>
           </div>
           <div className="text-sm text-muted-foreground mb-1">
-            {order.items.map((item) => (
-              <span key={item.productId}>{item.name} ×{item.quantity} &nbsp;</span>
+            {items.map((item, idx) => (
+              <span key={idx}>{item.name} ×{item.quantity} &nbsp;</span>
             ))}
           </div>
-          <p className="font-bold text-foreground">KSh {order.total.toLocaleString()}</p>
+          <p className="font-bold text-foreground">KSh {Number(order.total).toLocaleString()}</p>
         </div>
 
         {/* Progress tracker */}
@@ -119,8 +159,6 @@ const OrderTracker = () => {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 };

@@ -1,6 +1,7 @@
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { useCommissions } from "@/hooks/useCommissions";
+import { useReferrals } from "@/hooks/useReferrals";
 import { ProductCard } from "@/components/ProductCard";
-import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2, MessageCircle, Smartphone, Facebook, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -10,11 +11,27 @@ import { useCustomer } from "@/contexts/CustomerContext";
 
 const EarnHome = () => {
   const { customer } = useCustomer();
-  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
+  const referralCode =
+    customer?.referral_code ||
+    customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
+    "STERY";
   const referralLink = `https://stery.ke/ref/${referralCode}`;
   const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${referralLink}`;
-  const topProducts = products.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
+
+  const { data: allProducts = [] } = useProducts();
+  const { data: commissions = [] } = useCommissions();
+  const { data: referrals = [] } = useReferrals();
+
+  const topProducts = allProducts.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
   const [showShareMenu, setShowShareMenu] = useState(false);
+
+  const paidTotal = commissions
+    .filter((c) => c.status === "paid" || c.status === "confirmed")
+    .reduce((s, c) => s + Number(c.amount), 0);
+  const pendingTotal = commissions
+    .filter((c) => c.status === "pending")
+    .reduce((s, c) => s + Number(c.amount), 0);
+  const completedReferrals = referrals.filter((r) => r.status === "completed").length;
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -52,7 +69,7 @@ const EarnHome = () => {
           </div>
           <Link to="/earn/dashboard" className="bg-white/20 rounded-full px-3 py-2 flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-white" />
-            <span className="text-white font-semibold text-sm">KSh 0</span>
+            <span className="text-white font-semibold text-sm">KSh {(paidTotal + pendingTotal).toLocaleString()}</span>
           </Link>
         </div>
 
@@ -60,17 +77,17 @@ const EarnHome = () => {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Wallet className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh 0</p>
+            <p className="text-white font-bold text-sm">KSh {paidTotal.toLocaleString()}</p>
             <p className="text-white/70 text-[10px]">Paid Out</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Clock className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh 0</p>
+            <p className="text-white font-bold text-sm">KSh {pendingTotal.toLocaleString()}</p>
             <p className="text-white/70 text-[10px]">Pending</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Users className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">0</p>
+            <p className="text-white font-bold text-sm">{completedReferrals}</p>
             <p className="text-white/70 text-[10px]">Referrals</p>
           </div>
         </div>
@@ -222,8 +239,6 @@ const EarnHome = () => {
           })}
         </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 };

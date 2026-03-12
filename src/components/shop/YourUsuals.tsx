@@ -1,5 +1,4 @@
 import { products } from "@/data/products";
-import { orderHistory } from "@/data/user";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, RotateCcw } from "lucide-react";
@@ -13,10 +12,9 @@ export const YourUsuals = () => {
   const { orders, addToCart } = useApp();
   const navigate = useNavigate();
 
-  // Collect product IDs from all orders (context orders + static history)
-  const allOrders = [...orders, ...orderHistory];
+  // Collect product IDs from placed orders, ranked by frequency
   const frequency: Record<string, number> = {};
-  allOrders
+  orders
     .filter((o) => o.status !== "cancelled")
     .forEach((o) => o.items.forEach((item) => {
       frequency[item.productId] = (frequency[item.productId] || 0) + item.quantity;

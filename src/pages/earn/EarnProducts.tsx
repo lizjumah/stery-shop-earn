@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { products, categories } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
-import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,7 +58,6 @@ const EarnProducts = () => {
         </div>
       </div>
 
-      <BottomNav />
     </div>
   );
 };
