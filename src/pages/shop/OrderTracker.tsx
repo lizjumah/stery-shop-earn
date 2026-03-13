@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ShopHeader } from "@/components/ShopHeader";
-import { Package, ChefHat, Truck, CheckCircle, Circle, Loader2 } from "lucide-react";
+import { Package, ChefHat, Truck, CheckCircle, Circle, Loader2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -15,7 +15,8 @@ interface OrderItem {
 }
 
 const STAGES: { key: string; label: string; icon: typeof Package }[] = [
-  { key: "received",         label: "Order Received",      icon: Package },
+  { key: "pending",          label: "Order Placed",         icon: Clock },
+  { key: "confirmed",        label: "Order Confirmed",      icon: Package },
   { key: "preparing",        label: "Preparing Your Order", icon: ChefHat },
   { key: "out_for_delivery", label: "Out for Delivery",     icon: Truck },
   { key: "delivered",        label: "Delivered",            icon: CheckCircle },
@@ -23,7 +24,9 @@ const STAGES: { key: string; label: string; icon: typeof Package }[] = [
 
 const stageIndex = (status: string) => {
   if (status === "cancelled") return -1;
-  // processed_at_pos sits between preparing and out_for_delivery
+  // backward compat: "received" maps to confirmed stage
+  if (status === "received") return STAGES.findIndex((s) => s.key === "confirmed");
+  // processed_at_pos sits between confirmed and out_for_delivery
   if (status === "processed_at_pos") return STAGES.findIndex((s) => s.key === "preparing");
   return STAGES.findIndex((s) => s.key === status);
 };

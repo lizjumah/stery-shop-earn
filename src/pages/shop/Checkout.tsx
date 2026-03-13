@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
@@ -38,14 +38,12 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "cash">("mpesa");
   const [mpesaCode, setMpesaCode] = useState("");
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [applyPoints, setApplyPoints] = useState(false);
   const [pointsToApply, setPointsToApply] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const cartProductsRef = useRef<typeof cartProducts>([]);
 
   const loyaltyPoints = customer?.loyalty_points || 0;
 
@@ -161,7 +159,6 @@ const Checkout = () => {
 
       const num = `STR-${String(Date.now()).slice(-4)}`;
       setOrderNumber(num);
-      cartProductsRef.current = [...cartProducts];
 
       const orderItems = cartProducts.map((item) => ({
         productId: item.productId,
@@ -192,7 +189,7 @@ const Checkout = () => {
           delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
           delivery_location: deliveryOption === "delivery" ? location : null,
           points_earned: earnedPoints,
-          status: "received",
+          status: "pending",
           order_source: "app",
         })
         .select("id")
@@ -243,7 +240,7 @@ const Checkout = () => {
         orderNumber: num,
         items: orderItems,
         total,
-        status: "received",
+        status: "pending",
         date: new Date().toISOString().split("T")[0],
         deliveryOption,
         pointsEarned: earnedPoints,
@@ -255,7 +252,23 @@ const Checkout = () => {
       });
 
       clearCart();
-      setOrderPlaced(true);
+      navigate("/shop/order-success", {
+        state: {
+          orderNumber: num,
+          customerName: cust.name,
+          phone: cust.phone,
+          deliveryOption,
+          deliveryArea,
+          location,
+          paymentMethod,
+          total,
+          earnedPoints,
+          pointsDiscount,
+          deliveryFee,
+          freeDelivery,
+          items: orderItems,
+        },
+      });
     } catch {
       toast.error("Something went wrong placing your order. Please try again.");
     }
@@ -276,98 +289,6 @@ const Checkout = () => {
         <p className="text-xl font-bold text-foreground">Something went wrong</p>
         <p className="text-muted-foreground text-sm">Something went wrong loading checkout. Please try again.</p>
         <Button onClick={() => navigate(-1)} className="bg-primary hover:bg-primary/90">Go Back</Button>
-      </div>
-    );
-  }
-
-  if (orderPlaced) {
-    const orderItems = cartProductsRef.current;
-    const itemsList = orderItems.map((i) => `• ${i.product!.name} × ${i.quantity} — KSh ${i.product!.price * i.quantity}`).join("\n");
-    const deliveryInfo = deliveryOption === "delivery"
-      ? `📍 *Delivery Area:* ${deliveryArea}\n📍 *Location:* ${location}${freeDelivery ? "\n🎉 *Free Delivery*" : `\n🚚 *Delivery Fee:* KSh ${deliveryFee}`}`
-      : `🏪 *Pickup at Store*`;
-    const pointsInfo = pointsDiscount > 0 ? `\n🎁 *Points Redeemed:* ${pointsDiscount} pts (- KSh ${pointsDiscount})` : "";
-    const whatsappMessage = [
-      `🛒 *New Order: ${orderNumber}*`,
-      ``,
-      `👤 *Name:* ${customerName}`,
-      `📞 *Phone:* ${phone}`,
-      ``,
-      `📦 *Items Ordered:*`,
-      itemsList,
-      ``,
-      `💰 *Total:* KSh ${total}`,
-      `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
-      pointsInfo,
-      deliveryInfo,
-    ].filter(Boolean).join("\n");
-    const whatsappUrl = `https://wa.me/254794560657?text=${encodeURIComponent(whatsappMessage)}`;
-
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
-        <div className="bg-accent/10 rounded-full p-6 mb-4">
-          <CheckCircle className="w-16 h-16 text-accent" />
-        </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Order Created Successfully</h1>
-        <p className="text-sm text-accent font-medium text-center mb-4 max-w-sm">
-          Order received and reserved. Processing starts immediately.
-        </p>
-
-        <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mb-4 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Order Number</span>
-            <span className="font-bold text-foreground">{orderNumber}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total Amount</span>
-            <span className="font-bold text-foreground">KSh {total}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{deliveryOption === "delivery" ? "Delivery Area" : "Fulfillment"}</span>
-            <span className="font-bold text-foreground">{deliveryOption === "delivery" ? deliveryArea : "Store Pickup"}</span>
-          </div>
-        </div>
-
-        <div className="bg-primary/10 rounded-xl p-3 mb-5 text-center w-full max-w-sm">
-          <p className="text-primary font-semibold text-sm">+{earnedPoints} loyalty points earned! 🎉</p>
-          {pointsDiscount > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">You saved KSh {pointsDiscount} with loyalty points</p>
-          )}
-        </div>
-
-        <p className="text-sm text-muted-foreground text-center mb-4 max-w-sm">
-          Next step: Send your order to <span className="font-semibold text-foreground">Stery Supermarket</span> on WhatsApp so our team can confirm and prepare it.
-        </p>
-
-        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full max-w-sm">
-          <Button className="w-full h-14 text-lg font-semibold bg-[hsl(142,70%,40%)] hover:bg-[hsl(142,70%,35%)] text-white rounded-xl gap-2">
-            <span className="text-xl">💬</span> Send Order on WhatsApp
-          </Button>
-        </a>
-
-        <p className="text-xs text-muted-foreground text-center mt-3 max-w-sm">
-          After sending the message, our team will confirm your order and arrange delivery.
-        </p>
-
-        <p className="text-xs font-medium text-center mt-2 max-w-sm text-accent">
-          ✅ Order already saved. WhatsApp is only for confirmation.
-        </p>
-
-        <div className="bg-card rounded-xl p-4 card-elevated w-full max-w-sm mt-5 text-center space-y-2">
-          <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
-          <div className="flex gap-2 justify-center">
-            <a href="tel:+254794560657">
-              <Button size="sm" variant="outline" className="text-xs gap-1">📞 Call Stery</Button>
-            </a>
-            <a href="https://wa.me/254794560657" target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant="outline" className="text-xs gap-1">💬 WhatsApp Stery</Button>
-            </a>
-          </div>
-        </div>
-
-        <Button variant="ghost" onClick={() => navigate("/shop")} className="mt-4 text-muted-foreground">
-          Back to Home
-        </Button>
       </div>
     );
   }

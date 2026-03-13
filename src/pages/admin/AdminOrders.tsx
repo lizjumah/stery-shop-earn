@@ -12,11 +12,13 @@ const BACKEND_URL = API_BASE;
 type Order = Tables<"orders">;
 type OrderStatus = Order["status"];
 
-type FilterKey = "all" | "received" | "preparing" | "processed_at_pos" | "out_for_delivery" | "delivered" | "cancelled";
+type FilterKey = "all" | "pending" | "confirmed" | "received" | "preparing" | "processed_at_pos" | "out_for_delivery" | "delivered" | "cancelled";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "received", label: "New" },
+  { key: "pending", label: "Pending" },
+  { key: "confirmed", label: "Confirmed" },
+  { key: "received", label: "Received" },
   { key: "preparing", label: "Preparing" },
   { key: "processed_at_pos", label: "POS Processed" },
   { key: "out_for_delivery", label: "Out for Delivery" },
@@ -25,7 +27,9 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  received: { label: "New", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  pending: { label: "Pending", className: "bg-secondary text-muted-foreground border-border" },
+  confirmed: { label: "Confirmed", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  received: { label: "Received", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
   preparing: { label: "Preparing", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   processed_at_pos: { label: "POS Processed", className: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
   out_for_delivery: { label: "Out for Delivery", className: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
@@ -245,7 +249,12 @@ const AdminOrders = () => {
                 {/* Status actions */}
                 {order.status !== "delivered" && order.status !== "cancelled" && (
                   <div className="flex gap-2 flex-wrap">
-                    {order.status === "received" && (
+                    {order.status === "pending" && (
+                      <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "confirmed")}>
+                        <CheckCircle className="w-3 h-3" /> Confirm
+                      </Button>
+                    )}
+                    {(order.status === "confirmed" || order.status === "received") && (
                       <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "preparing")}>
                         <ChefHat className="w-3 h-3" /> Preparing
                       </Button>

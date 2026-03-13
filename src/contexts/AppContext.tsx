@@ -63,15 +63,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
 
-  // FIX: mode now persists after refresh
+  // Default to "shop" — mode-selection screen removed, shop is the entry point
   const [modeState, setModeState] = useState<AppMode>(() => {
     const saved = localStorage.getItem("stery_mode");
-
-    if (saved === "shop" || saved === "earn") {
-      return saved;
-    }
-
-    return null;
+    if (saved === "shop" || saved === "earn") return saved;
+    return "shop";
   });
 
   const setMode = (mode: AppMode) => {

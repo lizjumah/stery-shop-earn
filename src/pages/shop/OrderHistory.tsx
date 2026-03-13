@@ -16,7 +16,9 @@ interface OrderItem {
 }
 
 const statusConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
-  received: { icon: Clock, color: "text-primary", bg: "bg-primary/10", label: "Order Received" },
+  pending: { icon: Clock, color: "text-muted-foreground", bg: "bg-secondary", label: "Pending" },
+  confirmed: { icon: Package, color: "text-primary", bg: "bg-primary/10", label: "Confirmed" },
+  received: { icon: Package, color: "text-primary", bg: "bg-primary/10", label: "Order Received" },
   preparing: { icon: ChefHat, color: "text-amber-600", bg: "bg-amber-500/10", label: "Preparing" },
   processed_at_pos: { icon: ChefHat, color: "text-purple-600", bg: "bg-purple-500/10", label: "POS Processed" },
   out_for_delivery: { icon: Truck, color: "text-blue-600", bg: "bg-blue-500/10", label: "Out for Delivery" },

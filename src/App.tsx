@@ -3,16 +3,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { AppProvider, useApp } from "./contexts/AppContext";
+import { AppProvider } from "./contexts/AppContext";
 import { CustomerProvider, useCustomer, getCustomerRole } from "./contexts/CustomerContext";
-import Welcome from "./pages/Welcome";
-import Onboarding from "./pages/Onboarding";
 import HomeDashboard from "./pages/shop/HomeDashboard";
 import ShopHome from "./pages/shop/ShopHome";
 import Categories from "./pages/shop/Categories";
 import ProductDetails from "./pages/shop/ProductDetails";
 import Cart from "./pages/shop/Cart";
 import Checkout from "./pages/shop/Checkout";
+import OrderSuccess from "./pages/shop/OrderSuccess";
 import OrderHistory from "./pages/shop/OrderHistory";
 import OrderTracker from "./pages/shop/OrderTracker";
 import AdminOrders from "./pages/admin/AdminOrders";
@@ -41,15 +40,10 @@ import { Layout } from "./components/Layout";
 
 const queryClient = new QueryClient();
 
-/** Requires any mode to be set — staff/owner bypass the mode requirement. */
+/** Layout guard — waits for customer session to resolve before rendering. */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { mode } = useApp();
-  const { customer, isLoading } = useCustomer();
+  const { isLoading } = useCustomer();
   if (isLoading) return null;
-  const role = getCustomerRole(customer);
-  // Staff and owners always have access regardless of mode
-  if (role === "staff" || role === "owner") return <>{children}</>;
-  if (!mode) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -76,8 +70,8 @@ const ShopRoute = () => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Welcome />} />
-      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/" element={<Navigate to="/shop" replace />} />
+      <Route path="/onboarding" element={<Navigate to="/shop" replace />} />
 
       {/* all protected content uses the responsive layout */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -90,6 +84,7 @@ const AppRoutes = () => {
           <Route path="/shop/product/:id" element={<ProductDetails />} />
           <Route path="/shop/cart" element={<Cart />} />
           <Route path="/shop/checkout" element={<Checkout />} />
+          <Route path="/shop/order-success" element={<OrderSuccess />} />
           <Route path="/shop/orders" element={<OrderHistory />} />
           <Route path="/shop/order/:id" element={<OrderTracker />} />
           <Route path="/shop/offers" element={<Offers />} />

@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { Progress } from "@/components/ui/progress";
 import {
   Search, ShoppingCart, Star, Gift, ChevronRight,
-  Phone, RefreshCw, UserCircle,
+  Phone, RefreshCw, UserCircle, TrendingUp,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -103,7 +103,7 @@ const HomeDashboard = () => {
               </Link>
             ) : (
               <Link
-                to="/onboarding"
+                to="/profile"
                 className="flex items-center gap-1 text-[11px] text-primary font-semibold"
               >
                 <UserCircle className="w-3 h-3" />
@@ -185,6 +185,27 @@ const HomeDashboard = () => {
         products={popularProducts}
         seeAllPath="/shop/browse"
       />
+
+      {/* ── Earn with Stery banner ── */}
+      <div className="mx-4 mb-6">
+        <div className="gradient-earn rounded-2xl p-5 flex items-center gap-4 card-elevated">
+          <div className="bg-white/20 rounded-full p-3 shrink-0">
+            <TrendingUp className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-bold text-base leading-tight">Earn with Stery</p>
+            <p className="text-white/80 text-xs mt-0.5 leading-snug">
+              Share products &amp; earn commission on every sale
+            </p>
+          </div>
+          <Link
+            to="/earn"
+            className="shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold rounded-full px-3 py-1.5 flex items-center gap-1 transition-colors"
+          >
+            Start Earning <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
 
       {/* ── Fresh & Groceries shelf ── */}
       <ProductShelf
