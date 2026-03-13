@@ -74,11 +74,11 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
           
           <p className="text-xs text-muted-foreground mt-1">
             {outOfStock ? (
-              <span className="text-destructive font-medium">Out of Stock</span>
+              <span className="text-destructive font-medium">Out of stock</span>
             ) : product.stockQuantity !== undefined && product.stockQuantity <= 5 ? (
-              <span className="text-amber-500 font-medium">Only {product.stockQuantity} left</span>
+              <span className="text-amber-600 font-medium">Only {product.stockQuantity} left</span>
             ) : (
-              <span className="text-accent font-medium">In Stock</span>
+              <span className="text-green-600 font-medium">Available today</span>
             )}
           </p>
           

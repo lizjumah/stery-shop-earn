@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { Progress } from "@/components/ui/progress";
 import {
   Search, ShoppingCart, Star, Gift, ChevronRight,
-  Phone, RefreshCw, UserCircle, TrendingUp,
+  Phone, RefreshCw, UserCircle, TrendingUp, MessageCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -115,9 +115,15 @@ const HomeDashboard = () => {
 
         {/* Main header row — logo / search / cart */}
         <div className="flex items-center gap-3 px-4 py-3">
-          {/* Logo */}
-          <div className="w-9 h-9 rounded-xl gradient-shop flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-lg leading-none">S</span>
+          {/* Stery wordmark — replace with <img src="/stery-logo.png" /> once the logo file is added to /public/ */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-white font-black text-base leading-none">S</span>
+            </div>
+            <div className="leading-none">
+              <span className="font-black text-foreground text-sm tracking-tight block">Stery</span>
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider block">Supermarket</span>
+            </div>
           </div>
 
           {/* Search bar — taps through to /shop/browse where real search + suggestions live */}
@@ -140,13 +146,26 @@ const HomeDashboard = () => {
         </div>
       </div>
 
-      {/* ── Greeting band ── */}
-      <div className="gradient-shop px-4 py-2.5">
-        <p className="text-white/90 text-sm font-medium">
+      {/* ── Store identity band ── */}
+      <div className="px-4 py-3 border-b border-border">
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-bold text-foreground text-sm">Stery Supermarket</span>
+          <span className="text-muted-foreground text-sm">· Bungoma</span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-0.5">
           {firstName
-            ? `Hey ${firstName} 👋 — what are you shopping for today?`
-            : "Welcome to Stery 👋 — your local supermarket"}
+            ? `Welcome back, ${firstName} 👋 — what are you shopping for today?`
+            : "Fresh groceries, bakery, electronics & household essentials"}
         </p>
+      </div>
+
+      {/* ── Delivery / trust strip ── */}
+      <div className="px-4 py-1.5 bg-primary/5 border-b border-primary/10 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+        <span className="text-[11px] text-primary font-semibold whitespace-nowrap">🚚 Delivery in Bungoma Town</span>
+        <span className="text-border select-none">·</span>
+        <span className="text-[11px] text-muted-foreground whitespace-nowrap">Same-day pickup available</span>
+        <span className="text-border select-none">·</span>
+        <span className="text-[11px] text-muted-foreground whitespace-nowrap">M-Pesa accepted</span>
       </div>
 
       {/* ── Category chips — structured from categoryConfig ── */}
@@ -244,6 +263,31 @@ const HomeDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* ── Contact / support block ── */}
+      <div className="mx-4 mb-4 bg-card rounded-xl p-4 border border-border card-elevated">
+        <p className="text-xs font-semibold text-foreground mb-2.5">Need help? We're here for you</p>
+        <div className="flex gap-2">
+          <a href={`tel:${STERY_PHONE}`} className="flex-1">
+            <button className="w-full flex items-center justify-center gap-1.5 bg-secondary hover:bg-secondary/80 rounded-lg py-2.5 text-xs font-medium text-foreground transition-colors">
+              <Phone className="w-3.5 h-3.5" /> Call Stery
+            </button>
+          </a>
+          <a
+            href={`https://wa.me/${STERY_PHONE.replace("+", "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1"
+          >
+            <button className="w-full flex items-center justify-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg py-2.5 text-xs font-medium transition-colors">
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+            </button>
+          </a>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-2 text-center">
+          Order online · Pay on pickup · M-Pesa accepted
+        </p>
+      </div>
 
       {/* ── Rewards strip — compact, below all products ── */}
       <div className="mx-4 mb-6 bg-card rounded-xl p-4 border border-primary/20 card-elevated">
