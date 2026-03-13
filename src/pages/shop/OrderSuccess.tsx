@@ -103,12 +103,13 @@ const OrderSuccess = () => {
     <div className="min-h-screen bg-background pb-10">
       {/* Success header */}
       <div className="flex flex-col items-center pt-12 pb-6 px-6 text-center">
-        <div className="bg-accent/10 rounded-full p-5 mb-4">
-          <CheckCircle className="w-14 h-14 text-accent" />
+        <div className="bg-green-50 rounded-full p-5 mb-4">
+          <CheckCircle className="w-14 h-14 text-green-600" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-1">Order Placed!</h1>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Your order has been saved. Send it on WhatsApp so our team can confirm and prepare it.
+        <h1 className="text-2xl font-bold text-foreground mb-1">Order Received ✓</h1>
+        <p className="text-sm font-semibold text-primary mt-0.5">{orderNumber}</p>
+        <p className="text-sm text-muted-foreground max-w-xs mt-2">
+          We are preparing your order. Stery will contact you shortly.
         </p>
       </div>
 
@@ -239,7 +240,8 @@ const OrderSuccess = () => {
 
         {/* Support */}
         <div className="bg-card rounded-xl p-4 card-elevated text-center space-y-2">
-          <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
+          <p className="text-sm font-medium text-foreground">Need help? Contact Stery Customer Care</p>
+          <p className="text-xs text-muted-foreground">We're available to assist with your order</p>
           <div className="flex gap-2 justify-center">
             <a href={`tel:+${STORE_WHATSAPP}`}>
               <Button size="sm" variant="outline" className="text-xs gap-1">

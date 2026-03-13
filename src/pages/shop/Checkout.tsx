@@ -327,7 +327,11 @@ const Checkout = () => {
               <span className="text-foreground font-medium">KSh {product!.price * quantity}</span>
             </div>
           ))}
-          <div className="border-t border-border mt-2 pt-2 space-y-1">
+          <div className="border-t border-border mt-2 pt-2 space-y-1.5">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Items</span>
+              <span>{cartProducts.reduce((sum, i) => sum + i.quantity, 0)}</span>
+            </div>
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal</span><span>KSh {subtotal}</span>
             </div>
@@ -336,14 +340,14 @@ const Checkout = () => {
                 <span>Delivery ({deliveryArea})</span>
                 <span>
                   {freeDelivery ? (
-                    <span className="text-accent font-medium">Free <span className="line-through text-muted-foreground/60 ml-1">KSh {rawDeliveryFee}</span></span>
+                    <span className="text-green-600 font-medium">Free <span className="line-through text-muted-foreground/60 ml-1">KSh {rawDeliveryFee}</span></span>
                   ) : `KSh ${deliveryFee}`}
                 </span>
               </div>
             )}
             {deliveryOption === "pickup" && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Pickup</span><span className="text-accent font-medium">Free</span>
+                <span>Delivery</span><span className="text-green-600 font-medium">Free (Pickup)</span>
               </div>
             )}
             {pointsDiscount > 0 && (
@@ -352,7 +356,7 @@ const Checkout = () => {
                 <span>- KSh {pointsDiscount}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-foreground text-lg pt-1">
+            <div className="flex justify-between font-bold text-foreground text-xl pt-2 border-t border-border mt-1">
               <span>Total</span><span>KSh {total}</span>
             </div>
             <p className="text-xs text-primary font-medium">+{earnedPoints} loyalty points from this order</p>
@@ -556,15 +560,26 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/* Place Order Button */}
+        {/* Payment reassurance + Place Order */}
+        {paymentMethod === "cash" && (
+          <div className="flex items-start gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-2.5">
+            <span className="text-green-600 text-sm mt-0.5">✓</span>
+            <p className="text-xs text-green-700 leading-relaxed">
+              <span className="font-semibold">No payment required now.</span> Place your order first — pay on delivery or at pickup.
+            </p>
+          </div>
+        )}
+
         <Button
           onClick={handlePlaceOrder}
           disabled={paymentMethod === "mpesa" && !paymentSubmitted}
           className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 disabled:opacity-50"
         >
           {paymentMethod === "mpesa" && !paymentSubmitted
-            ? "Complete Payment First"
-            : `Place Order — KSh ${total}`}
+            ? "Complete M-Pesa Payment First"
+            : paymentMethod === "cash"
+            ? `Place Order — Pay on Delivery`
+            : `Confirm Order — KSh ${total}`}
         </Button>
 
         {/* Customer Support */}
