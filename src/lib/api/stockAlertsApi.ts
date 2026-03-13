@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+import { API_BASE, getAdminHeaders } from "./client";
 
 export interface StockAlert {
   id: string;
@@ -30,11 +30,7 @@ async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
 
     headers: {
-      "Content-Type": "application/json",
-
-      // TEMP ADMIN HEADER (fixes 401 error)
-      "X-Customer-ID": "d0240c2d-5f70-4331-83ee-466908f177ca",
-
+      ...getAdminHeaders(),
       ...(options?.headers || {}),
     },
 

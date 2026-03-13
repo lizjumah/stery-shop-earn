@@ -2,19 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations";
 import { toast } from "sonner";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
-
-async function adminFetch(path: string, method: string, body?: object) {
-  const customerId = localStorage.getItem("stery_customer_id") || "";
-  const res = await fetch(`${BACKEND_URL}/api/admin${path}`, {
-    method,
-    headers: { "Content-Type": "application/json", "X-Customer-ID": customerId },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error || json.message || `HTTP ${res.status}`);
-  return json;
-}
+import { adminFetch } from "@/lib/api/client";
 
 interface Order {
   id: string;
@@ -66,7 +54,7 @@ export const useOrderOperations = () => {
         const isOffline = err instanceof TypeError || err.message?.includes("fetch");
         toast.error(
           isOffline
-            ? "Backend offline — run: npm run dev:backend"
+            ? "Cannot reach the server. Please check your connection."
             : `Failed to update order: ${err.message}`
         );
         return false;

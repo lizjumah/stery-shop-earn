@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { API_BASE } from '@/lib/api/client';
 
 interface UseImageUploadReturn {
   uploading: boolean;
@@ -53,8 +54,7 @@ export function useImageUpload(): UseImageUploadReturn {
       formData.append('file', file);
 
       // Upload via backend endpoint
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-      const response = await fetch(`${backendUrl}/api/admin/images/upload`, {
+      const response = await fetch(`${API_BASE}/api/admin/images/upload`, {
         method: 'POST',
         headers: {
           'X-Customer-ID': customerId,

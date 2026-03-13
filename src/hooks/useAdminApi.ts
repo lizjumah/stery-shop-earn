@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useToast } from './use-toast';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+import { API_BASE } from '@/lib/api/client';
 
 /**
  * Hook for calling admin backend API endpoints
@@ -24,7 +23,7 @@ export function useAdminApi() {
           throw new Error('Customer ID not found. Please log in.');
         }
 
-        const response = await fetch(`${BACKEND_URL}/api/admin${endpoint}`, {
+        const response = await fetch(`${API_BASE}/api/admin${endpoint}`, {
           method,
           headers: {
             'Content-Type': 'application/json',

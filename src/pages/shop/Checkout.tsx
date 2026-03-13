@@ -4,8 +4,9 @@ import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
 import { useQueryClient } from "@tanstack/react-query";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 import { Button } from "@/components/ui/button";
+import { API_BASE } from "@/lib/api/client";
+const BACKEND_URL = API_BASE;
 import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, Loader2, ShoppingBag, User, Mail, FileText } from "lucide-react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { toast } from "sonner";

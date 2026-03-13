@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+import { API_BASE } from "@/lib/api/client";
+const BACKEND_URL = API_BASE;
 
 type Order = Tables<"orders">;
 type OrderStatus = Order["status"];
