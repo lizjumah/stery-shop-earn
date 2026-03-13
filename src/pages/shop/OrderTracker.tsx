@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { ShopHeader } from "@/components/ShopHeader";
-import { Package, ChefHat, Truck, CheckCircle, Circle, Loader2, Clock } from "lucide-react";
+import { Package, ChefHat, Truck, CheckCircle, Circle, Loader2, Clock, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/contexts/AppContext";
+import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Order = Tables<"orders">;
@@ -40,8 +42,36 @@ const formatDate = (dateStr: string) =>
 
 const OrderTracker = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { setCart } = useApp();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleReorder = () => {
+    if (!order) return;
+    const orderItems = (order.items as unknown as OrderItem[]) || [];
+    const cartItems = orderItems
+      .filter((item) => !!item.productId)
+      .map((item) => ({ productId: item.productId!, quantity: item.quantity }));
+
+    if (cartItems.length === 0) {
+      toast.error("Could not reorder — product info is missing for all items in this order.");
+      return;
+    }
+
+    setCart(cartItems);
+
+    if (cartItems.length < orderItems.length) {
+      const missing = orderItems.length - cartItems.length;
+      toast.info(
+        `${cartItems.length} item(s) added to cart. ${missing} item(s) could not be added (product data missing).`
+      );
+    } else {
+      toast.success("Items added to cart. Review and update before checkout.");
+    }
+
+    navigate("/shop/cart");
+  };
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -99,7 +129,16 @@ const OrderTracker = () => {
               <span key={idx}>{item.name} ×{item.quantity} &nbsp;</span>
             ))}
           </div>
-          <p className="font-bold text-foreground">KSh {Number(order.total).toLocaleString()}</p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="font-bold text-foreground">KSh {Number(order.total).toLocaleString()}</p>
+            <button
+              onClick={handleReorder}
+              className="flex items-center gap-1 text-xs font-medium bg-secondary text-foreground px-3 py-1.5 rounded-full hover:bg-secondary/70 transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reorder
+            </button>
+          </div>
         </div>
 
         {/* Progress tracker */}

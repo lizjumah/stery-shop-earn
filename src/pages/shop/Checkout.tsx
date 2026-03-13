@@ -189,7 +189,7 @@ const Checkout = () => {
           delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
           delivery_location: deliveryOption === "delivery" ? location : null,
           points_earned: earnedPoints,
-          status: "pending",
+          status: "received",
           order_source: "app",
         })
         .select("id")
@@ -237,18 +237,15 @@ const Checkout = () => {
       // Also update local AppContext for in-session display
       placeOrder({
         id: Date.now().toString(),
-        orderNumber: num,
+        order_number: num,
+        customer_id: cust.id,
+        customer_phone: cust.phone,
         items: orderItems,
         total,
-        status: "pending",
-        date: new Date().toISOString().split("T")[0],
-        deliveryOption,
+        status: "received",
+        created_at: new Date().toISOString(),
+        delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
         pointsEarned: earnedPoints,
-        customerName: cust.name,
-        phone: cust.phone,
-        location,
-        paymentMethod,
-        pointsRedeemed: pointsDiscount,
       });
 
       clearCart();

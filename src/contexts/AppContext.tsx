@@ -18,18 +18,21 @@ interface OrderItem {
 export type OrderStatus =
   | "received"
   | "preparing"
+  | "processed_at_pos"
   | "out_for_delivery"
   | "delivered"
   | "cancelled";
 
 interface PlacedOrder {
   id: string;
-  orderNumber: string;
+  order_number: string;
+  customer_id: string;
+  customer_phone: string;
   items: OrderItem[];
   total: number;
   status: OrderStatus;
-  date: string;
-  deliveryOption: "delivery" | "pickup";
+  created_at: string;
+  delivery_area: string | null;
   pointsEarned: number;
 }
 
@@ -57,6 +60,8 @@ interface AppContextType {
   loyaltyPoints: number;
   pointsHistory: PointsHistoryEntry[];
   addPoints: (label: string, points: number) => void;
+  generateCartShareCode: () => string;
+  loadSharedCart: (code: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -155,7 +160,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     if(earned>0){
       addPoints(
-        `Order ${order.orderNumber}`,
+        `Order ${order.order_number}`,
         earned
       );
     }
@@ -172,6 +177,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           : o
       )
     );
+  };
+
+  // Encode current cart as a base64 share code: "productId:qty,productId:qty,..."
+  const generateCartShareCode = (): string => {
+    return btoa(cart.map((i) => `${i.productId}:${i.quantity}`).join(","));
+  };
+
+  // Decode a share code and replace the cart
+  const loadSharedCart = (code: string): void => {
+    try {
+      const data = atob(code);
+      const items = data
+        .split(",")
+        .map((item) => {
+          const [productId, qty] = item.split(":");
+          return { productId, quantity: parseInt(qty, 10) };
+        })
+        .filter((i) => i.productId && !isNaN(i.quantity));
+      setCart(items);
+    } catch {
+      // invalid code — leave cart unchanged
+    }
   };
 
   return(
@@ -208,7 +235,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         pointsHistory,
 
-        addPoints
+        addPoints,
+
+        generateCartShareCode,
+
+        loadSharedCart
 
       }}
 

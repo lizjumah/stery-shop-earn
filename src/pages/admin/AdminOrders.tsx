@@ -68,6 +68,9 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
+    // Poll every 30 s so new orders appear without a manual refresh
+    const interval = setInterval(fetchOrders, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);

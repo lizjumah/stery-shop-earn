@@ -8,11 +8,11 @@ import {
   Search, ShoppingCart, Star, Gift, ChevronRight,
   Phone, RefreshCw, UserCircle, TrendingUp, MessageCircle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 /** Business contact — update here when number changes */
-const STERY_PHONE = "+254712426918";
-const STERY_PHONE_DISPLAY = "+254 712 426 918";
+const STERY_PHONE = "0794560657";
+const STERY_PHONE_DISPLAY = "0794560657";
 
 const NEXT_REWARD_AT = 100;
 
@@ -49,6 +49,7 @@ const ProductShelf = ({
 const HomeDashboard = () => {
   const { cartItemCount } = useApp();
   const { customer } = useCustomer();
+  const navigate = useNavigate();
   const { data: liveProducts = [] } = useProducts();
 
   const firstName = customer?.name?.split(" ")[0] || null;
@@ -73,9 +74,7 @@ const HomeDashboard = () => {
         <div className="flex items-center justify-between px-4 py-1.5 bg-muted/60 border-b border-border/60">
           {/* Business phone */}
           <a
-            href={`https://wa.me/${STERY_PHONE.replace("+", "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`tel:${STERY_PHONE}`}
             className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-accent transition-colors"
           >
             <Phone className="w-3 h-3" />
@@ -83,14 +82,14 @@ const HomeDashboard = () => {
           </a>
 
           <div className="flex items-center gap-3">
-            {/* Reorder — links to order history (real flow) */}
-            <Link
-              to="/shop/orders"
+            {/* Reorder — always goes to order history; that page handles the empty state */}
+            <button
+              onClick={() => navigate("/shop/orders")}
               className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
               <span>Reorder</span>
-            </Link>
+            </button>
 
             {/* Sign in / profile */}
             {customer ? (

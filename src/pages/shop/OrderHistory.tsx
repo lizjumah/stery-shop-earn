@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { ShopHeader } from "@/components/ShopHeader";
 import { useCustomer } from "@/contexts/CustomerContext";
-import { Package, CheckCircle, Clock, XCircle, ChefHat, Truck, Loader2, RefreshCw } from "lucide-react";
+import { useApp } from "@/contexts/AppContext";
+import { Package, CheckCircle, Clock, XCircle, ChefHat, Truck, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -29,6 +31,7 @@ const statusConfig: Record<string, { icon: any; color: string; bg: string; label
 const OrderHistory = () => {
   const navigate = useNavigate();
   const { customer } = useCustomer();
+  const { setCart } = useApp();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,6 +61,32 @@ const OrderHistory = () => {
   useEffect(() => {
     fetchOrders();
   }, [customer?.id]);
+
+  const handleReorder = (order: Order) => {
+    const items = (order.items as unknown as OrderItem[]) || [];
+
+    const cartItems = items
+      .filter((item) => !!item.productId)
+      .map((item) => ({ productId: item.productId!, quantity: item.quantity }));
+
+    if (cartItems.length === 0) {
+      toast.error("Could not reorder — product info is missing for all items in this order.");
+      return;
+    }
+
+    setCart(cartItems);
+
+    if (cartItems.length < items.length) {
+      const missing = items.length - cartItems.length;
+      toast.info(
+        `${cartItems.length} item(s) added to cart. ${missing} item(s) could not be added (product data missing).`
+      );
+    } else {
+      toast.success("Items added to cart. Review and update before checkout.");
+    }
+
+    navigate("/shop/cart");
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -96,11 +125,8 @@ const OrderHistory = () => {
             const items = (order.items as unknown as OrderItem[]) || [];
 
             return (
-              <button
-                key={order.id}
-                onClick={() => navigate(`/shop/order/${order.id}`)}
-                className="w-full text-left bg-card rounded-xl p-4 card-elevated"
-              >
+              <div key={order.id} className="bg-card rounded-xl p-4 card-elevated">
+                {/* Header */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-muted-foreground" />
@@ -111,21 +137,36 @@ const OrderHistory = () => {
                     {config.label}
                   </span>
                 </div>
+
+                {/* Items preview */}
                 <div className="text-sm text-muted-foreground mb-2">
                   {items.slice(0, 3).map((item, idx) => (
                     <span key={idx}>{item.name} ×{item.quantity} &nbsp;</span>
                   ))}
                   {items.length > 3 && <span>+{items.length - 3} more</span>}
                 </div>
+
+                {/* Total + date */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{formatDate(order.created_at)}</span>
                   <span className="font-bold text-foreground">KSh {Number(order.total).toLocaleString()}</span>
                 </div>
+
                 {order.points_earned > 0 && (
                   <p className="text-xs text-primary mt-1">+{order.points_earned} points earned</p>
                 )}
-                <p className="text-[10px] text-primary mt-1">Tap to track →</p>
-              </button>
+
+                {/* Actions — Track order vs Reorder, clearly separated */}
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
+                  <button
+                    onClick={() => navigate(`/shop/order/${order.id}`)}
+                    className="text-xs text-primary font-medium"
+                  >
+                    Track order →
+                  </button>
+                  {/* Reorder button hidden temporarily — will be re-enabled later */}
+                </div>
+              </div>
             );
           })}
 
@@ -136,7 +177,6 @@ const OrderHistory = () => {
           )}
         </div>
       )}
-
     </div>
   );
 };
