@@ -1,0 +1,13 @@
+[33mcommit 34b39a4bc0ae31045465056b1df288d6e0537a21[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Elizabeth Jumah <lizjumah@gmail.com>
+Date:   Fri Mar 13 21:26:59 2026 +0300
+
+    Stery MVP ready for testing
+
+ src/contexts/AppContext.tsx      | 41 [32m++++++++++++++++++++++++[m[31m----[m
+ src/pages/admin/AdminOrders.tsx  |  3 [32m+++[m
+ src/pages/shop/Checkout.tsx      | 17 [32m+++++[m[31m-------[m
+ src/pages/shop/HomeDashboard.tsx | 19 [32m+++++++[m[31m------[m
+ src/pages/shop/OrderHistory.tsx  | 58 [32m+++++++++++++++++++++++++++++++++[m[31m-------[m
+ src/pages/shop/OrderTracker.tsx  | 45 [32m++++++++++++++++++++++++++++[m[31m---[m
+ 6 files changed, 146 insertions(+), 37 deletions(-)
