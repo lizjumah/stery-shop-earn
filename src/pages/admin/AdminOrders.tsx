@@ -162,6 +162,7 @@ const AdminOrders = () => {
       )
     );
     toast.success(PAYMENT_STATUS_BADGE[newPaymentStatus]?.label ?? newPaymentStatus);
+    fetchOrders();
   };
 
   const handleStatus = async (orderId: string, newStatus: OrderStatus) => {
