@@ -43,11 +43,16 @@ export async function verifyAdmin(
     const { data: customer } =
       await supabaseAdmin
         .from("customers")
-        .select("id,is_admin")
+        .select("id,is_admin,role")
         .eq("id", customerId)
         .single();
 
-    if (!customer || !customer.is_admin) {
+    const hasAccess =
+      customer?.is_admin === true ||
+      customer?.role === "owner" ||
+      customer?.role === "staff";
+
+    if (!customer || !hasAccess) {
 
       return res.status(403).json({
         error:"Admin required"

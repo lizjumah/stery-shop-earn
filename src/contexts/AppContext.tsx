@@ -155,15 +155,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const placeOrder = (order:PlacedOrder)=>{
     setOrders(prev=>[order,...prev]);
-
-    const earned = Math.floor(order.total/100);
-
-    if(earned>0){
-      addPoints(
-        `Order ${order.order_number}`,
-        earned
-      );
-    }
+    // Points are written to Supabase by CustomerContext.addPoints in Checkout.
+    // Do not add them here — it would create a phantom in-session double-count.
   };
 
   const updateOrderStatus = (

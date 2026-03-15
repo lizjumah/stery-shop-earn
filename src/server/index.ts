@@ -73,5 +73,11 @@ app.listen(PORT, () => {
   console.log(`✓ Health check: http://localhost:${PORT}/health`);
   console.log(`✓ Admin API: http://localhost:${PORT}/api/admin/*\n`);
   console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`Service Role Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? "✓ Loaded" : "✗ Missing"}\n`);
+  const srk = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const srkStatus = !srk
+    ? "✗ MISSING — set SUPABASE_SERVICE_ROLE_KEY in .env.local"
+    : srk === "your_service_role_key_here"
+    ? "✗ PLACEHOLDER — replace with real key from Supabase dashboard → Settings → API"
+    : "✓ Loaded";
+  console.log(`Service Role Key: ${srkStatus}\n`);
 });

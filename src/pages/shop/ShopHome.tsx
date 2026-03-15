@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { categories } from "@/data/products";
 import { useProducts } from "@/hooks/useProducts";
 import { ProductCard } from "@/components/ProductCard";
 import { useApp } from "@/contexts/AppContext";
@@ -32,6 +31,7 @@ const ShopHome = () => {
   const { customer } = useCustomer();
   const loyaltyPoints = customer?.loyalty_points || 0;
   const { data: liveProducts = [] } = useProducts();
+  const categories = ["All", ...Array.from(new Set(liveProducts.map((p) => p.category)))];
 
   const featuredProducts = liveProducts.filter((p) => !p.isOffer).slice(0, 4);
   const offerProducts = liveProducts.filter((p) => p.isOffer);

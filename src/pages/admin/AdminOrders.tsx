@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ShopHeader } from "@/components/ShopHeader";
 import { Button } from "@/components/ui/button";
-import { Package, Phone, MapPin, CreditCard, ChefHat, Truck, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import { Package, Phone, MapPin, CreditCard, ChefHat, Truck, CheckCircle, Loader2, RefreshCw, MessageCircle, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -45,6 +45,37 @@ interface OrderItem {
   subtotal?: number;
 }
 
+function whatsappPaymentLink(phone: string, name: string, total: number): string {
+  // Strip all non-digit characters (spaces, dashes, parentheses, leading +)
+  let normalized = phone.replace(/\D/g, "");
+  if (normalized.startsWith("254") && normalized.length === 12) {
+    // Already in 254XXXXXXXXX format — use as-is
+  } else if (normalized.startsWith("0") && normalized.length === 10) {
+    // 07XXXXXXXX → 2547XXXXXXXX
+    normalized = "254" + normalized.slice(1);
+  }
+  const message =
+    `Hi ${name}, thanks for ordering from Stery.\n` +
+    `Your total is KES ${Number(total).toLocaleString()}.\n` +
+    `Please pay via M-Pesa to confirm preparation of your order.\n` +
+    `We'll start preparing it as soon as payment is received.`;
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+}
+
+// Statuses that require payment to be confirmed first
+const PAYMENT_GATED_STATUSES: OrderStatus[] = [
+  "preparing",
+  "processed_at_pos",
+  "out_for_delivery",
+  "delivered",
+];
+
+const PAYMENT_STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  pending:           { label: "Unpaid",            className: "bg-red-500/10 text-red-600 border-red-500/20" },
+  paid:              { label: "Paid",               className: "bg-green-500/10 text-green-700 border-green-500/20" },
+  delivery_fee_paid: { label: "Delivery Fee Paid",  className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+};
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +106,74 @@ const AdminOrders = () => {
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
+  const handlePaymentStatus = async (orderId: string, newPaymentStatus: string) => {
+    const customerId = localStorage.getItem("stery_customer_id") || "";
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/orders/${orderId}/payment-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Customer-ID": customerId,
+        },
+        body: JSON.stringify({ payment_status: newPaymentStatus }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+    } catch (err: any) {
+      const isNetworkError =
+        err instanceof TypeError ||
+        err.message?.includes("fetch") ||
+        err.message?.includes("Failed to fetch") ||
+        err.message?.includes("NetworkError");
+
+      if (!isNetworkError) {
+        toast.error(`Failed to update payment status: ${err.message}`);
+        return;
+      }
+
+      // Backend offline — fall back to direct Supabase
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          payment_status: newPaymentStatus,
+          ...(newPaymentStatus === "paid" ? { paid_at: new Date().toISOString() } : {}),
+        } as any)
+        .eq("id", orderId);
+
+      if (error) {
+        toast.error("Failed to update payment status");
+        return;
+      }
+    }
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              payment_status: newPaymentStatus,
+              ...(newPaymentStatus === "paid" ? { paid_at: new Date().toISOString() } : {}),
+            }
+          : o
+      )
+    );
+    toast.success(PAYMENT_STATUS_BADGE[newPaymentStatus]?.label ?? newPaymentStatus);
+  };
+
   const handleStatus = async (orderId: string, newStatus: OrderStatus) => {
+    // Block dispatch/preparation if payment has not been confirmed
+    if (PAYMENT_GATED_STATUSES.includes(newStatus)) {
+      const order = orders.find((o) => o.id === orderId);
+      if (order && order.payment_status === "pending") {
+        toast.error("Payment must be confirmed before preparation or dispatch.");
+        return;
+      }
+    }
+
     const customerId = localStorage.getItem("stery_customer_id") || "";
 
     // Try backend first (uses service role key — bypasses RLS)
@@ -247,6 +345,54 @@ const AdminOrders = () => {
                   <p className="text-xs text-muted-foreground">
                     Delivery fee: KSh {Number(order.delivery_fee).toLocaleString()}
                   </p>
+                )}
+
+                {/* Payment status badge + actions */}
+                {(() => {
+                  const ps = order.payment_status ?? "pending";
+                  const psBadge = PAYMENT_STATUS_BADGE[ps] ?? PAYMENT_STATUS_BADGE.pending;
+                  return (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${psBadge.className}`}>
+                        {psBadge.label}
+                      </span>
+                      {ps === "pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs gap-1 text-green-700 border-green-600/30 hover:bg-green-50"
+                            onClick={() => handlePaymentStatus(order.id, "paid")}
+                          >
+                            <Banknote className="w-3 h-3" /> Mark as Paid
+                          </Button>
+                          {order.delivery_fee > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs gap-1 text-blue-600 border-blue-500/30 hover:bg-blue-50"
+                              onClick={() => handlePaymentStatus(order.id, "delivery_fee_paid")}
+                            >
+                              <Truck className="w-3 h-3" /> Delivery Fee Paid
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* WhatsApp payment request — only for unpaid orders */}
+                {order.customer_phone && order.customer_name && (order.payment_status ?? "pending") === "pending" && (
+                  <a
+                    href={whatsappPaymentLink(order.customer_phone, order.customer_name, order.total)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button size="sm" variant="outline" className="text-xs gap-1 w-full text-green-600 border-green-600/30 hover:bg-green-50">
+                      <MessageCircle className="w-3 h-3" /> Request Payment on WhatsApp
+                    </Button>
+                  </a>
                 )}
 
                 {/* Status actions */}

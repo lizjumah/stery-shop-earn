@@ -32,6 +32,7 @@ export function useProducts() {
         stockQuantity: row.stock_quantity ?? 100,
         isOffer: row.is_offer ?? false,
         subcategory: row.subcategory ?? undefined,
+        stockStatus: (row.stock_status as "in_stock" | "low_stock" | "out_of_stock") ?? "in_stock",
       }));
     },
     staleTime: 5 * 60 * 1000, // 5 min — products don't change every second

@@ -1,11 +1,12 @@
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
+import type { CustomerRole } from "@/contexts/CustomerContext";
 import { useApp } from "@/contexts/AppContext";
 import { useCommissions } from "@/hooks/useCommissions";
 import { Button } from "@/components/ui/button";
 import {
   User, Phone, Mail, MapPin, ChevronRight, ChevronDown, ChevronUp,
   LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList,
-  Cake, LayoutDashboard, PhoneCall, MessageCircle,
+  Cake, LayoutDashboard, PhoneCall, MessageCircle, Lock,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
@@ -17,11 +18,15 @@ const STERY_WHATSAPP = "254712426918";
 const Profile = () => {
   const navigate = useNavigate();
   const { setMode } = useApp();
-  const { customer, updateCustomer, logout: customerLogout, loginByPhone } = useCustomer();
+  const { customer, updateCustomer, logout: customerLogout, loginByPhone, completeLogin } = useCustomer();
   const { data: commissions = [] } = useCommissions();
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const [showHelp, setShowHelp] = useState(false);
+
+  // PIN step — populated when a staff/owner phone lookup succeeds
+  const [pendingStaff, setPendingStaff] = useState<{ name: string; staff_pin: string | null | undefined; completeWith: Parameters<typeof completeLogin>[0] } | null>(null);
+  const [pinInput, setPinInput] = useState("");
 
   const role = getCustomerRole(customer);
   const loyaltyPoints = customer?.loyalty_points || 0;
@@ -46,11 +51,37 @@ const Profile = () => {
       return;
     }
     const found = await loginByPhone(phoneInput);
-    if (found) {
-      toast.success(`Welcome back, ${found.name}!`);
+    if (!found) {
+      toast.error("No account found. Place your first order to create an account.");
+      return;
+    }
+    const foundRole: CustomerRole = getCustomerRole(found);
+    if (foundRole === "staff" || foundRole === "owner") {
+      // Session NOT yet set — pause and request PIN
+      setPendingStaff({ name: found.name, staff_pin: found.staff_pin, completeWith: found });
+      setPinInput("");
+      return;
+    }
+    // Regular customer — session already completed by loginByPhone
+    toast.success(`Welcome back, ${found.name}!`);
+    setShowPhoneInput(false);
+  };
+
+  const handlePinSubmit = async () => {
+    if (!pendingStaff) return;
+    if (!pinInput.trim()) {
+      toast.error("Please enter your PIN");
+      return;
+    }
+    if (pendingStaff.staff_pin && pinInput === pendingStaff.staff_pin) {
+      await completeLogin(pendingStaff.completeWith);
+      toast.success(`Welcome back, ${pendingStaff.name}!`);
+      setPendingStaff(null);
+      setPinInput("");
       setShowPhoneInput(false);
     } else {
-      toast.error("No account found. Place your first order to create an account.");
+      toast.error("Incorrect PIN. Please try again.");
+      setPinInput("");
     }
   };
 
@@ -64,18 +95,44 @@ const Profile = () => {
             <div className="rounded-full w-16 h-16 flex items-center justify-center bg-primary/10 mx-auto mb-4">
               <User className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-lg font-bold text-foreground mb-2">Welcome to Stery!</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Complete your first order to create your profile and start earning rewards.
+            <h2 className="text-lg font-bold text-foreground mb-2">Welcome to Stery</h2>
+            <p className="text-sm text-muted-foreground mb-1">
+              New here? Start shopping and we'll create your account at checkout. Already have an account? Sign in below.
             </p>
-            {!showPhoneInput ? (
+            <p className="text-xs text-muted-foreground mb-4">
+              Shop fresh groceries, household items, fashion and more from Stery Supermarket.
+            </p>
+            {!showPhoneInput && !pendingStaff ? (
               <div className="space-y-2">
                 <Button onClick={() => navigate("/shop")} className="w-full bg-primary hover:bg-primary/90">
                   Start Shopping
                 </Button>
                 <Button onClick={() => setShowPhoneInput(true)} variant="outline" className="w-full">
-                  I Have an Account
+                  Sign In
                 </Button>
+              </div>
+            ) : pendingStaff ? (
+              /* PIN step — only reached by staff/owner */
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Lock className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Enter your 4-digit PIN</p>
+                </div>
+                <p className="text-xs text-muted-foreground">Hi {pendingStaff.name}, please enter your staff PIN to continue.</p>
+                <input
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="••••"
+                  autoFocus
+                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+                />
+                <div className="flex gap-2">
+                  <Button onClick={() => { setPendingStaff(null); setPinInput(""); setShowPhoneInput(false); }} variant="outline" className="flex-1">Cancel</Button>
+                  <Button onClick={handlePinSubmit} className="flex-1 bg-primary hover:bg-primary/90" disabled={pinInput.length !== 4}>Confirm</Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useProductManagement } from "@/hooks/useProductManagement";
-import { useCustomer } from "@/contexts/CustomerContext";
+import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { subcategoryConfig } from "@/data/products";
 import { Button } from "@/components/ui/button";
@@ -43,16 +43,21 @@ const ManageProducts = () => {
     stock_quantity: 100,
     commission: 0,
     image_url: "",
+    stock_status: "in_stock" as "in_stock" | "low_stock" | "out_of_stock",
   });
   const [customSubcategory, setCustomSubcategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
+
+  // owner and legacy is_admin can create new categories/subcategories; staff cannot
+  const canManageCatalog =
+    getCustomerRole(customer) === "owner" || customer?.is_admin === true;
 
   useEffect(() => {
     fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined });
   }, [stockFilter, categoryFilter, fetchProducts]);
 
-  const categories = ["Groceries", "Bakery", "Electronics", "Baby Items", "Household", "Jewelry"];
-
-  const categories_list = [...new Set(products.map(p => p.category))];
+  const BUILT_IN_CATEGORIES = ["Groceries", "Bakery", "Electronics", "Baby Items", "Household", "Jewelry"];
+  const categories = [...new Set([...BUILT_IN_CATEGORIES, ...products.map((p) => p.category).filter(Boolean)])];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +65,17 @@ const ManageProducts = () => {
     if (!formData.name.trim() || formData.price <= 0) {
       toast.error("Please fill in all required fields");
       return;
+    }
+
+    if (!editingId) {
+      const normalized = formData.name.trim().toLowerCase().replace(/\s+/g, " ");
+      const exactMatch = products.find(
+        (p) => p.name.trim().toLowerCase().replace(/\s+/g, " ") === normalized
+      );
+      if (exactMatch) {
+        toast.error("A product with this exact name already exists.");
+        return;
+      }
     }
 
     if (editingId) {
@@ -78,8 +94,10 @@ const ManageProducts = () => {
       stock_quantity: 100,
       commission: 0,
       image_url: "",
+      stock_status: "in_stock",
     });
     setCustomSubcategory("");
+    setCustomCategory("");
     setShowForm(false);
   };
 
@@ -95,6 +113,7 @@ const ManageProducts = () => {
       stock_quantity: p.stock_quantity,
       commission: p.commission,
       image_url: p.image_url || "",
+      stock_status: (p.stock_status as "in_stock" | "low_stock" | "out_of_stock") ?? "in_stock",
     });
     // If subcategory not in the config list, pre-fill the custom input
     if (sub && !knownSubs.includes(sub)) {
@@ -112,6 +131,7 @@ const ManageProducts = () => {
     setEditingId(null);
     setImagePreview("");
     setCustomSubcategory("");
+    setCustomCategory("");
     setFormData({
       name: "",
       price: 0,
@@ -121,6 +141,7 @@ const ManageProducts = () => {
       stock_quantity: 100,
       commission: 0,
       image_url: "",
+      stock_status: "in_stock",
     });
   };
 
@@ -190,6 +211,33 @@ const ManageProducts = () => {
                   placeholder="e.g., Fresh Milk 500ml"
                   className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
+                {!editingId && (() => {
+                  const q = formData.name.trim().toLowerCase();
+                  if (q.length < 3) return null;
+                  const match = products.find((p) =>
+                    p.name.toLowerCase().includes(q) || q.includes(p.name.toLowerCase())
+                  );
+                  if (!match) return null;
+                  return (
+                    <p className="mt-1 text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-2.5 py-1.5">
+                      ⚠️ Similar product already exists:{" "}
+                      <button
+                        type="button"
+                        className="font-semibold underline underline-offset-2 hover:text-yellow-900"
+                        onClick={() => {
+                          const el = document.getElementById(`product-${match.id}`);
+                          if (el) {
+                            el.scrollIntoView({ behavior: "smooth", block: "center" });
+                            el.classList.add("ring-2", "ring-yellow-400");
+                            setTimeout(() => el.classList.remove("ring-2", "ring-yellow-400"), 2000);
+                          }
+                        }}
+                      >
+                        {match.name}
+                      </button>
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -216,27 +264,76 @@ const ManageProducts = () => {
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground font-medium">Category</label>
+                <label className="text-xs text-muted-foreground font-medium">Availability</label>
                 <select
-                  value={formData.category}
-                  onChange={(e) => {
-                    setFormData({ ...formData, category: e.target.value, subcategory: "" });
-                    setCustomSubcategory("");
-                  }}
+                  value={formData.stock_status}
+                  onChange={(e) => setFormData({ ...formData, stock_status: e.target.value as "in_stock" | "low_stock" | "out_of_stock" })}
                   className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
+                  <option value="in_stock">In Stock</option>
+                  <option value="low_stock">Low Stock</option>
+                  <option value="out_of_stock">Out of Stock</option>
                 </select>
               </div>
 
-              {/* Subcategory — select from config or type a new one */}
+              <div>
+                <label className="text-xs text-muted-foreground font-medium">Category</label>
+                {(() => {
+                  const isCatCustom =
+                    formData.category === "__custom__" ||
+                    (formData.category && !categories.includes(formData.category));
+                  return (
+                    <div className="space-y-1.5">
+                      <select
+                        value={isCatCustom ? "__custom__" : formData.category}
+                        onChange={(e) => {
+                          if (e.target.value === "__custom__") {
+                            setFormData({ ...formData, category: "__custom__", subcategory: "" });
+                            setCustomSubcategory("");
+                          } else {
+                            setFormData({ ...formData, category: e.target.value, subcategory: "" });
+                            setCustomSubcategory("");
+                            setCustomCategory("");
+                          }
+                        }}
+                        className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                        {/* Only owner/admin can create a brand-new category */}
+                        {canManageCatalog && (
+                          <option value="__custom__">+ Add new category…</option>
+                        )}
+                      </select>
+                      {canManageCatalog && isCatCustom && (
+                        <input
+                          type="text"
+                          value={customCategory}
+                          onChange={(e) => {
+                            setCustomCategory(e.target.value);
+                            setFormData({ ...formData, category: e.target.value });
+                          }}
+                          placeholder="Type new category name"
+                          className="w-full rounded-lg border border-primary bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Subcategory — owner/admin can add new; staff selects from existing only */}
               <div>
                 <label className="text-xs text-muted-foreground font-medium">Subcategory</label>
                 {(() => {
-                  const opts = subcategoryConfig[formData.category] ?? [];
-                  const isCustom = formData.subcategory === "__custom__" ||
+                  const configOpts = subcategoryConfig[formData.category] ?? [];
+                  const liveOpts = products
+                    .filter((p) => p.category === formData.category && p.subcategory)
+                    .map((p) => p.subcategory as string);
+                  const opts = [...new Set([...configOpts, ...liveOpts])];
+                  const isCustom =
+                    formData.subcategory === "__custom__" ||
                     (formData.subcategory && !opts.includes(formData.subcategory));
                   return (
                     <div className="space-y-1.5">
@@ -256,9 +353,16 @@ const ManageProducts = () => {
                         {opts.map((sub) => (
                           <option key={sub} value={sub}>{sub}</option>
                         ))}
-                        <option value="__custom__">+ Add new subcategory…</option>
+                        {/* Staff can see a non-standard value set by owner but cannot change it */}
+                        {!canManageCatalog && isCustom && formData.subcategory !== "__custom__" && (
+                          <option value={formData.subcategory}>{formData.subcategory}</option>
+                        )}
+                        {/* Only owner/admin can create a brand-new subcategory */}
+                        {canManageCatalog && (
+                          <option value="__custom__">+ Add new subcategory…</option>
+                        )}
                       </select>
-                      {isCustom && (
+                      {canManageCatalog && isCustom && (
                         <input
                           type="text"
                           value={customSubcategory}
@@ -468,8 +572,9 @@ const ManageProducts = () => {
           {filteredProducts.map((p) => (
             <div
               key={p.id}
+              id={`product-${p.id}`}
               className={cn(
-                "bg-card rounded-lg p-3 card-elevated border flex items-start gap-3"
+                "bg-card rounded-lg p-3 card-elevated border flex items-start gap-3 transition-shadow"
               )}
             >
               {p.image_url && (

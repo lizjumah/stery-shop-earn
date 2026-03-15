@@ -108,13 +108,9 @@ const Rewards = () => {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      className="bg-primary hover:bg-primary/90"
-                      onClick={() => handleRedeem(v.pointsCost, v.title)}
-                    >
-                      Redeem
-                    </Button>
+                    <span className="text-xs font-medium text-muted-foreground bg-secondary px-3 py-1.5 rounded-lg">
+                      Coming soon
+                    </span>
                   </div>
                 </div>
               ))}

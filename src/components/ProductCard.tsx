@@ -18,7 +18,8 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
   const navigate = useNavigate();
   const isEarnMode = mode === "earn";
   const isDeal = showDealBadge && isTodayDeal(product.id);
-  const outOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity <= 0);
+  const outOfStock = product.stockStatus === "out_of_stock" || product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity <= 0);
+  const isLowStock = !outOfStock && product.stockStatus === "low_stock";
 
   // How many of this product are already in the cart
   const cartQty = cart.find((i) => i.productId === product.id)?.quantity ?? 0;
@@ -75,6 +76,8 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
           <p className="text-xs text-muted-foreground mt-1">
             {outOfStock ? (
               <span className="text-destructive font-medium">Out of stock</span>
+            ) : isLowStock ? (
+              <span className="text-amber-600 font-medium">Low stock</span>
             ) : product.stockQuantity !== undefined && product.stockQuantity <= 5 ? (
               <span className="text-amber-600 font-medium">Only {product.stockQuantity} left</span>
             ) : (
@@ -101,7 +104,7 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
           </div>
           
           {!isEarnMode && (
-            <p className="text-xs text-muted-foreground mt-1">+{product.loyaltyPoints} points</p>
+            <p className="text-xs text-muted-foreground mt-1">+{Math.floor(product.price / 100)} pts</p>
           )}
         </div>
       </div>

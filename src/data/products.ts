@@ -12,6 +12,7 @@ export interface Product {
   inStock: boolean;
   stockQuantity?: number; // live stock level — enforced at add-to-cart
   isOffer?: boolean;
+  stockStatus?: "in_stock" | "low_stock" | "out_of_stock"; // staff-controlled availability
 }
 
 export const products: Product[] = [

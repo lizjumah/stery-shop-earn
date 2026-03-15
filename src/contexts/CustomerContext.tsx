@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { normalizeKenyanPhone } from "@/lib/normalizePhone";
 
 export type CustomerRole = "customer" | "staff" | "owner";
 
@@ -18,6 +19,8 @@ interface Customer {
   referral_code: string | null;
   /** V1 role system. Falls back to is_admin if column not yet present. */
   role?: CustomerRole;
+  /** 4-digit PIN required for staff/owner login. Null for regular customers. */
+  staff_pin?: string | null;
 }
 
 /**
@@ -46,6 +49,11 @@ interface CustomerContextType {
   isLoading: boolean;
   pointsHistory: PointsHistoryEntry[];
   loginByPhone: (phone: string) => Promise<Customer | null>;
+  /**
+   * Completes a login that was paused for PIN verification.
+   * Sets state + localStorage exactly like a normal login would.
+   */
+  completeLogin: (c: Customer) => Promise<void>;
   createOrLoadCustomer: (data: { name: string; phone: string; email?: string; delivery_location?: string; delivery_notes?: string }) => Promise<Customer | null>;
   updateCustomer: (updates: Partial<Customer>) => Promise<void>;
   addPoints: (label: string, points: number, type?: string) => Promise<void>;
@@ -112,23 +120,47 @@ export const CustomerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [customer?.id, customer?.birthday, customer?.birthday_bonus_claimed]);
 
+  const completeLogin = async (c: Customer) => {
+    setCustomer(c);
+    localStorage.setItem(CUSTOMER_ID_KEY, c.id);
+    await fetchPointsHistory(c.id);
+  };
+
   const loginByPhone = async (phone: string): Promise<Customer | null> => {
-    const normalized = phone.replace(/\s+/g, "");
+    const normalized = normalizeKenyanPhone(phone);
+    console.debug("[loginByPhone] raw input   :", JSON.stringify(phone));
+    console.debug("[loginByPhone] normalized  :", JSON.stringify(normalized));
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.debug("[loginByPhone] auth session:", sessionData?.session ?? "none (anon)");
     const { data, error } = await supabase
       .from("customers")
       .select("*")
       .eq("phone", normalized)
-      .single();
-    if (error || !data) return null;
+      .maybeSingle();
+    console.debug("[loginByPhone] supabase result — data:", data, "error:", error);
+    if (error) {
+      console.error("[loginByPhone] supabase error:", error);
+      toast.error("Login failed — please check your connection and try again.");
+      return null;
+    }
+    if (!data) {
+      console.debug("[loginByPhone] no row matched phone:", JSON.stringify(normalized));
+      return null;
+    }
     const c = data as Customer;
-    setCustomer(c);
-    localStorage.setItem(CUSTOMER_ID_KEY, c.id);
-    await fetchPointsHistory(c.id);
+    const role = getCustomerRole(c);
+    if (role === "staff" || role === "owner") {
+      // Return the customer WITHOUT completing the session.
+      // The caller must verify the PIN and then call completeLogin().
+      return c;
+    }
+    // Regular customers: complete login immediately (no PIN required).
+    await completeLogin(c);
     return c;
   };
 
   const createOrLoadCustomer = async (info: { name: string; phone: string; email?: string; delivery_location?: string; delivery_notes?: string }): Promise<Customer | null> => {
-    const normalized = info.phone.replace(/\s+/g, "");
+    const normalized = normalizeKenyanPhone(info.phone);
 
     // Try to find existing
     const { data: existing } = await supabase
@@ -192,7 +224,18 @@ export const CustomerProvider = ({ children }: { children: ReactNode }) => {
 
   const addPoints = async (label: string, points: number, type: string = "earned") => {
     if (!customer) return;
-    const newTotal = customer.loyalty_points + points;
+
+    // Fetch the live DB value before computing the new total.
+    // Avoids stale-closure bug when addPoints is called more than once
+    // in the same async flow (e.g. multiple addPoints calls back-to-back).
+    const { data: fresh } = await supabase
+      .from("customers")
+      .select("loyalty_points")
+      .eq("id", customer.id)
+      .single();
+
+    const currentPoints = fresh?.loyalty_points ?? customer.loyalty_points;
+    const newTotal = currentPoints + points;
 
     await supabase.from("customers").update({ loyalty_points: newTotal }).eq("id", customer.id);
     await supabase.from("points_history").insert({
@@ -207,8 +250,18 @@ export const CustomerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const redeemPoints = async (points: number, label: string): Promise<boolean> => {
-    if (!customer || points > customer.loyalty_points || points < 50) return false;
-    const newTotal = customer.loyalty_points - points;
+    if (!customer || points < 50) return false;
+
+    // Fetch the live DB value to avoid stale-closure overwrite (same fix as addPoints).
+    const { data: fresh } = await supabase
+      .from("customers")
+      .select("loyalty_points")
+      .eq("id", customer.id)
+      .single();
+
+    const currentPoints = fresh?.loyalty_points ?? customer.loyalty_points;
+    if (points > currentPoints) return false;
+    const newTotal = currentPoints - points;
 
     await supabase.from("customers").update({ loyalty_points: newTotal }).eq("id", customer.id);
     await supabase.from("points_history").insert({
@@ -241,6 +294,7 @@ export const CustomerProvider = ({ children }: { children: ReactNode }) => {
       isLoading,
       pointsHistory,
       loginByPhone,
+      completeLogin,
       createOrLoadCustomer,
       updateCustomer,
       addPoints,

@@ -14,6 +14,7 @@ const ManageStaff = () => {
     name: "",
     phone: "",
     role: "product_manager" as "admin" | "product_manager",
+    pin: "",
   });
 
   useEffect(() => {
@@ -28,18 +29,18 @@ const ManageStaff = () => {
     }
 
     if (editingId) {
-      await updateStaff(editingId, { name: formData.name, phone: formData.phone, role: formData.role });
+      await updateStaff(editingId, { name: formData.name, phone: formData.phone, role: formData.role, ...(formData.pin ? { pin: formData.pin } : {}) });
       setEditingId(null);
     } else {
-      await addStaff(formData.name, formData.phone, formData.role);
+      await addStaff(formData.name, formData.phone, formData.role, formData.pin);
     }
 
-    setFormData({ name: "", phone: "", role: "product_manager" });
+    setFormData({ name: "", phone: "", role: "product_manager", pin: "" });
     setShowForm(false);
   };
 
   const handleEdit = (s: any) => {
-    setFormData({ name: s.name, phone: s.phone, role: s.role });
+    setFormData({ name: s.name, phone: s.phone, role: s.role, pin: "" });
     setEditingId(s.id);
     setShowForm(true);
   };
@@ -47,7 +48,7 @@ const ManageStaff = () => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ name: "", phone: "", role: "product_manager" });
+    setFormData({ name: "", phone: "", role: "product_manager", pin: "" });
   };
 
   return (
@@ -93,6 +94,21 @@ const ManageStaff = () => {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+254 7XX XXX XXX"
                   className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground font-medium">
+                  4-Digit PIN {editingId ? "(leave blank to keep existing)" : "(required for login)"}
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={formData.pin}
+                  onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                  placeholder="e.g. 1234"
+                  className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary tracking-widest"
                 />
               </div>
 

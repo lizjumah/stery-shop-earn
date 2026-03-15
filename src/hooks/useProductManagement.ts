@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { adminFetch } from "@/lib/api/client";
 
 interface Product {
   id: string;
@@ -17,6 +16,7 @@ interface Product {
   in_stock: boolean;
   stock_quantity: number;
   is_offer: boolean;
+  stock_status?: "in_stock" | "low_stock" | "out_of_stock";
   created_at: string;
   updated_at: string;
 }
@@ -61,48 +61,57 @@ export const useProductManagement = () => {
 
   const addProduct = useCallback(
     async (product: Partial<ProductInsertUpdate>) => {
-      try {
-        const result = await adminFetch("/products", "POST", {
-          name: product.name,
-          price: product.price,
-          original_price: product.original_price,
-          image_url: product.image_url,
-          category: product.category,
-          subcategory: product.subcategory || null,
-          description: product.description,
-          commission: product.commission,
-          loyalty_points: product.loyalty_points || 0,
-          stock_quantity: product.stock_quantity ?? 100,
-          is_offer: product.is_offer || false,
-        });
-        setProducts((prev) => [result.product, ...prev]);
-        toast.success("Product added");
-        return result.product;
-      } catch (err: any) {
-        const isOffline = err instanceof TypeError || err.message?.includes("fetch");
-        toast.error(isOffline ? "Cannot reach the server. Please check your connection." : `Failed to add product: ${err.message}`);
-        console.error("Add product error:", err);
+      const payload = {
+        name: product.name,
+        price: product.price,
+        original_price: product.original_price ?? null,
+        image_url: product.image_url ?? null,
+        category: product.category,
+        subcategory: product.subcategory || null,
+        description: product.description ?? null,
+        commission: product.commission ?? 0,
+        loyalty_points: product.loyalty_points ?? 0,
+        stock_quantity: product.stock_quantity ?? 100,
+        is_offer: product.is_offer ?? false,
+        stock_status: product.stock_status ?? "in_stock",
+      };
+
+      const { data, error } = await supabase
+        .from("products")
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        toast.error(`Failed to add product: ${error.message}`);
         return null;
       }
+
+      setProducts((prev) => [data as Product, ...prev]);
+      toast.success("Product added");
+      return data as Product;
     },
     []
   );
 
   const updateProduct = useCallback(
     async (id: string, updates: Partial<ProductInsertUpdate>) => {
-      try {
-        const result = await adminFetch(`/products/${id}`, "PUT", updates);
-        setProducts((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, ...result.product } : p))
-        );
-        toast.success("Product updated");
-        return true;
-      } catch (err: any) {
-        const isOffline = err instanceof TypeError || err.message?.includes("fetch");
-        toast.error(isOffline ? "Cannot reach the server. Please check your connection." : `Failed to update product: ${err.message}`);
-        console.error("Update product error:", err);
+      const { data, error } = await supabase
+        .from("products")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        toast.error(`Failed to update product: ${error.message}`);
         return false;
       }
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, ...(data as Product) } : p))
+      );
+      toast.success("Product updated");
+      return true;
     },
     []
   );

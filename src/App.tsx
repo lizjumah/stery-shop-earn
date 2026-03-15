@@ -57,13 +57,13 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 /**
- * Shop/Earn layout guard — renders <Outlet /> for customers and owners,
- * redirects staff to /admin/orders.
+ * Shop/Earn layout guard — renders <Outlet /> for all authenticated and
+ * unauthenticated users. Staff/owner may browse the shop; /admin/* routes
+ * are protected separately by AdminRoute.
  */
 const ShopRoute = () => {
-  const { customer, isLoading } = useCustomer();
+  const { isLoading } = useCustomer();
   if (isLoading) return null;
-  if (getCustomerRole(customer) === "staff") return <Navigate to="/admin/orders" replace />;
   return <Outlet />;
 };
 

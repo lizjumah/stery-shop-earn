@@ -40,8 +40,7 @@ const Checkout = () => {
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [applyPoints, setApplyPoints] = useState(false);
-  const [pointsToApply, setPointsToApply] = useState(0);
+
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -72,21 +71,9 @@ const Checkout = () => {
   const deliveryFee = freeDelivery ? 0 : rawDeliveryFee;
   const preDiscountTotal = subtotal + deliveryFee;
 
-  const canRedeem = loyaltyPoints >= 50;
-  const maxRedeemable = Math.min(loyaltyPoints, preDiscountTotal);
-  const pointsDiscount = applyPoints ? Math.min(pointsToApply, maxRedeemable) : 0;
+  const pointsDiscount = 0;
   const total = preDiscountTotal - pointsDiscount;
   const earnedPoints = Math.floor(total / 100);
-
-  const handleTogglePoints = () => {
-    if (!applyPoints) {
-      setApplyPoints(true);
-      setPointsToApply(Math.min(loyaltyPoints, preDiscountTotal));
-    } else {
-      setApplyPoints(false);
-      setPointsToApply(0);
-    }
-  };
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -224,14 +211,9 @@ const Checkout = () => {
           .catch((err) => console.warn("Stock deduction failed (backend may be offline):", err));
       }
 
-      // Add loyalty points
+      // Add loyalty points — single call so order display and balance always match
       if (earnedPoints > 0) {
         await addPoints(`Order ${num}`, earnedPoints);
-      }
-      if (total >= 2000) {
-        await addPoints(`Basket Bonus (KSh 2,000+)`, 30, "bonus");
-      } else if (total >= 1000) {
-        await addPoints(`Basket Bonus (KSh 1,000+)`, 10, "bonus");
       }
 
       // Also update local AppContext for in-session display
@@ -360,40 +342,16 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/* Points Redemption */}
-        {customer && (
+        {/* Points Redemption — disabled for soft launch */}
+        {customer && loyaltyPoints > 0 && (
           <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-primary fill-primary" />
-              <span className="text-sm font-medium text-foreground">Your Stery Points: {loyaltyPoints}</span>
-            </div>
-            {canRedeem ? (
-              <div className="mt-3">
-                <p className="text-xs text-muted-foreground mb-2">Apply points to reduce your total?</p>
-                <div className="flex items-center gap-3">
-                  <Button
-                    size="sm"
-                    variant={applyPoints ? "default" : "outline"}
-                    onClick={handleTogglePoints}
-                    className={applyPoints ? "bg-primary hover:bg-primary/90" : ""}
-                  >
-                    {applyPoints ? `✅ -KSh ${pointsDiscount}` : "Apply Points"}
-                  </Button>
-                  {applyPoints && (
-                    <input
-                      type="number"
-                      min={50}
-                      max={maxRedeemable}
-                      value={pointsToApply}
-                      onChange={(e) => setPointsToApply(Math.max(50, Math.min(maxRedeemable, Number(e.target.value))))}
-                      className="w-20 bg-secondary rounded-lg py-1.5 px-2 text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  )}
-                </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-primary fill-primary" />
+                <span className="text-sm font-medium text-foreground">Your Stery Points: {loyaltyPoints}</span>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1">{50 - loyaltyPoints} more points to start redeeming</p>
-            )}
+              <span className="text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-lg">Coming soon</span>
+            </div>
           </div>
         )}
 
@@ -544,28 +502,11 @@ const Checkout = () => {
               </div>
             )}
 
-            <button
-              onClick={() => setPaymentMethod("cash")}
-              className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-colors ${paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border"}`}
-            >
-              <span className="text-xl">💵</span>
-              <div>
-                <p className={`font-medium ${paymentMethod === "cash" ? "text-primary" : "text-foreground"}`}>Cash on Delivery</p>
-                <p className="text-xs text-muted-foreground">Pay when your order arrives</p>
-              </div>
-            </button>
+            {/* Cash on Delivery — temporarily disabled */}
           </div>
         </div>
 
         {/* Payment reassurance + Place Order */}
-        {paymentMethod === "cash" && (
-          <div className="flex items-start gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-2.5">
-            <span className="text-green-600 text-sm mt-0.5">✓</span>
-            <p className="text-xs text-green-700 leading-relaxed">
-              <span className="font-semibold">No payment required now.</span> Place your order first — pay on delivery or at pickup.
-            </p>
-          </div>
-        )}
 
         <Button
           onClick={handlePlaceOrder}
@@ -574,8 +515,6 @@ const Checkout = () => {
         >
           {paymentMethod === "mpesa" && !paymentSubmitted
             ? "Complete M-Pesa Payment First"
-            : paymentMethod === "cash"
-            ? `Place Order — Pay on Delivery`
             : `Confirm Order — KSh ${total}`}
         </Button>
 

@@ -305,6 +305,8 @@ export type Database = {
           assigned_to: string | null
           created_by: string | null
           updated_by: string | null
+          paid_at: string | null
+          payment_status: string
         }
         Insert: {
           created_at?: string
@@ -333,6 +335,8 @@ export type Database = {
           assigned_to?: string | null
           created_by?: string | null
           updated_by?: string | null
+          paid_at?: string | null
+          payment_status?: string
         }
         Update: {
           created_at?: string
@@ -361,6 +365,8 @@ export type Database = {
           assigned_to?: string | null
           created_by?: string | null
           updated_by?: string | null
+          paid_at?: string | null
+          payment_status?: string
         }
         Relationships: [
           {

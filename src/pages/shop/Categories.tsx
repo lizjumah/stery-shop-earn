@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { categories, subcategoryConfig } from "@/data/products";
+import { subcategoryConfig } from "@/data/products";
 import { useProducts } from "@/hooks/useProducts";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopHeader } from "@/components/ShopHeader";
@@ -16,6 +16,7 @@ const Categories = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [offersOnly, setOffersOnly] = useState(false);
   const { data: liveProducts = [] } = useProducts();
+  const categories = ["All", ...Array.from(new Set(liveProducts.map((p) => p.category)))];
 
   // Sync category from URL param
   useEffect(() => {

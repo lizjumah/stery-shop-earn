@@ -15,9 +15,7 @@ const DELIVERY_AREAS = [
 const FREE_DELIVERY_THRESHOLD = 3000;
 
 const BASKET_MILESTONES = [
-  { threshold: 1000, bonusPoints: 10, label: "10 bonus points" },
-  { threshold: 2000, bonusPoints: 30, label: "30 bonus points" },
-  { threshold: 3000, bonusPoints: 0, label: "FREE delivery" },
+  { threshold: 3000, label: "FREE delivery" },
 ];
 
 const Cart = () => {
@@ -149,6 +147,7 @@ const Cart = () => {
                   <span className={`text-sm ${unlocked ? "text-accent font-medium line-through" : "text-foreground"}`}>
                     Spend KSh {m.threshold.toLocaleString()} → {m.label}
                   </span>
+
                 </div>
               );
             })}

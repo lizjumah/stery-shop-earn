@@ -1,7 +1,7 @@
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
-import { categories, categoryConfig, Product } from "@/data/products";
+import { categoryConfig, Product } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -51,6 +51,7 @@ const HomeDashboard = () => {
   const { customer } = useCustomer();
   const navigate = useNavigate();
   const { data: liveProducts = [] } = useProducts();
+  const categories = ["All", ...Array.from(new Set(liveProducts.map((p) => p.category)))];
 
   const firstName = customer?.name?.split(" ")[0] || null;
   const loyaltyPoints = customer?.loyalty_points || 0;
