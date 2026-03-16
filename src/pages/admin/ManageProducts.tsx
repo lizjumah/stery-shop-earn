@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { API_BASE } from "@/lib/api/client";
+import { CsvImportModal } from "@/components/CsvImportModal";
 import { useProductManagement } from "@/hooks/useProductManagement";
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
@@ -35,6 +36,7 @@ const ManageProducts = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [showCsvImport, setShowCsvImport] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -232,13 +234,24 @@ const ManageProducts = () => {
       <div className="px-4 py-6 space-y-4">
         {/* Add Product Button */}
         {!showForm && (
-          <Button
-            onClick={() => setShowForm(true)}
-            className="w-full bg-primary hover:bg-primary/90 h-12 gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Add New Product
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowForm(true)}
+              className="flex-1 bg-primary hover:bg-primary/90 h-12 gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add New Product
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCsvImport(true)}
+              className="h-12 gap-2 px-4"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </Button>
+          </div>
         )}
 
         {/* Add/Edit Form */}
@@ -708,6 +721,14 @@ const ManageProducts = () => {
           ))}
         </div>
       </div>
+
+      {showCsvImport && (
+        <CsvImportModal
+          customerId={customer?.id ?? ""}
+          onClose={() => setShowCsvImport(false)}
+          onImported={() => fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined })}
+        />
+      )}
     </div>
   );
 };

@@ -363,4 +363,110 @@ router.post("/products/validate-barcode", async (req: Request, res: Response) =>
   }
 });
 
+/*
+POST /api/admin/products/import
+Bulk-inserts products from a pre-validated CSV payload.
+Body: { rows: Array<{ name, barcode?, price, cost_price?, stock? }> }
+- Fetches all existing barcodes first to skip duplicates server-side.
+- Inserts in batches of 50.
+- Returns { imported, skippedDuplicates, skippedErrors, errors[] }
+*/
+router.post("/products/import", async (req: Request, res: Response) => {
+  try {
+    const { rows } = req.body as {
+      rows: Array<{
+        name: string;
+        barcode?: string;
+        price: number;
+        cost_price?: number;
+        stock?: number;
+      }>;
+    };
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ error: "No rows provided" });
+    }
+
+    // Fetch all existing barcodes once to avoid per-row round trips
+    const { data: existingProducts, error: fetchError } = await supabaseAdmin
+      .from("products")
+      .select("barcode")
+      .not("barcode", "is", null);
+
+    if (fetchError) throw fetchError;
+
+    const existingBarcodes = new Set(
+      (existingProducts || []).map((p: any) => String(p.barcode).trim())
+    );
+
+    const toInsert: any[] = [];
+    let skippedDuplicates = 0;
+    const errors: string[] = [];
+
+    for (const row of rows) {
+      const barcode = row.barcode ? String(row.barcode).trim() : null;
+
+      // Server-side duplicate guard
+      if (barcode && existingBarcodes.has(barcode)) {
+        skippedDuplicates++;
+        continue;
+      }
+
+      toInsert.push({
+        name: String(row.name).trim(),
+        price: Number(row.price),
+        stock_quantity: row.stock != null ? Number(row.stock) : 0,
+        barcode: barcode || null,
+        category: "Groceries", // default; staff can edit afterwards
+        commission: 0,
+        loyalty_points: 0,
+        is_offer: false,
+        stock_status:
+          (row.stock ?? 0) === 0
+            ? "out_of_stock"
+            : Number(row.stock) <= 10
+            ? "low_stock"
+            : "in_stock",
+        in_stock: (row.stock ?? 0) > 0,
+      });
+
+      // Track barcodes added in this batch so intra-batch duplicates are caught
+      if (barcode) existingBarcodes.add(barcode);
+    }
+
+    // Insert in batches of 50
+    const BATCH = 50;
+    let imported = 0;
+    let skippedErrors = 0;
+
+    for (let i = 0; i < toInsert.length; i += BATCH) {
+      const batch = toInsert.slice(i, i + BATCH);
+      const { error: insertError } = await supabaseAdmin
+        .from("products")
+        .insert(batch);
+
+      if (insertError) {
+        // If a whole batch fails, count each row as an error and record it
+        skippedErrors += batch.length;
+        errors.push(`Batch ${Math.floor(i / BATCH) + 1}: ${insertError.message}`);
+      } else {
+        imported += batch.length;
+      }
+    }
+
+    await logAdminAction(
+      "CSV_IMPORT",
+      "products",
+      null,
+      null,
+      { imported, skippedDuplicates, skippedErrors },
+      req.adminId!
+    );
+
+    res.json({ success: true, imported, skippedDuplicates, skippedErrors, errors });
+  } catch (err: any) {
+    res.status(500).json({ error: "Import failed", message: err.message });
+  }
+});
+
 export default router;
