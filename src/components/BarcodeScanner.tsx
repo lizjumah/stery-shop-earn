@@ -23,17 +23,30 @@ export const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
       .then((cameras) => {
         if (!cameras.length) throw new Error("No camera found");
 
-        return scanner.start(
-          { facingMode: "environment" }, // prefer rear camera on mobile
-          { fps: 10, qrbox: { width: 260, height: 120 } },
-          (decodedText) => {
-            if (didScan.current) return; // ignore extra frames after first hit
-            didScan.current = true;
-            scanner.stop().catch(() => {});
-            onScan(decodedText);
-          },
-          undefined // per-frame decode errors are normal — suppress them
-        );
+        return scanner
+          .start(
+            { facingMode: "environment" }, // prefer rear camera on mobile
+            { fps: 10, qrbox: { width: 260, height: 120 } },
+            (decodedText) => {
+              if (didScan.current) return; // ignore extra frames after first hit
+              didScan.current = true;
+              scanner.stop().catch(() => {});
+              onScan(decodedText);
+            },
+            undefined // per-frame decode errors are normal — suppress them
+          )
+          .then(() => {
+            // html5-qrcode injects its own <button> elements without a type attribute.
+            // Inside a <form>, typeless buttons default to type="submit" and will
+            // accidentally submit the form when clicked. Fix them all after the
+            // library finishes rendering its controls.
+            document
+              .getElementById(SCANNER_DIV_ID)
+              ?.querySelectorAll("button:not([type])")
+              .forEach((btn) => {
+                (btn as HTMLButtonElement).type = "button";
+              });
+          });
       })
       .catch(() => {
         toast.error("Camera unavailable. Please enter barcode manually.");
