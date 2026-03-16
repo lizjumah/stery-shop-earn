@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { API_BASE } from "@/lib/api/client";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useProductManagement } from "@/hooks/useProductManagement";
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
@@ -35,6 +36,7 @@ const ManageProducts = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [scanning, setScanning] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -175,6 +177,7 @@ const ManageProducts = () => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingId(null);
+    setScanning(false);
     setImagePreview("");
     setCustomSubcategory("");
     setCustomCategory("");
@@ -327,14 +330,32 @@ const ManageProducts = () => {
                 <label className="text-xs text-muted-foreground font-medium">
                   Barcode {!editingId ? <span className="text-primary">*</span> : <span className="text-muted-foreground">(optional for existing)</span>}
                 </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formData.barcode}
-                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                  placeholder="e.g. 6001234567890"
-                  className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formData.barcode}
+                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                    placeholder="e.g. 6001234567890"
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setScanning(true)}
+                    className="shrink-0 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  >
+                    📷 Scan
+                  </button>
+                </div>
+                {scanning && (
+                  <BarcodeScanner
+                    onScan={(barcode) => {
+                      setFormData((prev) => ({ ...prev, barcode }));
+                      setScanning(false);
+                    }}
+                    onClose={() => setScanning(false)}
+                  />
+                )}
                 <p className="text-[10px] text-muted-foreground mt-0.5">EAN-13, EAN-8, or any barcode format. Leave blank if unknown.</p>
               </div>
 
