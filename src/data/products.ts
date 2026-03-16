@@ -13,6 +13,7 @@ export interface Product {
   stockQuantity?: number; // live stock level — enforced at add-to-cart
   isOffer?: boolean;
   stockStatus?: "in_stock" | "low_stock" | "out_of_stock"; // staff-controlled availability
+  barcode?: string; // EAN/GS1 barcode — optional, TEXT to preserve leading zeros
 }
 
 export const products: Product[] = [

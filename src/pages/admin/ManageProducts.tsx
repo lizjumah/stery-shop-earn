@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { API_BASE } from "@/lib/api/client";
 import { useProductManagement } from "@/hooks/useProductManagement";
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
@@ -44,6 +46,7 @@ const ManageProducts = () => {
     commission: 0,
     image_url: "",
     stock_status: "in_stock" as "in_stock" | "low_stock" | "out_of_stock",
+    barcode: "",
   });
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
@@ -78,6 +81,47 @@ const ManageProducts = () => {
       }
     }
 
+    // Barcode validation:
+    // - CREATE: required + duplicate check (always call backend)
+    // - EDIT:   duplicate check only if barcode is non-blank (never block blank)
+    const barcodeValue = formData.barcode.trim();
+    const isCreate = !editingId;
+    if (isCreate || barcodeValue) {
+      let barcodeError: string | null = null;
+      try {
+        const customerId = localStorage.getItem("stery_customer_id") || "";
+        const res = await fetch(`${API_BASE}/api/admin/products/validate-barcode`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Customer-ID": customerId },
+          body: JSON.stringify({ barcode: barcodeValue, excludeId: editingId ?? undefined, isCreate }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.required) barcodeError = "Barcode is required for new products.";
+          else if (json.duplicate) barcodeError = "This barcode is already assigned to another product.";
+        } else {
+          throw new Error(`HTTP ${res.status}`);
+        }
+      } catch {
+        // Backend unreachable — enforce rules locally
+        if (isCreate && !barcodeValue) {
+          barcodeError = "Barcode is required for new products.";
+        } else if (barcodeValue) {
+          let query = supabase
+            .from("products")
+            .select("id, name")
+            .eq("barcode", barcodeValue);
+          if (editingId) query = query.neq("id", editingId);
+          const { data: barcodeMatch } = await query.maybeSingle();
+          if (barcodeMatch) barcodeError = "This barcode is already assigned to another product.";
+        }
+      }
+      if (barcodeError) {
+        toast.error(barcodeError);
+        return;
+      }
+    }
+
     if (editingId) {
       await updateProduct(editingId, formData);
       setEditingId(null);
@@ -95,6 +139,7 @@ const ManageProducts = () => {
       commission: 0,
       image_url: "",
       stock_status: "in_stock",
+      barcode: "",
     });
     setCustomSubcategory("");
     setCustomCategory("");
@@ -114,6 +159,7 @@ const ManageProducts = () => {
       commission: p.commission,
       image_url: p.image_url || "",
       stock_status: (p.stock_status as "in_stock" | "low_stock" | "out_of_stock") ?? "in_stock",
+      barcode: p.barcode ?? "",
     });
     // If subcategory not in the config list, pre-fill the custom input
     if (sub && !knownSubs.includes(sub)) {
@@ -142,6 +188,7 @@ const ManageProducts = () => {
       commission: 0,
       image_url: "",
       stock_status: "in_stock",
+      barcode: "",
     });
   };
 
@@ -274,6 +321,21 @@ const ManageProducts = () => {
                   <option value="low_stock">Low Stock</option>
                   <option value="out_of_stock">Out of Stock</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground font-medium">
+                  Barcode {!editingId ? <span className="text-primary">*</span> : <span className="text-muted-foreground">(optional for existing)</span>}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.barcode}
+                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                  placeholder="e.g. 6001234567890"
+                  className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-[10px] text-muted-foreground mt-0.5">EAN-13, EAN-8, or any barcode format. Leave blank if unknown.</p>
               </div>
 
               <div>

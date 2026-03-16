@@ -17,6 +17,7 @@ interface Product {
   stock_quantity: number;
   is_offer: boolean;
   stock_status?: "in_stock" | "low_stock" | "out_of_stock";
+  barcode?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +75,7 @@ export const useProductManagement = () => {
         stock_quantity: product.stock_quantity ?? 100,
         is_offer: product.is_offer ?? false,
         stock_status: product.stock_status ?? "in_stock",
+        barcode: product.barcode ?? null,
       };
 
       const { data, error } = await supabase

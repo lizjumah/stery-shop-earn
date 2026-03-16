@@ -477,12 +477,15 @@ export type Database = {
           original_price: number | null
           image_url: string | null
           category: string
+          subcategory: string | null
           description: string | null
           commission: number | null
           loyalty_points: number
           in_stock: boolean
           stock_quantity: number
           is_offer: boolean
+          stock_status: string
+          barcode: string | null
           created_at: string
           updated_at: string
           visibility: string
@@ -496,12 +499,15 @@ export type Database = {
           original_price?: number | null
           image_url?: string | null
           category?: string
+          subcategory?: string | null
           description?: string | null
           commission?: number | null
           loyalty_points?: number
           in_stock?: boolean
           stock_quantity?: number
           is_offer?: boolean
+          stock_status?: string
+          barcode?: string | null
           created_at?: string
           updated_at?: string
           visibility?: string
@@ -515,12 +521,15 @@ export type Database = {
           original_price?: number | null
           image_url?: string | null
           category?: string
+          subcategory?: string | null
           description?: string | null
           commission?: number | null
           loyalty_points?: number
           in_stock?: boolean
           stock_quantity?: number
           is_offer?: boolean
+          stock_status?: string
+          barcode?: string | null
           created_at?: string
           updated_at?: string
           visibility?: string

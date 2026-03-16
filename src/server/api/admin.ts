@@ -321,4 +321,46 @@ router.post("/orders/:id/status", async (req: Request, res: Response) => {
 
 });
 
+/*
+POST /api/admin/products/validate-barcode
+Checks whether a barcode is already assigned to another product.
+Body: { barcode: string, excludeId?: string, isCreate?: boolean }
+Returns: { required: true } | { duplicate: true, name: string } | { ok: true }
+*/
+router.post("/products/validate-barcode", async (req: Request, res: Response) => {
+  try {
+    const { barcode, excludeId, isCreate } = req.body;
+
+    // Enforce required on create
+    if (isCreate && (!barcode || !String(barcode).trim())) {
+      return res.json({ required: true, duplicate: false });
+    }
+
+    if (!barcode || !String(barcode).trim()) {
+      return res.json({ duplicate: false });
+    }
+
+    let query = supabaseAdmin
+      .from("products")
+      .select("id, name")
+      .eq("barcode", String(barcode).trim());
+
+    if (excludeId) {
+      query = query.neq("id", excludeId);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      return res.json({ duplicate: true, name: data.name });
+    }
+
+    return res.json({ duplicate: false });
+  } catch (err: any) {
+    res.status(500).json({ error: "Barcode check failed", message: err.message });
+  }
+});
+
 export default router;
