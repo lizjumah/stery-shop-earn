@@ -347,15 +347,6 @@ const ManageProducts = () => {
                     📷 Scan
                   </button>
                 </div>
-                {scanning && (
-                  <BarcodeScanner
-                    onScan={(barcode) => {
-                      setFormData((prev) => ({ ...prev, barcode }));
-                      setScanning(false);
-                    }}
-                    onClose={() => setScanning(false)}
-                  />
-                )}
                 <p className="text-[10px] text-muted-foreground mt-0.5">EAN-13, EAN-8, or any barcode format. Leave blank if unknown.</p>
               </div>
 
@@ -571,6 +562,15 @@ const ManageProducts = () => {
                 </Button>
               </div>
             </form>
+            {scanning && (
+              <BarcodeScanner
+                onScan={(barcode) => {
+                  setFormData((prev) => ({ ...prev, barcode }));
+                  setScanning(false);
+                }}
+                onClose={() => setScanning(false)}
+              />
+            )}
           </div>
         )}
 
