@@ -34,6 +34,7 @@ const ManageProducts = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [subcategoryFilter, setSubcategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
   const [imagePreview, setImagePreview] = useState<string>("");
   const [showCsvImport, setShowCsvImport] = useState(false);
@@ -61,7 +62,30 @@ const ManageProducts = () => {
     fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined });
   }, [stockFilter, categoryFilter, fetchProducts]);
 
-  const BUILT_IN_CATEGORIES = ["Groceries", "Bakery", "Electronics", "Baby Items", "Household", "Jewelry"];
+  // Reset subcategory selection whenever category changes
+  useEffect(() => {
+    setSubcategoryFilter("");
+  }, [categoryFilter]);
+
+  const BUILT_IN_CATEGORIES = [
+    // official Stery catalogue
+    "Beverages",
+    "Food & Grocery",
+    "Snacks & Confectionery",
+    "Bakery",
+    "Household & Cleaning",
+    "Personal Care",
+    "Kitchen & Utensils",
+    "Stationery & School",
+    "Fashion & Accessories",
+    "Footwear",
+    "Electronics",
+    // legacy — kept so existing products' categories remain selectable
+    "Groceries",
+    "Household",
+    "Baby Items",
+    "Jewelry",
+  ];
   const categories = [...new Set([...BUILT_IN_CATEGORIES, ...products.map((p) => p.category).filter(Boolean)])];
 
   const handleSubmit = async (e: React.FormEvent) => {

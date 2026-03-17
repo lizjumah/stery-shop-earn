@@ -2,15 +2,52 @@ import { useRef, useState } from "react";
 import { X, Upload, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_BASE } from "@/lib/api/client";
+import { subcategoryConfig } from "@/data/products";
 import { toast } from "sonner";
 
-interface CsvRow {
-  name: string;
-  barcode: string;
-  price: string;
-  cost_price: string;
-  stock: string;
+// ─── Category / subcategory mapping ──────────────────────────────────────────
+
+/**
+ * Official category names, lower-cased for comparison.
+ * Derived from subcategoryConfig so there's a single source of truth.
+ */
+const OFFICIAL_CATEGORIES = Object.keys(subcategoryConfig);
+
+const OFFICIAL_CATEGORIES_LOWER = new Map<string, string>(
+  OFFICIAL_CATEGORIES.map((c) => [c.toLowerCase(), c])
+);
+
+/** Resolve a raw category string to an official category name or null. */
+function resolveCategory(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return OFFICIAL_CATEGORIES_LOWER.get(trimmed.toLowerCase()) ?? null;
 }
+
+/** Resolve a raw subcategory string given an already-resolved category. */
+function resolveSubcategory(rawSub: string, resolvedCategory: string): string {
+  const trimmed = rawSub.trim();
+  const subs = subcategoryConfig[resolvedCategory] ?? [];
+  const subsLower = new Map<string, string>(subs.map((s) => [s.toLowerCase(), s]));
+  return subsLower.get(trimmed.toLowerCase()) ?? "General";
+}
+
+// ─── Header synonym resolution ────────────────────────────────────────────────
+
+/** Map a normalised header string to a canonical field name. */
+function resolveHeader(raw: string): string {
+  const h = raw.trim().toLowerCase().replace(/[-_ ]+/g, " ");
+  if (h === "name" || h === "product name" || h === "product") return "name";
+  if (h === "barcode" || h === "ean" || h === "sku") return "barcode";
+  if (h === "price" || h === "selling price" || h === "unit price") return "price";
+  if (h === "cost price" || h === "cost" || h === "buy price") return "cost_price";
+  if (h === "stock" || h === "quantity" || h === "qty" || h === "stock quantity") return "stock";
+  if (h === "category" || h === "department") return "category";
+  if (h === "subcategory" || h === "sub category" || h === "sub-category" || h === "sub_category") return "subcategory";
+  return h; // unknown — keep as-is so it's just ignored
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ValidRow {
   name: string;
@@ -18,12 +55,15 @@ interface ValidRow {
   price: number;
   cost_price?: number;
   stock: number;
+  category?: string;
+  subcategory?: string;
+  /** true when subcategory was auto-assigned to "General" */
+  subcategoryAutoAssigned?: boolean;
 }
 
 interface SkippedRow {
   row: number;
   reason: string;
-  raw: string;
 }
 
 interface ParseResult {
@@ -45,7 +85,9 @@ interface Props {
   onImported: () => void;
 }
 
-/** Parse raw CSV text into validated rows. No network calls — pure local logic. */
+// ─── CSV parser ───────────────────────────────────────────────────────────────
+
+/** Parse raw CSV text into validated rows. Pure local logic — no network calls. */
 function parseCsv(text: string): ParseResult {
   const lines = text
     .split(/\r?\n/)
@@ -54,48 +96,79 @@ function parseCsv(text: string): ParseResult {
 
   if (lines.length === 0) return { valid: [], skipped: [], total: 0 };
 
-  // Detect and skip header row
-  const firstLower = lines[0].toLowerCase();
-  const hasHeader =
-    firstLower.includes("name") || firstLower.includes("price") || firstLower.includes("barcode");
-  const dataLines = hasHeader ? lines.slice(1) : lines;
+  // Always treat the first line as a header (required for header-name mapping)
+  const rawHeaders = lines[0].split(",").map(resolveHeader);
+  const dataLines = lines.slice(1);
   const total = dataLines.length;
 
   const valid: ValidRow[] = [];
   const skipped: SkippedRow[] = [];
 
   dataLines.forEach((line, idx) => {
-    const rowNum = idx + (hasHeader ? 2 : 1); // 1-based for user display
+    const rowNum = idx + 2; // 1-based, accounting for header row
     const parts = line.split(",").map((p) => p.trim());
-    const [name = "", barcode = "", price = "", cost_price = "", stock = ""] = parts as [
-      string, string, string, string, string
-    ];
 
+    // Build a field map from header names → values
+    const fields: Record<string, string> = {};
+    rawHeaders.forEach((header, i) => {
+      fields[header] = parts[i] ?? "";
+    });
+
+    const name = fields["name"] ?? "";
     if (!name) {
-      skipped.push({ row: rowNum, reason: "Name is empty", raw: line });
+      skipped.push({ row: rowNum, reason: "Name is empty" });
       return;
     }
 
-    const priceNum = parseFloat(price);
-    if (!price || isNaN(priceNum) || priceNum <= 0) {
-      skipped.push({ row: rowNum, reason: "Invalid price", raw: line });
+    const priceStr = fields["price"] ?? "";
+    const priceNum = parseFloat(priceStr);
+    if (!priceStr || isNaN(priceNum) || priceNum <= 0) {
+      skipped.push({ row: rowNum, reason: "Invalid price" });
       return;
     }
 
-    const costNum = cost_price ? parseFloat(cost_price) : undefined;
-    const stockNum = stock ? parseInt(stock, 10) : 0;
+    const barcode = fields["barcode"] || undefined;
+    const costNum = fields["cost_price"] ? parseFloat(fields["cost_price"]) : undefined;
+    const stockRaw = fields["stock"];
+    const stockNum = stockRaw ? parseInt(stockRaw, 10) : 0;
+
+    // ── Category / subcategory resolution ──────────────────────────────────
+    let category: string | undefined;
+    let subcategory: string | undefined;
+    let subcategoryAutoAssigned = false;
+
+    const rawCategory = fields["category"] ?? "";
+    const resolvedCategory = resolveCategory(rawCategory);
+
+    if (resolvedCategory) {
+      category = resolvedCategory;
+      const rawSubcategory = fields["subcategory"] ?? "";
+      const resolvedSub = resolveSubcategory(rawSubcategory, resolvedCategory);
+      subcategory = resolvedSub;
+      // Mark auto-assigned when input was blank/invalid and we defaulted to General
+      if (!rawSubcategory.trim() || resolvedSub === "General") {
+        subcategoryAutoAssigned = rawSubcategory.trim() === "" || resolvedSub === "General";
+      }
+    }
+    // If category is blank or invalid: category and subcategory stay undefined.
+    // The row is still valid — staff can assign category manually afterwards.
 
     valid.push({
       name,
-      barcode: barcode || undefined,
+      barcode,
       price: priceNum,
-      cost_price: costNum,
+      cost_price: isNaN(costNum as number) ? undefined : costNum,
       stock: isNaN(stockNum) ? 0 : stockNum,
+      category,
+      subcategory,
+      subcategoryAutoAssigned,
     });
   });
 
   return { valid, skipped, total };
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +216,7 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
 
       const result: ImportResult = await res.json();
       setImportResult(result);
-      onImported(); // refresh product list in parent
+      onImported();
     } catch (err: any) {
       toast.error(`Import failed: ${err.message}`);
     } finally {
@@ -160,7 +233,7 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4">
-      <div className="bg-card rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-border shadow-xl">
+      <div className="bg-card rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-border shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="font-semibold text-foreground">Import Products from CSV</h2>
@@ -177,9 +250,10 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
           {/* Format hint */}
           {!parseResult && !importResult && (
             <div className="rounded-lg bg-secondary p-3 text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">Expected CSV format:</p>
-              <p className="font-mono">name,barcode,price,cost_price,stock</p>
-              <p>barcode, cost_price, and stock are optional. Header row is auto-detected.</p>
+              <p className="font-medium text-foreground">Expected CSV format (header row required):</p>
+              <p className="font-mono break-all">name,barcode,price,cost_price,stock,category,subcategory</p>
+              <p>barcode, cost_price, stock, category, and subcategory are optional.</p>
+              <p>Columns can be in any order. Headers are matched by name.</p>
             </div>
           )}
 
@@ -227,9 +301,7 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
               {/* Skipped reasons */}
               {parseResult.skipped.length > 0 && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 space-y-1 max-h-32 overflow-y-auto">
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                    Skipped rows:
-                  </p>
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Skipped rows:</p>
                   {parseResult.skipped.map((s) => (
                     <p key={s.row} className="text-[11px] text-amber-600 dark:text-amber-500">
                       Row {s.row}: {s.reason}
@@ -244,28 +316,43 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
                   <p className="text-xs text-muted-foreground font-medium">
                     Preview (first {Math.min(5, parseResult.valid.length)} of {parseResult.valid.length}):
                   </p>
-                  <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="rounded-lg border border-border overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-secondary">
                         <tr>
                           <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Name</th>
                           <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Price</th>
-                          <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Stock</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Category</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Subcategory</th>
                         </tr>
                       </thead>
                       <tbody>
                         {parseResult.valid.slice(0, 5).map((r, i) => (
                           <tr key={i} className="border-t border-border">
-                            <td className="px-2 py-1.5 text-foreground truncate max-w-[160px]">{r.name}</td>
-                            <td className="px-2 py-1.5 text-right text-foreground">
-                              {r.price.toFixed(2)}
+                            <td className="px-2 py-1.5 text-foreground max-w-[120px] truncate">{r.name}</td>
+                            <td className="px-2 py-1.5 text-right text-foreground">{r.price.toFixed(2)}</td>
+                            <td className="px-2 py-1.5 text-muted-foreground">
+                              {r.category ?? <span className="italic text-muted-foreground/60">none</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-right text-muted-foreground">{r.stock}</td>
+                            <td className="px-2 py-1.5">
+                              {r.subcategory ? (
+                                r.subcategoryAutoAssigned ? (
+                                  <span className="text-amber-600">{r.subcategory} *</span>
+                                ) : (
+                                  <span className="text-muted-foreground">{r.subcategory}</span>
+                                )
+                              ) : (
+                                <span className="italic text-muted-foreground/60">none</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  {parseResult.valid.some((r) => r.subcategoryAutoAssigned) && (
+                    <p className="text-[10px] text-amber-600">* Subcategory auto-assigned to "General"</p>
+                  )}
                 </div>
               )}
             </div>

@@ -380,6 +380,8 @@ router.post("/products/import", async (req: Request, res: Response) => {
         price: number;
         cost_price?: number;
         stock?: number;
+        category?: string;
+        subcategory?: string;
       }>;
     };
 
@@ -412,22 +414,20 @@ router.post("/products/import", async (req: Request, res: Response) => {
         continue;
       }
 
+      const stockQty = row.stock != null ? Number(row.stock) : 0;
       toInsert.push({
         name: String(row.name).trim(),
         price: Number(row.price),
-        stock_quantity: row.stock != null ? Number(row.stock) : 0,
+        stock_quantity: stockQty,
         barcode: barcode || null,
-        category: "Groceries", // default; staff can edit afterwards
+        category: row.category || null,
+        subcategory: row.subcategory || null,
         commission: 0,
         loyalty_points: 0,
         is_offer: false,
         stock_status:
-          (row.stock ?? 0) === 0
-            ? "out_of_stock"
-            : Number(row.stock) <= 10
-            ? "low_stock"
-            : "in_stock",
-        in_stock: (row.stock ?? 0) > 0,
+          stockQty === 0 ? "out_of_stock" : stockQty <= 10 ? "low_stock" : "in_stock",
+        in_stock: stockQty > 0,
       });
 
       // Track barcodes added in this batch so intra-batch duplicates are caught

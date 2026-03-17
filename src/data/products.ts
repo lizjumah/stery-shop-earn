@@ -33,19 +33,49 @@ export const products: Product[] = [
   { id: "14", name: "Eggs Tray (30)",     price: 450, image: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400", category: "Groceries",   subcategory: "Eggs",             description: "Farm fresh eggs. High in protein.",                                         commission: 25,  loyaltyPoints: 25, inStock: true },
 ];
 
-export const categories = ["All", "Groceries", "Bakery", "Electronics", "Household", "Baby Items", "Jewelry"];
+export const categories = [
+  "All",
+  // official Stery catalogue
+  "Beverages",
+  "Food & Grocery",
+  "Snacks & Confectionery",
+  "Bakery",
+  "Household & Cleaning",
+  "Personal Care",
+  "Kitchen & Utensils",
+  "Stationery & School",
+  "Fashion & Accessories",
+  "Footwear",
+  "Electronics",
+  // legacy — kept so existing products still filter correctly
+  "Groceries",
+  "Household",
+  "Baby Items",
+  "Jewelry",
+];
 
 /**
  * Subcategory options per category — used in storefront filter chips and admin product form.
  * V1: defined here in code. Future: owner-managed via DB table.
  */
 export const subcategoryConfig: Record<string, string[]> = {
+  // ── legacy (kept for existing products — do not remove) ──────────────────
   Groceries:    ["Dairy", "Eggs", "Flour & Grains", "Cooking Oils", "Sugar & Salt", "Tea & Coffee"],
-  Bakery:       ["Breads", "Buns & Rolls", "Cakes", "Biscuits"],
-  Electronics:  ["Phones", "Chargers & Cables", "Earphones", "Accessories"],
   Household:    ["Cleaning", "Cookware", "Storage", "Bedding"],
   "Baby Items": ["Bedding", "Clothing", "Feeding", "Toys"],
   Jewelry:      ["Bracelets", "Necklaces", "Earrings", "Rings"],
+  // ── official Stery catalogue structure ───────────────────────────────────
+  Beverages:                ["Soda", "Water", "Juice", "Energy Drinks", "Milk/Yoghurt", "General"],
+  "Food & Grocery":         ["Sugar", "Flour", "Cooking Oil", "Spices", "Cereals", "General Grocery", "General"],
+  "Snacks & Confectionery": ["Sweet snacks", "Salted snacks", "General"],
+  Bakery:                   ["Bread", "Cakes", "Buns", "Birthday items", "General"],
+  "Household & Cleaning":   ["Detergents", "Cleaning Supplies", "Sanitary items", "Air Fresheners", "General"],
+  "Personal Care":          ["Soap", "Toothpaste", "Lotion", "Hair Products", "Sanitary Pads", "Cosmetics", "Deodorants", "General"],
+  "Kitchen & Utensils":     ["Cooking Utensils", "Storage Containers", "Cups & Plates", "Kitchen Tools", "Water Bottles", "General"],
+  "Stationery & School":    ["Exercise Books", "Pens & Pencils", "School Bags", "General"],
+  "Fashion & Accessories":  ["Clothing", "Jewelry", "Watches", "Bags", "Belts/hats", "Baby Wear", "General"],
+  Footwear:                 ["Shoes", "Slippers", "Sandals", "General"],
+  Electronics:              ["Phones", "Chargers", "Earphones", "Phone Accessories", "Small Electronics", "General"],
 };
 
 /**
@@ -53,10 +83,21 @@ export const subcategoryConfig: Record<string, string[]> = {
  * Future: owner can manage categories here or via a DB table.
  */
 export const categoryConfig: Record<string, { emoji: string; label: string; description: string }> = {
+  // ── legacy (kept for existing products — do not remove) ──────────────────
   Groceries:    { emoji: "🛒", label: "Groceries",         description: "Fresh food and daily staples" },
-  Bakery:       { emoji: "🍞", label: "Bakery",            description: "Freshly baked breads and pastries" },
-  Electronics:  { emoji: "⚡", label: "Electronics",       description: "Phones, chargers and accessories" },
   Household:    { emoji: "🏠", label: "Household",         description: "Home and cleaning essentials" },
   "Baby Items": { emoji: "👶", label: "Baby Items",        description: "Baby care and nursery" },
   Jewelry:      { emoji: "💎", label: "Jewelry",           description: "Accessories and gifts" },
+  // ── official Stery catalogue structure ───────────────────────────────────
+  Beverages:                { emoji: "🥤", label: "Beverages",               description: "Drinks, juices and dairy" },
+  "Food & Grocery":         { emoji: "🛒", label: "Food & Grocery",          description: "Staples, cooking essentials and general grocery" },
+  "Snacks & Confectionery": { emoji: "🍬", label: "Snacks & Confectionery",  description: "Sweet and salted snacks" },
+  Bakery:                   { emoji: "🍞", label: "Bakery",                  description: "Freshly baked breads, cakes and buns" },
+  "Household & Cleaning":   { emoji: "🧹", label: "Household & Cleaning",    description: "Detergents, cleaning and sanitary supplies" },
+  "Personal Care":          { emoji: "🧴", label: "Personal Care",           description: "Soap, lotion, hair and hygiene products" },
+  "Kitchen & Utensils":     { emoji: "🍳", label: "Kitchen & Utensils",      description: "Cookware, plates and kitchen tools" },
+  "Stationery & School":    { emoji: "📚", label: "Stationery & School",     description: "Books, pens and school supplies" },
+  "Fashion & Accessories":  { emoji: "👗", label: "Fashion & Accessories",   description: "Clothing, jewelry, bags and baby wear" },
+  Footwear:                 { emoji: "👟", label: "Footwear",                description: "Shoes, slippers and sandals" },
+  Electronics:              { emoji: "⚡", label: "Electronics",             description: "Phones, chargers and accessories" },
 };
