@@ -14,6 +14,7 @@ import Checkout from "./pages/shop/Checkout";
 import OrderSuccess from "./pages/shop/OrderSuccess";
 import OrderHistory from "./pages/shop/OrderHistory";
 import OrderTracker from "./pages/shop/OrderTracker";
+import AdminOverview from "./pages/admin/AdminOverview";
 import AdminOrders from "./pages/admin/AdminOrders";
 import ManageStaff from "./pages/admin/ManageStaff";
 import ManageProducts from "./pages/admin/ManageProducts";
@@ -24,6 +25,7 @@ import StockAlerts from "./pages/admin/StockAlerts";
 import ReportsDashboard from "./pages/admin/ReportsDashboard";
 import BulkProductImport from "./pages/admin/BulkProductImport";
 import StaffPerformanceMetrics from "./pages/admin/StaffPerformanceMetrics";
+import { AdminLayout } from "./components/AdminLayout";
 import Offers from "./pages/shop/Offers";
 import Rewards from "./pages/shop/Rewards";
 import GroupOrder from "./pages/shop/GroupOrder";
@@ -101,18 +103,20 @@ const AppRoutes = () => {
         {/* Account — accessible to all roles */}
         <Route path="/profile" element={<Profile />} />
 
-        {/* Admin Routes — staff and owner only */}
-        <Route path="/admin" element={<Navigate to="/admin/orders" replace />} />
-        <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
-        <Route path="/admin/order-operations" element={<AdminRoute><OrderOperations /></AdminRoute>} />
-        <Route path="/admin/commissions" element={<AdminRoute><ApproveCommissions /></AdminRoute>} />
-        <Route path="/admin/alerts" element={<AdminRoute><StockAlerts /></AdminRoute>} />
-        <Route path="/admin/reports" element={<AdminRoute><ReportsDashboard /></AdminRoute>} />
-        <Route path="/admin/import" element={<AdminRoute><BulkProductImport /></AdminRoute>} />
-        <Route path="/admin/performance" element={<AdminRoute><StaffPerformanceMetrics /></AdminRoute>} />
-        <Route path="/admin/staff" element={<AdminRoute><ManageStaff /></AdminRoute>} />
-        <Route path="/admin/products" element={<AdminRoute><ManageProducts /></AdminRoute>} />
-        <Route path="/admin/delivery-routes" element={<AdminRoute><ManageDeliveryRoutes /></AdminRoute>} />
+        {/* Admin Routes — staff and owner only, all share AdminLayout (AdminNav) */}
+        <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
+          <Route path="/admin" element={<AdminOverview />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/admin/order-operations" element={<OrderOperations />} />
+          <Route path="/admin/commissions" element={<ApproveCommissions />} />
+          <Route path="/admin/alerts" element={<StockAlerts />} />
+          <Route path="/admin/reports" element={<ReportsDashboard />} />
+          <Route path="/admin/import" element={<BulkProductImport />} />
+          <Route path="/admin/performance" element={<StaffPerformanceMetrics />} />
+          <Route path="/admin/staff" element={<ManageStaff />} />
+          <Route path="/admin/products" element={<ManageProducts />} />
+          <Route path="/admin/delivery-routes" element={<ManageDeliveryRoutes />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<NotFound />} />
