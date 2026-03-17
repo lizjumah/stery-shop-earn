@@ -245,9 +245,12 @@ const ManageProducts = () => {
     return "in_stock";
   };
 
+  const subcategoryOptions = categoryFilter ? (subcategoryConfig[categoryFilter] ?? []) : [];
+
   const filteredProducts = products.filter((p) => {
     if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (categoryFilter && p.category !== categoryFilter) return false;
+    if (subcategoryFilter && (p.subcategory || "") !== subcategoryFilter) return false;
     return true;
   });
 
@@ -593,6 +596,7 @@ const ManageProducts = () => {
         {/* Search & Filters */}
         {!showForm && (
           <>
+            {/* Search bar */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
@@ -602,6 +606,38 @@ const ManageProducts = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-card rounded-lg py-2.5 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary border border-border"
               />
+            </div>
+
+            {/* Category + Subcategory dropdowns + count */}
+            <div className="flex gap-2 flex-wrap items-center">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="flex-1 min-w-[140px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+
+              <select
+                value={subcategoryFilter}
+                onChange={(e) => setSubcategoryFilter(e.target.value)}
+                disabled={!categoryFilter || subcategoryOptions.length === 0}
+                className="flex-1 min-w-[140px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <option value="">All Subcategories</option>
+                {subcategoryOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+
+              {/* Product count */}
+              <span className="text-xs text-muted-foreground whitespace-nowrap font-medium">
+                {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
+                {categoryFilter ? ` in ${categoryFilter}` : ""}
+              </span>
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -708,6 +744,11 @@ const ManageProducts = () => {
                   {p.is_offer && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600">
                       Special Offer
+                    </span>
+                  )}
+                  {!p.category && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-700">
+                      ⚠ No Category
                     </span>
                   )}
                 </div>
