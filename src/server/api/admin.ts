@@ -469,4 +469,89 @@ router.post("/products/import", async (req: Request, res: Response) => {
   }
 });
 
+/*
+POST /api/admin/audit
+Accepts a frontend-initiated audit event (e.g. product created/updated via UI).
+Body: { action, entity_type, entity_id?, source?, reason?, before_data?, after_data?, metadata? }
+Non-blocking: always returns 200 so main UI action is never blocked.
+*/
+router.post("/audit", async (req: Request, res: Response) => {
+  const { action, entity_type, entity_id, source, reason, before_data, after_data, metadata } = req.body;
+
+  if (!action || !entity_type) {
+    return res.status(400).json({ error: "action and entity_type are required" });
+  }
+
+  // Fire-and-forget: do not await — return immediately so UI is never blocked
+  logAdminAction(
+    action,
+    entity_type,
+    entity_id ?? null,
+    before_data ?? null,
+    after_data ?? null,
+    req.adminId!,
+    source ?? "admin_ui",
+    reason ?? undefined,
+    metadata ?? undefined
+  ).catch(() => {}); // logAdminAction already handles errors internally
+
+  return res.json({ success: true });
+});
+
+/*
+GET /api/admin/audit
+Paginated, filtered read of the audit_logs table.
+Query params:
+  page          — 1-based page number (default 1, page size 50)
+  entity_type   — exact filter
+  action        — exact filter
+  actor_user_id — exact filter
+  from_date     — inclusive lower bound (YYYY-MM-DD)
+  to_date       — inclusive upper bound (YYYY-MM-DD, extended to end of day)
+  search        — partial match on entity_id or actor_name
+*/
+router.get("/audit", async (req: Request, res: Response) => {
+  try {
+    const { entity_type, action, actor_user_id, from_date, to_date, search } =
+      req.query as Record<string, string>;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const PAGE_SIZE = 50;
+    const offset = (page - 1) * PAGE_SIZE;
+
+    let query = supabaseAdmin
+      .from("audit_logs")
+      .select("*", { count: "exact" });
+
+    if (entity_type) query = query.eq("entity_type", entity_type);
+    if (action) query = query.eq("action", action);
+    if (actor_user_id) query = query.eq("actor_user_id", actor_user_id);
+    if (from_date) query = query.gte("created_at", from_date + "T00:00:00Z");
+    if (to_date) query = query.lte("created_at", to_date + "T23:59:59Z");
+    if (search?.trim()) {
+      query = query.or(
+        `entity_id.ilike.%${search.trim()}%,actor_name.ilike.%${search.trim()}%`
+      );
+    }
+
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (error) throw error;
+
+    return res.json({
+      success: true,
+      logs: data || [],
+      total: count ?? 0,
+      page,
+      page_size: PAGE_SIZE,
+    });
+  } catch (err: any) {
+    console.error("Audit logs fetch error:", err);
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch audit logs", message: err.message });
+  }
+});
+
 export default router;

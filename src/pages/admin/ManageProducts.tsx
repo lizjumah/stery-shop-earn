@@ -148,11 +148,74 @@ const ManageProducts = () => {
       }
     }
 
+    const customerId = localStorage.getItem("stery_customer_id") || "";
+    const auditHeaders = {
+      "Content-Type": "application/json",
+      "X-Customer-ID": customerId,
+    };
+
     if (editingId) {
-      await updateProduct(editingId, formData);
+      // Capture before-state from the currently loaded products list
+      const beforeProduct = products.find((p) => p.id === editingId) ?? null;
+      const success = await updateProduct(editingId, formData);
       setEditingId(null);
+      if (success) {
+        // Fire-and-forget — audit failure must never block the UI action
+        fetch(`${API_BASE}/api/admin/audit`, {
+          method: "POST",
+          headers: auditHeaders,
+          body: JSON.stringify({
+            action: "product_updated",
+            entity_type: "product",
+            entity_id: editingId,
+            source: "admin_ui",
+            before_data: beforeProduct
+              ? {
+                  name: beforeProduct.name,
+                  barcode: beforeProduct.barcode ?? null,
+                  price: beforeProduct.price,
+                  category: beforeProduct.category,
+                  subcategory: beforeProduct.subcategory ?? null,
+                  stock_quantity: beforeProduct.stock_quantity,
+                  stock_status: beforeProduct.stock_status ?? null,
+                }
+              : null,
+            after_data: {
+              name: formData.name,
+              barcode: formData.barcode || null,
+              price: formData.price,
+              category: formData.category,
+              subcategory: formData.subcategory || null,
+              stock_quantity: formData.stock_quantity,
+              stock_status: formData.stock_status,
+            },
+          }),
+        }).catch(() => {});
+      }
     } else {
-      await addProduct(formData);
+      const newProduct = await addProduct(formData);
+      if (newProduct) {
+        // Fire-and-forget — audit failure must never block the UI action
+        fetch(`${API_BASE}/api/admin/audit`, {
+          method: "POST",
+          headers: auditHeaders,
+          body: JSON.stringify({
+            action: "product_created",
+            entity_type: "product",
+            entity_id: newProduct.id,
+            source: "admin_ui",
+            after_data: {
+              name: newProduct.name,
+              barcode: newProduct.barcode ?? null,
+              price: newProduct.price,
+              category: newProduct.category,
+              subcategory: newProduct.subcategory ?? null,
+              stock_quantity: newProduct.stock_quantity,
+              stock_status: newProduct.stock_status ?? null,
+            },
+          }),
+        }).catch(() => {});
+      }
     }
 
     setFormData({

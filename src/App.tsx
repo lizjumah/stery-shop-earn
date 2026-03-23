@@ -25,6 +25,10 @@ import StockAlerts from "./pages/admin/StockAlerts";
 import ReportsDashboard from "./pages/admin/ReportsDashboard";
 import BulkProductImport from "./pages/admin/BulkProductImport";
 import StaffPerformanceMetrics from "./pages/admin/StaffPerformanceMetrics";
+import DailyStockUpload from "./pages/admin/DailyStockUpload";
+import InventoryOverview from "./pages/admin/InventoryOverview";
+import MasterInventory from "./pages/admin/MasterInventory";
+import AuditTrail from "./pages/admin/AuditTrail";
 import { AdminLayout } from "./components/AdminLayout";
 import Offers from "./pages/shop/Offers";
 import Rewards from "./pages/shop/Rewards";
@@ -116,6 +120,10 @@ const AppRoutes = () => {
           <Route path="/admin/staff" element={<ManageStaff />} />
           <Route path="/admin/products" element={<ManageProducts />} />
           <Route path="/admin/delivery-routes" element={<ManageDeliveryRoutes />} />
+          <Route path="/admin/inventory" element={<InventoryOverview />} />
+          <Route path="/admin/inventory/master" element={<MasterInventory />} />
+          <Route path="/admin/inventory/upload" element={<DailyStockUpload />} />
+          <Route path="/admin/audit" element={<AuditTrail />} />
         </Route>
       </Route>
 

@@ -3,13 +3,17 @@ import { cn } from "@/lib/utils";
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 
 const NAV_ITEMS = [
-  { label: "Overview",    path: "/admin",              ownerOnly: false },
-  { label: "Orders",      path: "/admin/orders",       ownerOnly: false },
-  { label: "Products",    path: "/admin/products",     ownerOnly: false },
-  { label: "Alerts",      path: "/admin/alerts",       ownerOnly: false },
-  { label: "Staff",       path: "/admin/staff",        ownerOnly: true  },
-  { label: "Commissions", path: "/admin/commissions",  ownerOnly: true  },
-  { label: "Reports",     path: "/admin/reports",      ownerOnly: true  },
+  { label: "Overview",    path: "/admin",                     ownerOnly: false, exact: true  },
+  { label: "Orders",      path: "/admin/orders",              ownerOnly: false, exact: false },
+  { label: "Products",    path: "/admin/products",            ownerOnly: false, exact: false },
+  { label: "Alerts",      path: "/admin/alerts",              ownerOnly: false, exact: false },
+  { label: "Inv. Overview", path: "/admin/inventory",         ownerOnly: false, exact: true  },
+  { label: "Master List", path: "/admin/inventory/master",    ownerOnly: false, exact: false },
+  { label: "Stock Upload", path: "/admin/inventory/upload",   ownerOnly: false, exact: false },
+  { label: "Staff",       path: "/admin/staff",               ownerOnly: true,  exact: false },
+  { label: "Commissions", path: "/admin/commissions",         ownerOnly: true,  exact: false },
+  { label: "Reports",     path: "/admin/reports",             ownerOnly: true,  exact: false },
+  { label: "Audit Trail", path: "/admin/audit",               ownerOnly: true,  exact: false },
 ];
 
 export const AdminNav: React.FC = () => {
@@ -23,11 +27,9 @@ export const AdminNav: React.FC = () => {
     <div className="bg-card border-b border-border sticky top-0 z-40">
       <div className="flex overflow-x-auto scrollbar-hide px-2">
         {items.map((item) => {
-          // Exact match for overview, prefix match for everything else
-          const active =
-            item.path === "/admin"
-              ? location.pathname === "/admin"
-              : location.pathname.startsWith(item.path);
+          const active = item.exact
+            ? location.pathname === item.path
+            : location.pathname.startsWith(item.path);
 
           return (
             <Link

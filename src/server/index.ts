@@ -42,9 +42,11 @@ app.get("/health", (req: Request, res: Response) => {
 
 // Import admin routes
 import adminRouter from "./api/admin";
+import inventoryRouter from "./api/inventory";
 
 // Mount admin routes
 app.use("/api/admin", adminRouter);
+app.use("/api/admin/inventory", inventoryRouter);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

@@ -74,42 +74,43 @@ export async function verifyAdmin(
 
 }
 
-/* ADD THIS FUNCTION BACK */
 export async function logAdminAction(
-  action:string,
-  entityType:string,
-  entityId:string,
-  oldValues:any,
-  newValues:any,
-  adminId:string
-){
+  action: string,
+  entityType: string,
+  entityId: string | null,
+  beforeData: any,
+  afterData: any,
+  adminId: string,
+  source: string = "backend_api",
+  reason?: string,
+  metadata?: any
+) {
+  try {
+    // Best-effort actor name lookup — failure here must never block the log write
+    let actorName: string | null = null;
+    try {
+      const { data: c } = await supabaseAdmin
+        .from("customers")
+        .select("name, phone")
+        .eq("id", adminId)
+        .single();
+      actorName = c?.name || c?.phone || null;
+    } catch {}
 
-  try{
-
-    await supabaseAdmin
-      .from("audit_log")
-      .insert({
-
-        action,
-
-        entity_type:entityType,
-
-        entity_id:entityId,
-
-        old_values:oldValues,
-
-        new_values:newValues,
-
-        performed_by_admin_id:adminId,
-
-        created_at:new Date().toISOString()
-
-      });
-
-  }catch{
-
-    console.log("audit log skipped");
-
+    await supabaseAdmin.from("audit_logs").insert({
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      actor_user_id: adminId,
+      actor_name: actorName,
+      source,
+      reason: reason ?? null,
+      before_data: beforeData ?? null,
+      after_data: afterData ?? null,
+      metadata: metadata ?? null,
+    });
+  } catch (err: any) {
+    // Non-blocking: audit failure must never affect the main operation
+    console.error("[audit] log failed:", action, entityType, entityId, err?.message);
   }
-
 }
