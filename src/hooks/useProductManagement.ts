@@ -28,10 +28,21 @@ type ProductInsertUpdate = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
 export const useProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [missingImageCount, setMissingImageCount] = useState(0);
+
+  // Keep missing image count in sync — runs a lightweight count query whenever products change
+  const refreshMissingCount = useCallback(async () => {
+    const { count } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .or("image_url.is.null,image_url.eq.");
+    setMissingImageCount(count ?? 0);
+  }, []);
 
   const fetchProducts = useCallback(async (filters?: {
     stock_status?: "in_stock" | "low_stock" | "out_of_stock" | "all";
     category?: string;
+    image_filter?: "all" | "missing" | "has_image";
   }) => {
     setIsLoading(true);
     let query: any = supabase.from("products").select("*");
@@ -48,17 +59,24 @@ export const useProductManagement = () => {
         query = query.eq("stock_quantity", 0);
       }
     }
+    if (filters?.image_filter === "missing") {
+      query = query.or("image_url.is.null,image_url.eq.");
+    } else if (filters?.image_filter === "has_image") {
+      query = query.not("image_url", "is", null).neq("image_url", "");
+    }
 
     const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       toast.error("Failed to fetch products");
+      setIsLoading(false);
       return;
     }
     const typedData = (data || []) as Product[];
     setProducts(typedData);
     setIsLoading(false);
-  }, []);
+    refreshMissingCount();
+  }, [refreshMissingCount]);
 
   const addProduct = useCallback(
     async (product: Partial<ProductInsertUpdate>) => {
@@ -144,6 +162,7 @@ export const useProductManagement = () => {
   return {
     products,
     isLoading,
+    missingImageCount,
     fetchProducts,
     addProduct,
     updateProduct,

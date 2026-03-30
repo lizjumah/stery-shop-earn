@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { Product } from "@/data/products";
+import { AgeGateModal } from "@/components/AgeGateModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Share2, Clock } from "lucide-react";
@@ -25,6 +27,16 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
   const cartQty = cart.find((i) => i.productId === product.id)?.quantity ?? 0;
   const atStockLimit = !isEarnMode && product.stockQuantity !== undefined && cartQty >= product.stockQuantity;
 
+  const [showAgeGate, setShowAgeGate] = useState(false);
+
+  const doAddToCart = () => {
+    addToCart(product.id);
+    toast("Item added to cart.", {
+      action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
+      cancel: { label: "Continue Shopping", onClick: () => {} },
+    });
+  };
+
   const handleAction = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -39,15 +51,27 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
         toast.error(`Only ${product.stockQuantity} available — you already have ${cartQty} in your cart.`);
         return;
       }
-      addToCart(product.id);
-      toast("Item added to cart.", {
-        action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
-        cancel: { label: "Continue Shopping", onClick: () => {} },
-      });
+      if (product.isAgeRestricted && sessionStorage.getItem("stery_age_confirmed") !== "true") {
+        setShowAgeGate(true);
+        return;
+      }
+      doAddToCart();
     }
   };
 
+  const handleAgeConfirm = () => {
+    sessionStorage.setItem("stery_age_confirmed", "true");
+    setShowAgeGate(false);
+    doAddToCart();
+  };
+
+  const handleAgeExit = () => {
+    setShowAgeGate(false);
+    navigate("/shop");
+  };
+
   return (
+    <>
     <Link to={isEarnMode ? `/earn/product/${product.id}` : `/shop/product/${product.id}`}>
       <div className="bg-card rounded-lg overflow-hidden card-elevated animate-fade-in">
         <div className="relative aspect-square">
@@ -109,5 +133,9 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
         </div>
       </div>
     </Link>
+    {showAgeGate && (
+      <AgeGateModal onConfirm={handleAgeConfirm} onExit={handleAgeExit} />
+    )}
+    </>
   );
 };

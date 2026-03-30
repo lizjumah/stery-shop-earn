@@ -8,6 +8,7 @@ import { CustomerProvider, useCustomer, getCustomerRole } from "./contexts/Custo
 import HomeDashboard from "./pages/shop/HomeDashboard";
 import ShopHome from "./pages/shop/ShopHome";
 import Categories from "./pages/shop/Categories";
+import AllCategoriesPage from "./pages/shop/AllCategoriesPage";
 import ProductDetails from "./pages/shop/ProductDetails";
 import Cart from "./pages/shop/Cart";
 import Checkout from "./pages/shop/Checkout";
@@ -87,6 +88,7 @@ const AppRoutes = () => {
           <Route path="/shop" element={<HomeDashboard />} />
           <Route path="/shop/browse" element={<ShopHome />} />
           <Route path="/shop/categories" element={<Categories />} />
+          <Route path="/shop/all-categories" element={<AllCategoriesPage />} />
           <Route path="/shop/product/:id" element={<ProductDetails />} />
           <Route path="/shop/cart" element={<Cart />} />
           <Route path="/shop/checkout" element={<Checkout />} />

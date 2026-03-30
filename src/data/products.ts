@@ -14,6 +14,7 @@ export interface Product {
   isOffer?: boolean;
   stockStatus?: "in_stock" | "low_stock" | "out_of_stock"; // staff-controlled availability
   barcode?: string; // EAN/GS1 barcode — optional, TEXT to preserve leading zeros
+  isAgeRestricted?: boolean; // true for Wines & Spirits — requires age confirmation before browsing/purchasing
 }
 
 export const products: Product[] = [
@@ -76,6 +77,7 @@ export const subcategoryConfig: Record<string, string[]> = {
   "Fashion & Accessories":  ["Clothing", "Jewelry", "Watches", "Bags", "Belts/hats", "Baby Wear", "General"],
   Footwear:                 ["Shoes", "Slippers", "Sandals", "General"],
   Electronics:              ["Phones", "Chargers", "Earphones", "Phone Accessories", "Small Electronics", "General"],
+  "Wines & Spirits":        ["Wine", "Spirits", "Beer", "General"],
 };
 
 /**
@@ -100,4 +102,5 @@ export const categoryConfig: Record<string, { emoji: string; label: string; desc
   "Fashion & Accessories":  { emoji: "👗", label: "Fashion & Accessories",   description: "Clothing, jewelry, bags and baby wear" },
   Footwear:                 { emoji: "👟", label: "Footwear",                description: "Shoes, slippers and sandals" },
   Electronics:              { emoji: "⚡", label: "Electronics",             description: "Phones, chargers and accessories" },
+  "Wines & Spirits":        { emoji: "🍷", label: "Wines & Spirits",         description: "Wine, spirits, beer and alcoholic drinks" },
 };

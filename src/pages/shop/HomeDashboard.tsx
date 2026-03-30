@@ -1,12 +1,13 @@
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
-import { categoryConfig, Product } from "@/data/products";
+import { Product } from "@/data/products";
+import { SHOP_CATEGORIES } from "@/data/categoryConfig";
 import { ProductCard } from "@/components/ProductCard";
 import { Progress } from "@/components/ui/progress";
 import {
   Search, ShoppingCart, Star, Gift, ChevronRight,
-  Phone, RefreshCw, UserCircle, TrendingUp, MessageCircle,
+  Phone, RefreshCw, UserCircle, TrendingUp, MessageCircle, LayoutGrid,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -15,6 +16,9 @@ const STERY_PHONE = "0794560657";
 const STERY_PHONE_DISPLAY = "0794560657";
 
 const NEXT_REWARD_AT = 100;
+
+/** Quick-access chips shown in the horizontal scroll strip */
+const CHIP_CATEGORIES = SHOP_CATEGORIES.filter((c) => c.isHomepage && c.db !== "Bakery");
 
 /** Horizontal scrolling product shelf */
 const ProductShelf = ({
@@ -51,19 +55,18 @@ const HomeDashboard = () => {
   const { customer } = useCustomer();
   const navigate = useNavigate();
   const { data: liveProducts = [] } = useProducts();
-  const categories = ["All", ...Array.from(new Set(liveProducts.map((p) => p.category)))];
 
   const firstName = customer?.name?.split(" ")[0] || null;
   const loyaltyPoints = customer?.loyalty_points || 0;
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
   const progress = ((loyaltyPoints % NEXT_REWARD_AT) / NEXT_REWARD_AT) * 100;
 
-  const dealProducts       = liveProducts.filter((p) => p.isOffer || p.originalPrice);
-  const popularProducts    = liveProducts.filter((p) => p.inStock !== false).slice(0, 8);
-  const groceryProducts    = liveProducts.filter((p) => p.category === "Groceries" || p.category === "Bakery");
-  const householdProducts  = liveProducts.filter((p) => p.category === "Household" || p.category === "Electronics");
-  const specialtyProducts  = liveProducts.filter((p) => p.category === "Baby Items" || p.category === "Jewelry");
-  const newProducts        = [...liveProducts].reverse().slice(0, 4);
+  const dealProducts      = liveProducts.filter((p) => p.isOffer || p.originalPrice);
+  const popularProducts   = liveProducts.filter((p) => p.inStock !== false).slice(0, 8);
+  const groceryProducts   = liveProducts.filter((p) => p.category === "Groceries" || p.category === "Bakery");
+  const householdProducts = liveProducts.filter((p) => p.category === "Household" || p.category === "Electronics");
+  const specialtyProducts = liveProducts.filter((p) => p.category === "Baby Items" || p.category === "Jewelry");
+  const newProducts       = [...liveProducts].reverse().slice(0, 4);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -73,7 +76,6 @@ const HomeDashboard = () => {
 
         {/* Utility row — phone / reorder / sign-in */}
         <div className="flex items-center justify-between px-4 py-1.5 bg-muted/60 border-b border-border/60">
-          {/* Business phone */}
           <a
             href={`tel:${STERY_PHONE}`}
             className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-accent transition-colors"
@@ -83,7 +85,6 @@ const HomeDashboard = () => {
           </a>
 
           <div className="flex items-center gap-3">
-            {/* Reorder — always goes to order history; that page handles the empty state */}
             <button
               onClick={() => navigate("/shop/orders")}
               className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
@@ -92,7 +93,6 @@ const HomeDashboard = () => {
               <span>Reorder</span>
             </button>
 
-            {/* Sign in / profile */}
             {customer ? (
               <Link
                 to="/profile"
@@ -115,7 +115,7 @@ const HomeDashboard = () => {
 
         {/* Main header row — logo / search / cart */}
         <div className="flex items-center gap-3 px-4 py-3">
-          {/* Stery wordmark — replace with <img src="/stery-logo.png" /> once the logo file is added to /public/ */}
+          {/* Stery wordmark */}
           <div className="flex items-center gap-1.5 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-white font-black text-base leading-none">S</span>
@@ -130,8 +130,17 @@ const HomeDashboard = () => {
           <Link to="/shop/browse" className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <div className="w-full bg-muted rounded-full py-2.5 pl-9 pr-4 text-muted-foreground text-sm select-none">
-              Search products at Stery…
+              Search products (milk, bread, sugar...)
             </div>
+          </Link>
+
+          {/* Categories entry point */}
+          <Link
+            to="/shop/all-categories"
+            className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 shrink-0"
+          >
+            <LayoutGrid className="w-4 h-4 text-primary" />
+            <span className="text-xs font-semibold text-primary whitespace-nowrap">Categories</span>
           </Link>
 
           {/* Cart */}
@@ -168,37 +177,68 @@ const HomeDashboard = () => {
         <span className="text-[11px] text-muted-foreground whitespace-nowrap">M-Pesa accepted</span>
       </div>
 
-      {/* ── Category chips — structured from categoryConfig ── */}
+      {/* ── 1. Quick category chips — fixed priority list, horizontal scroll ── */}
       <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
-        {categories.filter((c) => c !== "All").map((cat) => {
-          const cfg = categoryConfig[cat];
-          return (
-            <Link
-              key={cat}
-              to={`/shop/categories?cat=${encodeURIComponent(cat)}`}
-              className="flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-1.5 shrink-0 card-elevated"
-            >
-              <span className="text-sm">{cfg?.emoji ?? "🏪"}</span>
-              <span className="text-xs font-medium text-foreground whitespace-nowrap">{cfg?.label ?? cat}</span>
-            </Link>
-          );
-        })}
-        <Link
-          to="/shop/categories"
-          className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-3 py-1.5 shrink-0"
-        >
-          <span className="text-xs font-medium text-primary whitespace-nowrap">All categories</span>
-        </Link>
+        {CHIP_CATEGORIES.map((cat) => (
+          <Link
+            key={cat.db}
+            to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
+            className="flex items-center gap-2 bg-card border border-border rounded-full px-4 py-2 shrink-0 card-elevated"
+          >
+            <span className="text-base">{cat.emoji}</span>
+            <span className="text-sm font-medium text-foreground whitespace-nowrap">{cat.label}</span>
+          </Link>
+        ))}
       </div>
 
-      {/* ── Today's Deals shelf ── */}
+      {/* ── 2. Shop by Category grid ── */}
+      <div className="px-4 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-foreground text-base">Shop by Category</h2>
+          <Link to="/shop/all-categories" className="text-xs text-primary font-medium flex items-center gap-0.5">
+            View All <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Mobile (1-col): horizontal list row. Tablet (2-col) / Desktop (3-col): vertical tile. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {SHOP_CATEGORIES.filter((c) => c.isHomepage).map((cat) => (
+            <Link
+              key={cat.db}
+              to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
+              className="bg-card rounded-xl card-elevated flex items-center gap-3 px-4 py-3
+                         sm:flex-col sm:items-center sm:justify-center sm:px-3 sm:py-4 sm:gap-2 sm:text-center"
+            >
+              <span className="text-2xl leading-none shrink-0">{cat.emoji}</span>
+              <span className="text-sm font-medium text-foreground leading-tight sm:text-[11px]">
+                {cat.label}
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto sm:hidden" />
+            </Link>
+          ))}
+          {/* All Categories card */}
+          <Link
+            to="/shop/all-categories"
+            className="bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3 px-4 py-3
+                       sm:flex-col sm:items-center sm:justify-center sm:px-3 sm:py-4 sm:gap-2 sm:text-center"
+          >
+            <span className="text-2xl leading-none shrink-0">📂</span>
+            <span className="text-sm font-semibold text-primary leading-tight sm:text-[11px]">
+              All Categories
+            </span>
+            <ChevronRight className="w-4 h-4 text-primary ml-auto sm:hidden" />
+          </Link>
+        </div>
+      </div>
+
+      {/* ── 3. Today's Deals shelf ── */}
       <ProductShelf
         title="🔥 Today's Deals"
         products={dealProducts}
         seeAllPath="/shop/offers"
       />
 
-      {/* ── Popular Products shelf ── */}
+      {/* ── 4. Popular Products shelf ── */}
       <ProductShelf
         title="⭐ Popular Products"
         products={popularProducts}
@@ -226,21 +266,19 @@ const HomeDashboard = () => {
         </div>
       </div>
 
-      {/* ── Fresh & Groceries shelf ── */}
+      {/* ── 5. Category product shelves ── */}
       <ProductShelf
         title="🛒 Fresh & Groceries"
         products={groceryProducts}
         seeAllPath="/shop/categories?cat=Groceries"
       />
 
-      {/* ── Household & Electronics shelf ── */}
       <ProductShelf
         title="🏠 Household & Electronics"
         products={householdProducts}
         seeAllPath="/shop/categories?cat=Household"
       />
 
-      {/* ── Specialty shelf (Baby, Jewelry) ── */}
       <ProductShelf
         title="✨ More from Stery"
         products={specialtyProducts}
@@ -289,7 +327,7 @@ const HomeDashboard = () => {
         </p>
       </div>
 
-      {/* ── Rewards strip — compact, below all products ── */}
+      {/* ── Rewards strip ── */}
       <div className="mx-4 mb-6 bg-card rounded-xl p-4 border border-primary/20 card-elevated">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">

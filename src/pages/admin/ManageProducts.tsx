@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { API_BASE } from "@/lib/api/client";
 import { CsvImportModal } from "@/components/CsvImportModal";
+import { BulkImageUploadModal } from "@/components/BulkImageUploadModal";
 import { useProductManagement } from "@/hooks/useProductManagement";
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
@@ -19,12 +21,14 @@ import {
   Package,
   Upload,
   X,
+  Images,
+  FileDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const ManageProducts = () => {
-  const { products, isLoading, fetchProducts, addProduct, updateProduct, deleteProduct, toggleVisibility } =
+  const { products, isLoading, missingImageCount, fetchProducts, addProduct, updateProduct, deleteProduct, toggleVisibility } =
     useProductManagement();
   const { customer } = useCustomer();
   const { uploading: imageUploading, uploadImage } = useImageUpload();
@@ -36,8 +40,10 @@ const ManageProducts = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [subcategoryFilter, setSubcategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
+  const [imageFilter, setImageFilter] = useState<"all" | "missing" | "has_image">("all");
   const [imagePreview, setImagePreview] = useState<string>("");
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showBulkImageUpload, setShowBulkImageUpload] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -59,8 +65,8 @@ const ManageProducts = () => {
     getCustomerRole(customer) === "owner" || customer?.is_admin === true;
 
   useEffect(() => {
-    fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined });
-  }, [stockFilter, categoryFilter, fetchProducts]);
+    fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined, image_filter: imageFilter });
+  }, [stockFilter, categoryFilter, imageFilter, fetchProducts]);
 
   // Reset subcategory selection whenever category changes
   useEffect(() => {
@@ -80,6 +86,7 @@ const ManageProducts = () => {
     "Fashion & Accessories",
     "Footwear",
     "Electronics",
+    "Wines & Spirits",
     // legacy — kept so existing products' categories remain selectable
     "Groceries",
     "Household",
@@ -317,6 +324,30 @@ const ManageProducts = () => {
     return true;
   });
 
+  const handleExport = () => {
+    if (filteredProducts.length === 0) {
+      toast.error("No products to export.");
+      return;
+    }
+    const rows = filteredProducts.map((p) => ({
+      "Product Name": p.name,
+      "Barcode": p.barcode ?? "",
+      "Category": p.category,
+      "Subcategory": p.subcategory ?? "",
+      "Price (KSh)": p.price,
+      "Cost Price (KSh)": p.original_price ?? "",
+      "Stock": p.stock_quantity,
+      "Image Status": p.image_url ? "Has Image" : "Missing",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Products");
+    const label = imageFilter === "missing" ? "missing-images"
+      : imageFilter === "has_image" ? "has-images"
+      : "all";
+    XLSX.writeFile(wb, `stery-products-${label}.xlsx`);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <ShopHeader title="Manage Products" showBack />
@@ -340,6 +371,26 @@ const ManageProducts = () => {
             >
               <Upload className="w-4 h-4" />
               Import CSV
+            </Button>
+            {canManageCatalog && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowBulkImageUpload(true)}
+                className="h-12 gap-2 px-4"
+              >
+                <Images className="w-4 h-4" />
+                Bulk Images
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExport}
+              className="h-12 gap-2 px-4"
+            >
+              <FileDown className="w-4 h-4" />
+              Export Excel
             </Button>
           </div>
         )}
@@ -696,11 +747,29 @@ const ManageProducts = () => {
                 ))}
               </select>
 
-              {/* Product count */}
-              <span className="text-xs text-muted-foreground whitespace-nowrap font-medium">
-                {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
-                {categoryFilter ? ` in ${categoryFilter}` : ""}
-              </span>
+              {/* Image Status filter */}
+              <select
+                value={imageFilter}
+                onChange={(e) => setImageFilter(e.target.value as "all" | "missing" | "has_image")}
+                className="flex-1 min-w-[140px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="all">All Products</option>
+                <option value="missing">Missing Images</option>
+                <option value="has_image">Has Images</option>
+              </select>
+
+              {/* Product count + missing count */}
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-xs text-muted-foreground whitespace-nowrap font-medium">
+                  {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
+                  {categoryFilter ? ` in ${categoryFilter}` : ""}
+                </span>
+                {missingImageCount > 0 && (
+                  <span className="text-xs text-amber-600 font-medium whitespace-nowrap">
+                    Missing Images: {missingImageCount}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -855,6 +924,12 @@ const ManageProducts = () => {
           customerId={customer?.id ?? ""}
           onClose={() => setShowCsvImport(false)}
           onImported={() => fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined })}
+        />
+      )}
+      {showBulkImageUpload && (
+        <BulkImageUploadModal
+          onClose={() => setShowBulkImageUpload(false)}
+          onComplete={() => fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined })}
         />
       )}
     </div>

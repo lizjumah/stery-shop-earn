@@ -4,7 +4,8 @@ import { ProductCard } from "@/components/ProductCard";
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
-import { Search, Star, ChevronRight, ShoppingCart, ShoppingBag, Zap, Baby, Home as HomeIcon, Gem } from "lucide-react";
+import { Search, Star, ChevronRight, ShoppingCart } from "lucide-react";
+import { SHOP_CATEGORIES } from "@/data/categoryConfig";
 import { Link } from "react-router-dom";
 import { DailyDealsSection } from "@/components/shop/DailyDealsSection";
 import { FreshTodaySection } from "@/components/shop/FreshTodaySection";
@@ -16,22 +17,17 @@ import { NeedHelpSection } from "@/components/shop/NeedHelpSection";
 import { QuickBundlesSection } from "@/components/shop/QuickBundlesSection";
 import { SteryChat } from "@/components/shop/SteryChat";
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  Groceries: <ShoppingBag className="w-5 h-5" />,
-  Bakery: <span className="text-lg">🍞</span>,
-  Electronics: <Zap className="w-5 h-5" />,
-  "Baby Items": <Baby className="w-5 h-5" />,
-  Household: <HomeIcon className="w-5 h-5" />,
-  Jewelry: <Gem className="w-5 h-5" />,
-};
+const POPULAR_SEARCHES = [
+  "Milk", "Bread", "Sugar", "Cooking Oil", "Rice", "Beer", "Diapers",
+];
 
 const ShopHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
   const { cartItemCount } = useApp();
   const { customer } = useCustomer();
   const loyaltyPoints = customer?.loyalty_points || 0;
   const { data: liveProducts = [] } = useProducts();
-  const categories = ["All", ...Array.from(new Set(liveProducts.map((p) => p.category)))];
 
   const featuredProducts = liveProducts.filter((p) => !p.isOffer).slice(0, 4);
   const offerProducts = liveProducts.filter((p) => p.isOffer);
@@ -69,36 +65,66 @@ const ShopHome = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
           <input
             type="text"
-            placeholder="Search products at Stery"
+            placeholder="Search products (milk, bread, sugar...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 150)}
             className="w-full bg-card rounded-full py-3 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          {/* Instant suggestions dropdown */}
+
+          {/* Popular searches — shown when focused with empty input */}
+          {searchQuery.length === 0 && isFocused && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-card rounded-xl border border-border shadow-lg overflow-hidden z-50">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-3 pt-3 pb-1.5">
+                Popular searches
+              </p>
+              {POPULAR_SEARCHES.map((term) => (
+                <button
+                  key={term}
+                  onMouseDown={(e) => { e.preventDefault(); setSearchQuery(term); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted transition-colors text-left"
+                >
+                  <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-foreground">{term}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Live suggestions — shown while typing */}
           {searchQuery.length >= 1 && (() => {
             const suggestions = liveProducts.filter((p) =>
               p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
               p.category.toLowerCase().includes(searchQuery.toLowerCase())
-            ).slice(0, 6);
-            return suggestions.length > 0 ? (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card rounded-xl border border-border shadow-lg overflow-hidden z-50">
-                {suggestions.map((p) => (
-                  <Link
-                    key={p.id}
-                    to={`/shop/product/${p.id}`}
-                    onClick={() => setSearchQuery("")}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors"
-                  >
-                    <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.category}</p>
-                    </div>
-                    <span className="text-sm font-bold text-primary shrink-0">KSh {p.price}</span>
-                  </Link>
-                ))}
+            ).slice(0, 8);
+            if (suggestions.length > 0) {
+              return (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card rounded-xl border border-border shadow-lg overflow-hidden z-50">
+                  {suggestions.map((p) => (
+                    <Link
+                      key={p.id}
+                      to={`/shop/product/${p.id}`}
+                      onClick={() => { setSearchQuery(""); setIsFocused(false); }}
+                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors"
+                    >
+                      <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{p.category}</p>
+                      </div>
+                      <span className="text-sm font-bold text-primary shrink-0">KSh {p.price}</span>
+                    </Link>
+                  ))}
+                </div>
+              );
+            }
+            return (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-card rounded-xl border border-border shadow-lg z-50 px-3 py-5 text-center">
+                <p className="text-sm font-medium text-foreground">No products found</p>
+                <p className="text-xs text-muted-foreground mt-1">Try searching for sugar, bread, milk</p>
               </div>
-            ) : null;
+            );
           })()}
         </div>
       </div>
@@ -143,21 +169,31 @@ const ShopHome = () => {
             </div>
           </Link>
 
-          {/* 5. Categories */}
-          <h2 className="text-lg font-bold text-foreground mb-3">Categories</h2>
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {categories.filter((c) => c !== "All").map((cat) => (
+          {/* 5. Shop by Category */}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">Shop by Category</h2>
+            <Link to="/shop/all-categories" className="text-sm text-primary font-medium flex items-center gap-0.5">
+              View All <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-6">
+            {SHOP_CATEGORIES.map((cat) => (
               <Link
-                key={cat}
-                to={`/shop/categories?cat=${encodeURIComponent(cat)}`}
-                className="bg-card rounded-xl p-3 flex flex-col items-center gap-2 card-elevated"
+                key={cat.db}
+                to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
+                className="bg-card rounded-xl p-3 flex flex-col items-center gap-2 card-elevated text-center"
               >
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  {categoryIcons[cat] || <ShoppingBag className="w-5 h-5" />}
-                </div>
-                <span className="text-xs font-medium text-foreground">{cat}</span>
+                <span className="text-2xl leading-none">{cat.emoji}</span>
+                <span className="text-xs font-medium text-foreground leading-tight">{cat.label}</span>
               </Link>
             ))}
+            <Link
+              to="/shop/all-categories"
+              className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col items-center gap-2 text-center"
+            >
+              <span className="text-2xl leading-none">🗂️</span>
+              <span className="text-xs font-medium text-primary leading-tight">All Categories</span>
+            </Link>
           </div>
 
           {/* Loyalty Summary */}

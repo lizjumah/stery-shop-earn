@@ -1,5 +1,12 @@
 import { Router, Request, Response } from "express";
+import multer from "multer";
 import { verifyAdmin, logAdminAction, supabaseAdmin } from "../middleware/auth";
+
+// Multer instance for bulk image uploads — memory storage, images only, max 200 files / 5 MB each
+const bulkImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 200 },
+});
 
 const router = Router();
 
@@ -466,6 +473,135 @@ router.post("/products/import", async (req: Request, res: Response) => {
     res.json({ success: true, imported, skippedDuplicates, skippedErrors, errors });
   } catch (err: any) {
     res.status(500).json({ error: "Import failed", message: err.message });
+  }
+});
+
+/*
+POST /api/admin/products/bulk-images
+Uploads multiple image files and matches each to a product by barcode.
+Matching: filename without extension = product barcode (TEXT).
+Only updates image_url — nothing else is changed.
+Permission: owner or is_admin only (staff cannot use this).
+Accepts: .jpg .jpeg .png .webp — up to 200 files, 5 MB each.
+Returns: { matched, unmatched, failed, unmatched_filenames[] }
+*/
+router.post("/products/bulk-images", async (req: Request, res: Response) => {
+  // Apply multer and surface any file-level errors gracefully
+  const multerError = await new Promise<string | null>((resolve) => {
+    bulkImageUpload.array("images", 200)(req as any, res as any, (err: any) => {
+      resolve(err ? (err.message ?? String(err)) : null);
+    });
+  });
+  if (multerError) {
+    return res.status(400).json({ error: "File upload error", message: multerError });
+  }
+
+  try {
+    // Extra permission check: owner/admin only (staff are blocked even though verifyAdmin passes)
+    const { data: actor } = await supabaseAdmin
+      .from("customers")
+      .select("is_admin, role")
+      .eq("id", req.adminId!)
+      .single();
+
+    const canUpload = actor?.is_admin === true || actor?.role === "owner";
+    if (!canUpload) {
+      return res.status(403).json({ error: "Owner or admin access required for bulk image upload" });
+    }
+
+    const files = (req as any).files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "No image files provided" });
+    }
+
+    // 1. Extract all barcodes from filenames in one pass
+    const barcodes = files.map((f) =>
+      f.originalname.replace(/\.[^.]+$/, "").trim()
+    );
+
+    // 2. Batch-fetch all matching products in a single query
+    const { data: matchedProducts, error: fetchError } = await supabaseAdmin
+      .from("products")
+      .select("id, barcode, name")
+      .in("barcode", barcodes);
+
+    if (fetchError) throw fetchError;
+
+    const productMap = new Map<string, { id: string; name: string }>();
+    for (const p of matchedProducts ?? []) {
+      if (p.barcode) productMap.set(String(p.barcode).trim(), p);
+    }
+
+    // 3. Process each file serially — safe, no Supabase hammering
+    const VALID_EXTS = new Set(["jpg", "jpeg", "png", "webp"]);
+    const VALID_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+    let matched = 0;
+    let unmatched = 0;
+    let failed = 0;
+    const unmatchedFilenames: string[] = [];
+
+    for (const file of files) {
+      const barcode = file.originalname.replace(/\.[^.]+$/, "").trim();
+      const ext = (file.originalname.split(".").pop() ?? "").toLowerCase();
+
+      // Reject unsupported file types
+      if (!VALID_MIMES.has(file.mimetype) && !VALID_EXTS.has(ext)) {
+        failed++;
+        continue;
+      }
+
+      const product = productMap.get(barcode);
+      if (!product) {
+        unmatched++;
+        unmatchedFilenames.push(file.originalname);
+        continue;
+      }
+
+      try {
+        // Upload image to the existing product-images bucket
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).slice(2, 8);
+        const storagePath = `products/${timestamp}-${random}.${ext || "jpg"}`;
+
+        const { error: storageError } = await supabaseAdmin.storage
+          .from("product-images")
+          .upload(storagePath, file.buffer, {
+            contentType: file.mimetype || "image/jpeg",
+            upsert: false,
+          });
+
+        if (storageError) throw storageError;
+
+        const { data: urlData } = supabaseAdmin.storage
+          .from("product-images")
+          .getPublicUrl(storagePath);
+
+        // Update ONLY image_url — no other field is touched
+        const { error: updateError } = await supabaseAdmin
+          .from("products")
+          .update({ image_url: urlData.publicUrl })
+          .eq("id", product.id);
+
+        if (updateError) throw updateError;
+
+        matched++;
+      } catch (err: any) {
+        console.error(`[bulk-images] Failed for ${file.originalname}:`, err.message);
+        failed++;
+      }
+    }
+
+    return res.json({
+      success: true,
+      matched,
+      unmatched,
+      failed,
+      unmatched_filenames: unmatchedFilenames,
+    });
+  } catch (err: any) {
+    console.error("Bulk image upload error:", err);
+    return res.status(500).json({ error: "Bulk upload failed", message: err.message });
   }
 });
 

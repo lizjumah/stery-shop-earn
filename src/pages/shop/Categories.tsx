@@ -1,36 +1,72 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { subcategoryConfig } from "@/data/products";
 import { useProducts } from "@/hooks/useProducts";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopHeader } from "@/components/ShopHeader";
+import { AgeGateModal } from "@/components/AgeGateModal";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const AGE_RESTRICTED = new Set(["Wines & Spirits"]);
+const isAgeConfirmed = () => sessionStorage.getItem("stery_age_confirmed") === "true";
+
 const Categories = () => {
   const [searchParams] = useSearchParams();
-  const initialCat = searchParams.get("cat") || "All";
-  const [selectedCategory, setSelectedCategory] = useState(initialCat);
+  const navigate = useNavigate();
+
+  // Determine the requested category from URL; gate age-restricted ones immediately
+  const rawInitialCat = searchParams.get("cat") || "All";
+  const needsGateOnLoad = AGE_RESTRICTED.has(rawInitialCat) && !isAgeConfirmed();
+
+  const [selectedCategory, setSelectedCategory] = useState(needsGateOnLoad ? "All" : rawInitialCat);
   const [selectedSubcategory, setSelectedSubcategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [offersOnly, setOffersOnly] = useState(false);
+  const [showAgeGate, setShowAgeGate] = useState(needsGateOnLoad);
+  const [pendingCategory, setPendingCategory] = useState<string | null>(needsGateOnLoad ? rawInitialCat : null);
+
   const { data: liveProducts = [] } = useProducts();
   const categories = ["All", ...Array.from(new Set(liveProducts.map((p) => p.category)))];
 
-  // Sync category from URL param
+  // Sync category from URL param (fires on navigation while already on this page)
   useEffect(() => {
     const cat = searchParams.get("cat");
-    if (cat) {
+    if (!cat) return;
+    if (AGE_RESTRICTED.has(cat) && !isAgeConfirmed()) {
+      setPendingCategory(cat);
+      setShowAgeGate(true);
+    } else {
       setSelectedCategory(cat);
-      setSelectedSubcategory("All"); // reset subcategory when URL changes
+      setSelectedSubcategory("All");
     }
   }, [searchParams]);
 
-  // Reset subcategory when category changes
   const handleCategoryChange = (cat: string) => {
+    if (AGE_RESTRICTED.has(cat) && !isAgeConfirmed()) {
+      setPendingCategory(cat);
+      setShowAgeGate(true);
+      return;
+    }
     setSelectedCategory(cat);
     setSelectedSubcategory("All");
+  };
+
+  const handleAgeConfirm = () => {
+    sessionStorage.setItem("stery_age_confirmed", "true");
+    if (pendingCategory) {
+      setSelectedCategory(pendingCategory);
+      setSelectedSubcategory("All");
+      setPendingCategory(null);
+    }
+    setShowAgeGate(false);
+  };
+
+  const handleAgeExit = () => {
+    setPendingCategory(null);
+    setShowAgeGate(false);
+    navigate("/shop");
   };
 
   // Derive available subcategories from products actually in this category
@@ -58,6 +94,7 @@ const Categories = () => {
   });
 
   return (
+    <>
     <div className="min-h-screen bg-background pb-20">
       <ShopHeader title="All Products" showBack />
       <div className="px-4 pb-4">
@@ -153,6 +190,11 @@ const Categories = () => {
         )}
       </div>
     </div>
+
+    {showAgeGate && (
+      <AgeGateModal onConfirm={handleAgeConfirm} onExit={handleAgeExit} />
+    )}
+    </>
   );
 };
 
