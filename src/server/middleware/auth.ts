@@ -50,7 +50,8 @@ export async function verifyAdmin(
     const hasAccess =
       customer?.is_admin === true ||
       customer?.role === "owner" ||
-      customer?.role === "staff";
+      customer?.role === "staff" ||
+      customer?.role === "product_manager";
 
     if (!customer || !hasAccess) {
 

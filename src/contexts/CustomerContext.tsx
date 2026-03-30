@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalizeKenyanPhone } from "@/lib/normalizePhone";
 
-export type CustomerRole = "customer" | "staff" | "owner";
+export type CustomerRole = "customer" | "staff" | "owner" | "product_manager";
 
 interface Customer {
   id: string;
@@ -30,7 +30,7 @@ interface Customer {
 export function getCustomerRole(customer: Customer | null): CustomerRole {
   if (!customer) return "customer";
   const r = customer.role;
-  if (r === "staff" || r === "owner") return r;
+  if (r === "staff" || r === "owner" || r === "product_manager") return r;
   // Legacy fallback: is_admin without a role → treat as owner
   if (r === "customer") return "customer";
   return customer.is_admin ? "owner" : "customer";

@@ -504,9 +504,12 @@ router.post("/products/bulk-images", async (req: Request, res: Response) => {
       .eq("id", req.adminId!)
       .single();
 
-    const canUpload = actor?.is_admin === true || actor?.role === "owner";
+    const canUpload =
+      actor?.is_admin === true ||
+      actor?.role === "owner" ||
+      actor?.role === "product_manager";
     if (!canUpload) {
-      return res.status(403).json({ error: "Owner or admin access required for bulk image upload" });
+      return res.status(403).json({ error: "Owner or product manager access required for bulk image upload" });
     }
 
     const files = (req as any).files as Express.Multer.File[] | undefined;

@@ -60,9 +60,11 @@ const ManageProducts = () => {
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
 
-  // owner and legacy is_admin can create new categories/subcategories; staff cannot
+  // owner, product_manager, and legacy is_admin can manage catalog; staff cannot
   const canManageCatalog =
-    getCustomerRole(customer) === "owner" || customer?.is_admin === true;
+    getCustomerRole(customer) === "owner" ||
+    getCustomerRole(customer) === "product_manager" ||
+    customer?.is_admin === true;
 
   useEffect(() => {
     fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined, image_filter: imageFilter });
