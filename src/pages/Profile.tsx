@@ -56,7 +56,7 @@ const Profile = () => {
       return;
     }
     const foundRole: CustomerRole = getCustomerRole(found);
-    if (foundRole === "staff" || foundRole === "owner") {
+    if (foundRole === "staff" || foundRole === "owner" || foundRole === "product_manager") {
       // Session NOT yet set — pause and request PIN
       setPendingStaff({ name: found.name, staff_pin: found.staff_pin, completeWith: found });
       setPinInput("");
@@ -118,7 +118,7 @@ const Profile = () => {
                   <Lock className="w-4 h-4 text-primary" />
                   <p className="text-sm font-medium text-foreground">Enter your 4-digit PIN</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Hi {pendingStaff.name}, please enter your staff PIN to continue.</p>
+                <p className="text-xs text-muted-foreground">Hi {pendingStaff.name}, please enter your PIN to continue.</p>
                 <input
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
@@ -221,7 +221,7 @@ const Profile = () => {
               )}
             </div>
             <span className="text-[10px] font-semibold text-primary bg-primary/10 rounded-full px-2 py-1 shrink-0">
-              {role === "owner" ? "Owner" : "Customer"}
+              {role === "owner" ? "Owner" : role === "product_manager" ? "Product Manager" : "Customer"}
             </span>
           </div>
           {customer.delivery_location && (
@@ -306,8 +306,8 @@ const Profile = () => {
         {/* ── Main menu ──────────────────────────────────────────────────── */}
         <div className="bg-card rounded-xl overflow-hidden card-elevated">
 
-          {/* Admin Dashboard — owner only, not visible to regular customers */}
-          {role === "owner" && (
+          {/* Admin Dashboard — owner and product_manager */}
+          {(role === "owner" || role === "product_manager") && (
             <Link
               to="/admin/orders"
               className="flex items-center gap-4 p-4 hover:bg-secondary transition-colors border-b border-border"

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ShopHeader } from "@/components/ShopHeader";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useApp } from "@/contexts/AppContext";
+import { useProducts } from "@/hooks/useProducts";
 import { Package, CheckCircle, Clock, XCircle, ChefHat, Truck, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ const OrderHistory = () => {
   const navigate = useNavigate();
   const { customer } = useCustomer();
   const { setCart } = useApp();
+  const { data: liveProducts } = useProducts();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,25 +66,41 @@ const OrderHistory = () => {
 
   const handleReorder = (order: Order) => {
     const items = (order.items as unknown as OrderItem[]) || [];
+    const products = liveProducts ?? [];
 
-    const cartItems = items
-      .filter((item) => !!item.productId)
-      .map((item) => ({ productId: item.productId!, quantity: item.quantity }));
+    const added: { productId: string; quantity: number }[] = [];
+    const skipped: string[] = [];
 
-    if (cartItems.length === 0) {
-      toast.error("Could not reorder — product info is missing for all items in this order.");
+    for (const item of items) {
+      if (!item.productId) {
+        skipped.push(item.name);
+        continue;
+      }
+      const live = products.find((p) => p.id === item.productId);
+      if (!live) {
+        skipped.push(item.name);
+        continue;
+      }
+      if (!live.inStock || (live.stockQuantity != null && live.stockQuantity === 0)) {
+        skipped.push(live.name);
+        continue;
+      }
+      added.push({ productId: item.productId, quantity: item.quantity });
+    }
+
+    if (added.length === 0) {
+      toast.error("None of the items from this order are currently available.");
       return;
     }
 
-    setCart(cartItems);
+    setCart(added);
 
-    if (cartItems.length < items.length) {
-      const missing = items.length - cartItems.length;
+    if (skipped.length > 0) {
       toast.info(
-        `${cartItems.length} item(s) added to cart. ${missing} item(s) could not be added (product data missing).`
+        `${added.length} item(s) added to cart. ${skipped.length} item(s) skipped (unavailable or no longer sold).`
       );
     } else {
-      toast.success("Items added to cart. Review and update before checkout.");
+      toast.success(`${added.length} item(s) added to cart at current prices.`);
     }
 
     navigate("/shop/cart");
@@ -164,7 +182,15 @@ const OrderHistory = () => {
                   >
                     Track order →
                   </button>
-                  {/* Reorder button hidden temporarily — will be re-enabled later */}
+                  {(order.status === "delivered" || order.status === "completed" || order.status === "received") && (
+                    <button
+                      onClick={() => handleReorder(order)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary font-medium transition-colors"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reorder
+                    </button>
+                  )}
                 </div>
               </div>
             );
