@@ -14,18 +14,18 @@ const AllCategoriesPage = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Page header — scrolls away, not sticky */}
-      <ShopHeader title="All Categories" showBack />
+      <ShopHeader title="Browse by Category" showBack />
 
       {/* ── Sticky horizontal category navigation bar ── */}
       <div className="sticky top-0 z-20 bg-card border-b border-border shadow-sm">
         {/* Desktop/tablet: wrap into rows. Mobile: horizontal scroll. */}
-        <div className="flex overflow-x-auto scrollbar-hide sm:flex-wrap sm:overflow-x-visible px-1 py-0.5">
+        <div className="flex overflow-x-auto scrollbar-hide sm:flex-wrap sm:overflow-x-visible px-2 py-0">
           {SHOP_CATEGORIES.map((cat) => (
             <button
               key={cat.db}
               onClick={() => setSelectedDb(cat.db)}
               className={cn(
-                "px-2.5 py-2 shrink-0 text-xs font-medium whitespace-nowrap transition-colors border-b-2",
+                "px-2.5 py-1.5 shrink-0 text-xs font-medium whitespace-nowrap transition-colors border-b-2",
                 selectedDb === cat.db
                   ? "border-b-primary text-primary"
                   : "border-b-transparent text-muted-foreground hover:text-foreground"
@@ -38,7 +38,7 @@ const AllCategoriesPage = () => {
       </div>
 
       {/* ── Subcategory content panel ── */}
-      <div className="px-4 pt-4 pb-6">
+      <div className="px-4 pt-3 pb-6">
 
         {/* Section heading — category name + shortcut link */}
         <div className="flex items-center justify-between mb-3">
@@ -74,12 +74,12 @@ const AllCategoriesPage = () => {
 
         {/* Subcategory grid */}
         {subcategories.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
             {subcategories.map((sub) => (
               <Link
                 key={sub}
                 to={`/shop/categories?cat=${encodeURIComponent(selectedDb)}`}
-                className="bg-card rounded-lg px-4 py-2.5 text-sm font-medium text-foreground card-elevated text-center border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                className="bg-card rounded-lg px-3 py-2 text-xs font-medium text-foreground card-elevated text-center border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors"
               >
                 {sub}
               </Link>

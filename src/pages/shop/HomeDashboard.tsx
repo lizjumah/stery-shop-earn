@@ -135,10 +135,10 @@ const HomeDashboard = () => {
             </div>
           </Link>
 
-          {/* Categories entry point — icon only to keep main row uncluttered */}
+          {/* Categories entry point */}
           <Link
             to="/shop/all-categories"
-            aria-label="Browse categories"
+            aria-label="Browse by Category"
             className="shrink-0 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
           >
             <LayoutGrid className="w-5 h-5 text-foreground" />
@@ -179,57 +179,46 @@ const HomeDashboard = () => {
       </div>
 
       {/* ── 1. Quick category chips — fixed priority list, horizontal scroll ── */}
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
+      <div className="flex gap-1.5 overflow-x-auto px-4 py-2 scrollbar-hide">
         {CHIP_CATEGORIES.map((cat) => (
           <Link
             key={cat.db}
             to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
-            className="flex items-center gap-2 bg-card border border-border rounded-full px-4 py-2 shrink-0 card-elevated"
+            className="flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-1.5 shrink-0 card-elevated"
           >
-            <span className="text-base">{cat.emoji}</span>
-            <span className="text-sm font-medium text-foreground whitespace-nowrap">{cat.label}</span>
+            <span className="text-sm">{cat.emoji}</span>
+            <span className="text-xs font-medium text-foreground whitespace-nowrap">{cat.label}</span>
           </Link>
         ))}
       </div>
 
-      {/* ── 2. Shop by Category grid ── */}
-      <div className="px-4 mb-4">
+      {/* ── 2. Browse by Category grid ── */}
+      <div className="px-4 mb-2">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-bold text-foreground text-sm">Shop by Category</h2>
-          <Link to="/shop/all-categories" className="text-xs text-primary font-medium flex items-center gap-0.5">
-            View All <ChevronRight className="w-3 h-3" />
-          </Link>
+          <h2 className="font-bold text-foreground text-sm">Browse by Category</h2>
         </div>
 
-        {/* Mobile (1-col): compact row. Tablet (2-col) / Desktop (3-col): tight tile. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+        {/* 2-col on mobile → 3-col sm → 4-col lg: compact tiles, emoji as accent */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
           {SHOP_CATEGORIES.filter((c) => c.isHomepage).map((cat) => (
             <Link
               key={cat.db}
               to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
-              className="bg-card rounded-lg card-elevated flex items-center gap-2.5 px-3 py-2
-                         sm:flex-col sm:items-center sm:justify-center sm:px-2 sm:py-3 sm:gap-1 sm:text-center"
+              className="bg-card rounded-lg card-elevated flex flex-col items-center justify-center gap-1 py-2.5 px-2 text-center"
             >
-              <span className="text-lg leading-none shrink-0">{cat.emoji}</span>
-              <span className="text-xs font-medium text-foreground leading-tight">
-                {cat.label}
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto sm:hidden" />
+              <span className="text-base leading-none">{cat.emoji}</span>
+              <span className="text-[11px] font-medium text-foreground leading-tight">{cat.label}</span>
             </Link>
           ))}
-          {/* All Categories — styled as a lightweight navigation link */}
-          <Link
-            to="/shop/all-categories"
-            className="rounded-lg border border-dashed border-border flex items-center gap-2.5 px-3 py-2
-                       sm:flex-col sm:items-center sm:justify-center sm:px-2 sm:py-3 sm:gap-1 sm:text-center"
-          >
-            <LayoutGrid className="w-4 h-4 text-muted-foreground shrink-0 sm:w-3.5 sm:h-3.5" />
-            <span className="text-xs font-medium text-muted-foreground leading-tight">
-              All Categories
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto sm:hidden" />
-          </Link>
         </div>
+
+        {/* Browse all — lightweight text action, not a category tile */}
+        <Link
+          to="/shop/all-categories"
+          className="flex items-center justify-center gap-0.5 mt-2 text-xs text-primary font-medium"
+        >
+          Browse all categories <ChevronRight className="w-3 h-3" />
+        </Link>
       </div>
 
       {/* ── 3. Today's Deals shelf ── */}
