@@ -5,7 +5,7 @@ import { CustomersAlsoBuy } from "@/components/shop/CustomersAlsoBuy";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, ShoppingCart, Truck, Store, Minus, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Star, ShoppingCart, Minus, Plus, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -14,8 +14,6 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const { addToCart, cartItemCount, cart } = useApp();
   const [quantity, setQuantity] = useState(1);
-  const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">("delivery");
-
   const { product, isLoading } = useProduct(id);
 
   if (isLoading) {
@@ -77,9 +75,9 @@ const ProductDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="relative">
+    <div className="min-h-screen bg-background pb-32 max-w-lg mx-auto">
+      {/* Header — product image with nav buttons overlaid */}
+      <div className="relative bg-muted">
         <button onClick={() => navigate(-1)} className="absolute top-4 left-4 z-10 bg-card/80 backdrop-blur rounded-full p-2">
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -96,7 +94,12 @@ const ProductDetails = () => {
             )}
           </Link>
         </div>
-        <img src={product.image} alt={product.name} className="w-full aspect-square object-cover" />
+        {/* Image: contain so nothing is cropped, max-h prevents it dominating the screen */}
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full max-h-56 object-contain"
+        />
         {product.isOffer && (
           <Badge className="absolute top-4 right-24 bg-destructive text-destructive-foreground text-lg px-3 py-1">
             SALE
@@ -104,26 +107,34 @@ const ProductDetails = () => {
         )}
       </div>
 
-      <div className="px-4 py-6">
-        <div className="flex items-start justify-between mb-2">
+      <div className="px-4 pt-5 pb-4">
+        {/* Name + rating */}
+        <div className="flex items-start justify-between mb-3">
           <div>
             <Badge variant="secondary" className="mb-2">{product.category}</Badge>
             <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
           </div>
-          <div className="flex items-center gap-1 bg-secondary rounded-full px-2 py-1">
+          <div className="flex items-center gap-1 bg-secondary rounded-full px-2 py-1 shrink-0 ml-2">
             <Star className="w-4 h-4 fill-primary text-primary" />
             <span className="text-sm font-medium">4.5</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-4">
+        {/* Price */}
+        <div className="flex items-center gap-3 mb-6">
           <span className="text-3xl font-bold text-foreground">KSh {product.price}</span>
           {product.originalPrice && (
             <span className="text-lg text-muted-foreground line-through">KSh {product.originalPrice}</span>
           )}
         </div>
 
-        <p className="text-muted-foreground mb-6">{product.description}</p>
+        {/* Frequently Bought Together */}
+        <div className="mb-6">
+          <FrequentlyBoughtTogether productId={product.id} />
+        </div>
+
+        {/* Description */}
+        <p className="text-muted-foreground leading-relaxed mb-6">{product.description}</p>
 
         {/* Share on WhatsApp */}
         <button
@@ -134,12 +145,14 @@ const ProductDetails = () => {
           <span className="font-semibold text-accent text-sm">Share on WhatsApp</span>
         </button>
 
-        {/* Loyalty Points */}
-        <div className="bg-primary/10 rounded-lg p-4 mb-6">
-          <p className="text-primary font-semibold">
-            🎁 Earn {product.loyaltyPoints * quantity} loyalty points with this purchase!
-          </p>
-        </div>
+        {/* Loyalty Points — only shown when > 0, using same calc as cart */}
+        {Math.floor(product.price * quantity / 100) > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <p className="text-amber-700 font-semibold">
+              ⭐ Earn {Math.floor(product.price * quantity / 100)} loyalty points with this purchase!
+            </p>
+          </div>
+        )}
 
         {/* Quantity */}
         <div className="flex items-center justify-between mb-1">
@@ -172,37 +185,12 @@ const ProductDetails = () => {
         )}
         {!(product.stockQuantity !== undefined && product.stockQuantity <= 10) && <div className="mb-6" />}
 
-        {/* Delivery Options */}
-        <div className="mb-6">
-          <span className="font-medium text-foreground block mb-3">Delivery Option</span>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setDeliveryOption("delivery")}
-              className={`p-4 rounded-xl border-2 transition-all ${deliveryOption === "delivery" ? "border-primary bg-primary/5" : "border-border"}`}
-            >
-              <Truck className={`w-6 h-6 mx-auto mb-2 ${deliveryOption === "delivery" ? "text-primary" : "text-muted-foreground"}`} />
-              <p className={`font-medium ${deliveryOption === "delivery" ? "text-primary" : "text-foreground"}`}>Delivery</p>
-              <p className="text-xs text-muted-foreground">KSh 100</p>
-            </button>
-            <button
-              onClick={() => setDeliveryOption("pickup")}
-              className={`p-4 rounded-xl border-2 transition-all ${deliveryOption === "pickup" ? "border-primary bg-primary/5" : "border-border"}`}
-            >
-              <Store className={`w-6 h-6 mx-auto mb-2 ${deliveryOption === "pickup" ? "text-primary" : "text-muted-foreground"}`} />
-              <p className={`font-medium ${deliveryOption === "pickup" ? "text-primary" : "text-foreground"}`}>Pickup</p>
-              <p className="text-xs text-muted-foreground">Free</p>
-            </button>
-          </div>
-        </div>
-        {/* Frequently Bought Together */}
-        <FrequentlyBoughtTogether productId={product.id} />
-
         {/* Customers Also Buy */}
         <CustomersAlsoBuy productId={product.id} />
       </div>
 
-      {/* Fixed Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4">
+      {/* Fixed Add to Cart bar — shadow above to separate from content */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-card border-t border-border shadow-[0_-4px_16px_rgba(0,0,0,0.08)] p-4">
         <Button
           onClick={handleAddToCart}
           disabled={maxAddable === 0}

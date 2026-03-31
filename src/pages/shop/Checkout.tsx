@@ -8,17 +8,25 @@ import { Button } from "@/components/ui/button";
 import { API_BASE } from "@/lib/api/client";
 const BACKEND_URL = API_BASE;
 import { ArrowLeft, CheckCircle, Phone, MapPin, Copy, Check, Star, Loader2, ShoppingBag, User, Mail, FileText } from "lucide-react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const DELIVERY_AREAS = [
-  { name: "Bungoma Town", fee: 100 },
-  { name: "Kanduyi", fee: 200 },
-  { name: "Naitiri", fee: 200 },
-  { name: "Chwele", fee: 200 },
+const LOCAL_DELIVERY_AREAS = [
+  { name: "Bungoma Town", fee: 50  },
+  { name: "Nzoia",        fee: 50  },
+  { name: "Mabanga",      fee: 50  },
+  { name: "Nasaka",       fee: 50  },
+  { name: "Matisi",       fee: 50  },
+  { name: "Luuya",        fee: 100 },
+  { name: "Webuye",       fee: 100 },
+  { name: "Kanduyi",      fee: 100 },
 ];
 const FREE_DELIVERY_THRESHOLD = 3000;
+
+type FulfillmentMethod = "pickup" | "local" | "countrywide";
+
+const inputCls = "w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground";
 
 const Checkout = () => {
   const { cart, clearCart, placeOrder } = useApp();
@@ -26,23 +34,30 @@ const Checkout = () => {
   const { data: liveProducts = [] } = useProducts();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const deliveryOption = (searchParams.get("delivery") as "delivery" | "pickup") || "delivery";
-  const deliveryArea = searchParams.get("area") || "Bungoma Town";
 
+  // ── Fulfillment state ──────────────────────────────────────────────────────
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>("pickup");
+  const [deliveryArea, setDeliveryArea] = useState("Bungoma Town");
+  // Countrywide-specific
+  const [cwDestination, setCwDestination]   = useState("");
+  const [cwShuttle, setCwShuttle]           = useState("");
+  const [cwReceiverName, setCwReceiverName] = useState("");
+  const [cwReceiverPhone, setCwReceiverPhone] = useState("");
+
+  // ── Customer / form state ──────────────────────────────────────────────────
   const [customerName, setCustomerName] = useState(customer?.name || "");
-  const [phone, setPhone] = useState(customer?.phone || "");
-  const [email, setEmail] = useState(customer?.email || "");
-  const [location, setLocation] = useState(customer?.delivery_location || "");
+  const [phone, setPhone]               = useState(customer?.phone || "");
+  const [email, setEmail]               = useState(customer?.email || "");
+  const [location, setLocation]         = useState(customer?.delivery_location || "");
   const [deliveryNotes, setDeliveryNotes] = useState(customer?.delivery_notes || "");
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "cash">("mpesa");
-  const [mpesaCode, setMpesaCode] = useState("");
+  const [mpesaCode, setMpesaCode]         = useState("");
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
-  const [orderNumber, setOrderNumber] = useState("");
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber]     = useState("");
+  const [copiedField, setCopiedField]     = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const [hasError, setHasError]   = useState(false);
 
   const loyaltyPoints = customer?.loyalty_points || 0;
 
@@ -53,6 +68,7 @@ const Checkout = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // ── Cart resolution ────────────────────────────────────────────────────────
   const cartProducts = (() => {
     try {
       return cart
@@ -64,17 +80,19 @@ const Checkout = () => {
     } catch { return []; }
   })();
 
+  // ── Fee derivation ─────────────────────────────────────────────────────────
   const subtotal = cartProducts.reduce((sum, item) => sum + (item.product!.price * item.quantity), 0);
-  const selectedArea = DELIVERY_AREAS.find((a) => a.name === deliveryArea);
-  const rawDeliveryFee = deliveryOption === "delivery" ? (selectedArea?.fee ?? 100) : 0;
-  const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD && deliveryOption === "delivery";
-  const deliveryFee = freeDelivery ? 0 : rawDeliveryFee;
+  const selectedArea   = LOCAL_DELIVERY_AREAS.find((a) => a.name === deliveryArea);
+  const rawDeliveryFee = fulfillmentMethod === "local" ? (selectedArea?.fee ?? 100) : 0;
+  const freeDelivery   = subtotal >= FREE_DELIVERY_THRESHOLD && fulfillmentMethod === "local";
+  // Countrywide fee is TBC — do not add to total
+  const deliveryFee    = fulfillmentMethod === "countrywide" ? 0 : (freeDelivery ? 0 : rawDeliveryFee);
   const preDiscountTotal = subtotal + deliveryFee;
+  const pointsDiscount   = 0;
+  const total            = preDiscountTotal - pointsDiscount;
+  const earnedPoints     = Math.floor(total / 100);
 
-  const pointsDiscount = 0;
-  const total = preDiscountTotal - pointsDiscount;
-  const earnedPoints = Math.floor(total / 100);
-
+  // ── Helpers ────────────────────────────────────────────────────────────────
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
     setCopiedField(field);
@@ -90,18 +108,19 @@ const Checkout = () => {
     setPaymentSubmitted(true);
   };
 
+  // ── Order submission ───────────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
-    if (!customerName.trim()) {
-      toast.error("Please enter your name");
-      return;
-    }
-    if (!phone.trim()) {
-      toast.error("Please enter your phone number");
-      return;
-    }
-    if (deliveryOption === "delivery" && !location.trim()) {
+    if (!customerName.trim()) { toast.error("Please enter your name"); return; }
+    if (!phone.trim())        { toast.error("Please enter your phone number"); return; }
+
+    if (fulfillmentMethod === "local" && !location.trim()) {
       toast.error("Please enter your delivery location");
       return;
+    }
+    if (fulfillmentMethod === "countrywide") {
+      if (!cwDestination.trim())  { toast.error("Please enter destination town"); return; }
+      if (!cwReceiverName.trim()) { toast.error("Please enter receiver name"); return; }
+      if (!cwReceiverPhone.trim()){ toast.error("Please enter receiver phone number"); return; }
     }
     if (paymentMethod === "mpesa" && !paymentSubmitted) {
       toast.error("Please complete M-Pesa payment first");
@@ -109,7 +128,7 @@ const Checkout = () => {
     }
 
     try {
-      // Pre-flight: check current stock from DB to block overselling
+      // Pre-flight stock check
       const productIds = cartProducts.map((i) => i.productId);
       const { data: stockCheck } = await supabase
         .from("products")
@@ -130,7 +149,6 @@ const Checkout = () => {
         }
       }
 
-      // Create or load customer account
       const cust = await createOrLoadCustomer({
         name: customerName,
         phone,
@@ -139,45 +157,63 @@ const Checkout = () => {
         delivery_notes: deliveryNotes || undefined,
       });
 
-      if (!cust) {
-        toast.error("Failed to create account. Please try again.");
-        return;
-      }
+      if (!cust) { toast.error("Failed to create account. Please try again."); return; }
 
       const num = `STR-${String(Date.now()).slice(-4)}`;
       setOrderNumber(num);
 
       const orderItems = cartProducts.map((item) => ({
         productId: item.productId,
-        name: item.product!.name,
-        quantity: item.quantity,
-        price: item.product!.price,
-        subtotal: item.product!.price * item.quantity,
+        name:      item.product!.name,
+        quantity:  item.quantity,
+        price:     item.product!.price,
+        subtotal:  item.product!.price * item.quantity,
       }));
 
       if (pointsDiscount > 0) {
         await customerRedeemPoints(pointsDiscount, `Redeemed on Order ${num}`);
       }
 
+      // Map fulfillmentMethod → DB delivery_option value
+      const dbDeliveryOption =
+        fulfillmentMethod === "pickup"      ? "pickup"      :
+        fulfillmentMethod === "countrywide" ? "countrywide" : "delivery";
+
+      // Build delivery_area and delivery_location based on method
+      const dbDeliveryArea =
+        fulfillmentMethod === "local"       ? deliveryArea  :
+        fulfillmentMethod === "countrywide" ? cwDestination : null;
+
+      const dbDeliveryLocation =
+        fulfillmentMethod === "local"
+          ? location
+          : fulfillmentMethod === "countrywide"
+          ? [
+              `To: ${cwDestination}`,
+              cwShuttle ? `Via: ${cwShuttle}` : null,
+              `Receiver: ${cwReceiverName} (${cwReceiverPhone})`,
+            ].filter(Boolean).join(" | ")
+          : null;
+
       const { data: orderData, error: dbError } = await supabase
         .from("orders")
         .insert({
-          order_number: num,
-          customer_name: cust.name,
-          customer_phone: cust.phone,
-          customer_id: cust.id,
-          items: orderItems as any,
+          order_number:      num,
+          customer_name:     cust.name,
+          customer_phone:    cust.phone,
+          customer_id:       cust.id,
+          items:             orderItems as any,
           subtotal,
-          delivery_fee: deliveryFee,
-          points_redeemed: pointsDiscount,
+          delivery_fee:      deliveryFee,
+          points_redeemed:   pointsDiscount,
           total,
-          payment_method: paymentMethod,
-          delivery_option: deliveryOption,
-          delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
-          delivery_location: deliveryOption === "delivery" ? location : null,
-          points_earned: earnedPoints,
-          status: "received",
-          order_source: "app",
+          payment_method:    paymentMethod,
+          delivery_option:   dbDeliveryOption,
+          delivery_area:     dbDeliveryArea,
+          delivery_location: dbDeliveryLocation,
+          points_earned:     earnedPoints,
+          status:            "received",
+          order_source:      "app",
         })
         .select("id")
         .single();
@@ -186,16 +222,15 @@ const Checkout = () => {
         console.error("Failed to save order to database:", dbError);
       } else if (orderData) {
         const itemsToInsert = orderItems.map((item) => ({
-          order_id: orderData.id,
-          product_name: item.name,
-          quantity: item.quantity,
+          order_id:       orderData.id,
+          product_name:   item.name,
+          quantity:       item.quantity,
           price_per_item: item.price,
-          subtotal: item.subtotal,
+          subtotal:       item.subtotal,
         }));
         const { error: itemsError } = await supabase.from("order_items").insert(itemsToInsert);
         if (itemsError) console.error("Failed to save order items:", itemsError);
 
-        // Deduct stock via backend (fire-and-forget — don't block order completion)
         const customerId = localStorage.getItem("stery_customer_id") || "";
         fetch(`${BACKEND_URL}/api/admin/orders/${orderData.id}/deduct-stock`, {
           method: "POST",
@@ -204,48 +239,43 @@ const Checkout = () => {
             items: orderItems.map((i) => ({ productId: i.productId, quantity: i.quantity })),
           }),
         })
-          .then(() => {
-            // Invalidate product cache so updated stock shows on next browse
-            queryClient.invalidateQueries({ queryKey: ["products"] });
-          })
+          .then(() => queryClient.invalidateQueries({ queryKey: ["products"] }))
           .catch((err) => console.warn("Stock deduction failed (backend may be offline):", err));
       }
 
-      // Add loyalty points — single call so order display and balance always match
       if (earnedPoints > 0) {
         await addPoints(`Order ${num}`, earnedPoints);
       }
 
-      // Also update local AppContext for in-session display
       placeOrder({
-        id: Date.now().toString(),
-        order_number: num,
-        customer_id: cust.id,
+        id:            Date.now().toString(),
+        order_number:  num,
+        customer_id:   cust.id,
         customer_phone: cust.phone,
-        items: orderItems,
+        items:         orderItems,
         total,
-        status: "received",
-        created_at: new Date().toISOString(),
-        delivery_area: deliveryOption === "delivery" ? deliveryArea : null,
-        pointsEarned: earnedPoints,
+        status:        "received",
+        created_at:    new Date().toISOString(),
+        delivery_area: dbDeliveryArea,
+        pointsEarned:  earnedPoints,
       });
 
       clearCart();
       navigate("/shop/order-success", {
         state: {
-          orderNumber: num,
-          customerName: cust.name,
-          phone: cust.phone,
-          deliveryOption,
-          deliveryArea,
-          location,
+          orderNumber:    num,
+          customerName:   cust.name,
+          phone:          cust.phone,
+          deliveryOption: dbDeliveryOption,
+          deliveryArea:   dbDeliveryArea,
+          location:       dbDeliveryLocation,
           paymentMethod,
           total,
           earnedPoints,
           pointsDiscount,
           deliveryFee,
           freeDelivery,
-          items: orderItems,
+          items:          orderItems,
         },
       });
     } catch {
@@ -253,6 +283,7 @@ const Checkout = () => {
     }
   };
 
+  // ── Loading / error / empty states ─────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
@@ -287,6 +318,7 @@ const Checkout = () => {
     );
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background pb-10">
       <div className="px-4 pt-6 pb-4 flex items-center gap-3">
@@ -297,7 +329,8 @@ const Checkout = () => {
       </div>
 
       <div className="px-4 space-y-4">
-        {/* Order Summary */}
+
+        {/* ── Order Summary ───────────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated">
           <h2 className="font-semibold text-foreground mb-3">Order Summary</h2>
           {cartProducts.map(({ productId, quantity, product }) => (
@@ -314,21 +347,31 @@ const Checkout = () => {
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal</span><span>KSh {subtotal}</span>
             </div>
-            {deliveryOption === "delivery" && (
+
+            {/* Delivery / shipping line in summary */}
+            {fulfillmentMethod === "pickup" && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Pickup</span>
+                <span className="text-green-600 font-medium">Free</span>
+              </div>
+            )}
+            {fulfillmentMethod === "local" && (
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Delivery ({deliveryArea})</span>
                 <span>
-                  {freeDelivery ? (
-                    <span className="text-green-600 font-medium">Free <span className="line-through text-muted-foreground/60 ml-1">KSh {rawDeliveryFee}</span></span>
-                  ) : `KSh ${deliveryFee}`}
+                  {freeDelivery
+                    ? <span className="text-green-600 font-medium">Free <span className="line-through text-muted-foreground/60 ml-1">KSh {rawDeliveryFee}</span></span>
+                    : `KSh ${deliveryFee}`}
                 </span>
               </div>
             )}
-            {deliveryOption === "pickup" && (
+            {fulfillmentMethod === "countrywide" && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Delivery</span><span className="text-green-600 font-medium">Free (Pickup)</span>
+                <span>Shipping</span>
+                <span className="text-amber-600 font-medium">To be confirmed</span>
               </div>
             )}
+
             {pointsDiscount > 0 && (
               <div className="flex justify-between text-sm text-primary font-medium">
                 <span>🎁 Points Discount ({pointsDiscount} pts)</span>
@@ -336,13 +379,19 @@ const Checkout = () => {
               </div>
             )}
             <div className="flex justify-between font-bold text-foreground text-xl pt-2 border-t border-border mt-1">
-              <span>Total</span><span>KSh {total}</span>
+              <span>Total</span>
+              <span>
+                KSh {total}
+                {fulfillmentMethod === "countrywide" && (
+                  <span className="text-xs font-normal text-muted-foreground ml-1">(+ shipping)</span>
+                )}
+              </span>
             </div>
             <p className="text-xs text-primary font-medium">+{earnedPoints} loyalty points from this order</p>
           </div>
         </div>
 
-        {/* Points Redemption — disabled for soft launch */}
+        {/* ── Loyalty points badge ────────────────────────────────────────── */}
         {customer && loyaltyPoints > 0 && (
           <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
             <div className="flex items-center justify-between">
@@ -355,9 +404,225 @@ const Checkout = () => {
           </div>
         )}
 
-        {/* Customer Details */}
+        {/* ── Fulfillment method ──────────────────────────────────────────── */}
+        {(() => {
+          const isDelivery = fulfillmentMethod === "local" || fulfillmentMethod === "countrywide";
+          return (
+            <div className="bg-card rounded-xl p-4 card-elevated">
+              <h2 className="font-semibold text-foreground mb-1">How would you like to receive your order?</h2>
+              <p className="text-xs text-muted-foreground mb-4">Select a fulfillment option</p>
+
+              <div className="space-y-2">
+
+                {/* ── LEVEL 1: Pickup ── */}
+                <button
+                  onClick={() => setFulfillmentMethod("pickup")}
+                  className={`w-full p-3.5 rounded-xl border-2 text-left flex items-start gap-3 transition-all ${fulfillmentMethod === "pickup" ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  {/* Radio dot */}
+                  <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${fulfillmentMethod === "pickup" ? "border-primary" : "border-muted-foreground/40"}`}>
+                    {fulfillmentMethod === "pickup" && <span className="w-2 h-2 rounded-full bg-primary" />}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className={`font-medium text-sm ${fulfillmentMethod === "pickup" ? "text-primary" : "text-foreground"}`}>Pickup at store</p>
+                      <span className="text-xs font-semibold text-green-600 shrink-0 ml-2">Free</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Collect from Stery Supermarket, Bungoma</p>
+                  </div>
+                </button>
+
+
+                {/* ── LEVEL 1: Delivery ── */}
+                <button
+                  onClick={() => { if (!isDelivery) setFulfillmentMethod("local"); }}
+                  className={`w-full p-3.5 rounded-xl border-2 text-left flex items-start gap-3 transition-all ${isDelivery ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isDelivery ? "border-primary" : "border-muted-foreground/40"}`}>
+                    {isDelivery && <span className="w-2 h-2 rounded-full bg-primary" />}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-sm ${isDelivery ? "text-primary" : "text-foreground"}`}>Delivery</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Have your order delivered to you</p>
+                  </div>
+                </button>
+
+                {/* Delivery expanded — Level 2 sub-options */}
+                {isDelivery && (
+                  <div className="ml-7 border border-border rounded-xl overflow-hidden">
+
+                    {/* Sub-header */}
+                    <div className="px-4 py-2 bg-muted/40 border-b border-border">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Delivery type</p>
+                    </div>
+
+                    <div className="p-3 space-y-2">
+
+                      {/* ── LEVEL 2A: Local delivery ── */}
+                      <button
+                        onClick={() => setFulfillmentMethod("local")}
+                        className={`w-full p-3 rounded-lg border-2 text-left flex items-start gap-2.5 transition-all ${fulfillmentMethod === "local" ? "border-primary bg-primary/5" : "border-border"}`}
+                      >
+                        <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${fulfillmentMethod === "local" ? "border-primary" : "border-muted-foreground/40"}`}>
+                          {fulfillmentMethod === "local" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className={`font-medium text-sm ${fulfillmentMethod === "local" ? "text-primary" : "text-foreground"}`}>Local delivery</p>
+                            <span className="text-xs text-muted-foreground shrink-0 ml-2">From KSh 50</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">Same-day delivery within Bungoma and nearby areas</p>
+                        </div>
+                      </button>
+
+                      {/* Local delivery fields */}
+                      {fulfillmentMethod === "local" && (
+                        <div className="space-y-3 pt-1 pl-1">
+                          {/* Area selector */}
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">Select your delivery area</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {LOCAL_DELIVERY_AREAS.map((area) => (
+                                <button
+                                  key={area.name}
+                                  onClick={() => setDeliveryArea(area.name)}
+                                  className={`p-2.5 rounded-lg border-2 text-left transition-colors ${deliveryArea === area.name ? "border-primary bg-primary/5" : "border-border"}`}
+                                >
+                                  <p className={`text-xs font-semibold ${deliveryArea === area.name ? "text-primary" : "text-foreground"}`}>{area.name}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {subtotal >= FREE_DELIVERY_THRESHOLD
+                                      ? <span className="text-green-600 font-medium">Free</span>
+                                      : `KSh ${area.fee}`}
+                                  </p>
+                                </button>
+                              ))}
+                            </div>
+                            {subtotal >= FREE_DELIVERY_THRESHOLD && (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-center mt-2">
+                                <p className="text-green-700 text-xs font-semibold">🎉 Free delivery unlocked on this order!</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Location */}
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mb-1">
+                              <MapPin className="w-3 h-3" /> Delivery location <span className="text-primary font-normal">*</span>
+                            </label>
+                            <input
+                              value={location}
+                              onChange={(e) => setLocation(e.target.value)}
+                              placeholder="e.g. Near Quickmart, Bungoma Town"
+                              className={inputCls}
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">📍 Include a nearby landmark to help the rider find you.</p>
+                          </div>
+
+                          {/* Notes */}
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mb-1">
+                              <FileText className="w-3 h-3" /> Delivery notes (optional)
+                            </label>
+                            <input
+                              value={deliveryNotes}
+                              onChange={(e) => setDeliveryNotes(e.target.value)}
+                              placeholder="e.g. Gate is blue, call on arrival"
+                              className={inputCls}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── LEVEL 2B: Countrywide ── */}
+                      <button
+                        onClick={() => setFulfillmentMethod("countrywide")}
+                        className={`w-full p-3 rounded-lg border-2 text-left flex items-start gap-2.5 transition-all ${fulfillmentMethod === "countrywide" ? "border-primary bg-primary/5" : "border-border"}`}
+                      >
+                        <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${fulfillmentMethod === "countrywide" ? "border-primary" : "border-muted-foreground/40"}`}>
+                          {fulfillmentMethod === "countrywide" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className={`font-medium text-sm ${fulfillmentMethod === "countrywide" ? "text-primary" : "text-foreground"}`}>Countrywide delivery</p>
+                            <span className="text-xs text-amber-600 font-medium shrink-0 ml-2">Fee TBC</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">Delivery via shuttle or courier</p>
+                        </div>
+                      </button>
+
+                      {/* Countrywide fields */}
+                      {fulfillmentMethod === "countrywide" && (
+                        <div className="space-y-3 pt-1 pl-1">
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                            <p className="text-xs text-amber-700 leading-relaxed">
+                              Transport fee is charged separately depending on route. We will confirm the final shipping cost before dispatch.
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                              Destination town <span className="text-primary font-normal">*</span>
+                            </label>
+                            <input
+                              value={cwDestination}
+                              onChange={(e) => setCwDestination(e.target.value)}
+                              placeholder="e.g. Nairobi, Kisumu, Nakuru"
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                              Receiver name <span className="text-primary font-normal">*</span>
+                            </label>
+                            <input
+                              value={cwReceiverName}
+                              onChange={(e) => setCwReceiverName(e.target.value)}
+                              placeholder="Full name of person collecting"
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                              Receiver phone number <span className="text-primary font-normal">*</span>
+                            </label>
+                            <input
+                              value={cwReceiverPhone}
+                              onChange={(e) => setCwReceiverPhone(e.target.value)}
+                              type="tel"
+                              placeholder="e.g. 0712 345 678"
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                              Preferred shuttle / courier (optional)
+                            </label>
+                            <input
+                              value={cwShuttle}
+                              onChange={(e) => setCwShuttle(e.target.value)}
+                              placeholder="e.g. Easy Coach, Modern Coast"
+                              className={inputCls}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Your details ─────────────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated space-y-3">
           <h2 className="font-semibold text-foreground">Your Details</h2>
+
           <div>
             <label className="text-sm text-muted-foreground flex items-center gap-1">
               <User className="w-3 h-3" /> Customer Name <span className="text-primary">*</span>
@@ -366,9 +631,10 @@ const Checkout = () => {
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="e.g. Jane Wanjiku"
-              className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+              className={inputCls}
             />
           </div>
+
           <div>
             <label className="text-sm text-muted-foreground flex items-center gap-1">
               <Phone className="w-3 h-3" /> Phone Number <span className="text-primary">*</span>
@@ -378,9 +644,10 @@ const Checkout = () => {
               onChange={(e) => setPhone(e.target.value)}
               type="tel"
               placeholder="e.g. 0712 345 678"
-              className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+              className={inputCls}
             />
           </div>
+
           <div>
             <label className="text-sm text-muted-foreground flex items-center gap-1">
               <Mail className="w-3 h-3" /> Email (optional)
@@ -390,51 +657,12 @@ const Checkout = () => {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="e.g. jane@email.com"
-              className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+              className={inputCls}
             />
           </div>
-
-          {deliveryOption === "delivery" && (
-            <>
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Delivery Area</p>
-                    <p className="font-semibold text-foreground">{deliveryArea}</p>
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">
-                    {freeDelivery ? <span className="text-accent">🎉 Free</span> : `KSh ${deliveryFee}`}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                  <MapPin className="w-3 h-3" /> Delivery Location <span className="text-primary">*</span>
-                </label>
-                <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Bungoma Town, near Quickmart"
-                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                />
-                <p className="text-xs text-muted-foreground mt-1">📍 Please include a nearby landmark to help our driver find you quickly.</p>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                  <FileText className="w-3 h-3" /> Delivery Notes (optional)
-                </label>
-                <input
-                  value={deliveryNotes}
-                  onChange={(e) => setDeliveryNotes(e.target.value)}
-                  placeholder="e.g. Gate is blue, call on arrival"
-                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                />
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Payment Method */}
+        {/* ── Payment method ───────────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated">
           <h2 className="font-semibold text-foreground mb-3">Payment Method</h2>
           <div className="space-y-2">
@@ -472,7 +700,12 @@ const Checkout = () => {
                   </div>
                   <div className="border-t border-border pt-2">
                     <p className="text-xs text-muted-foreground">Amount</p>
-                    <p className="text-lg font-bold text-primary">KSh {total}</p>
+                    <p className="text-lg font-bold text-primary">
+                      KSh {total}
+                      {fulfillmentMethod === "countrywide" && (
+                        <span className="text-xs font-normal text-muted-foreground ml-1">(items only, shipping TBC)</span>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground text-center bg-secondary/50 rounded-lg p-2">
@@ -501,13 +734,11 @@ const Checkout = () => {
                 )}
               </div>
             )}
-
             {/* Cash on Delivery — temporarily disabled */}
           </div>
         </div>
 
-        {/* Payment reassurance + Place Order */}
-
+        {/* ── Place Order ──────────────────────────────────────────────────── */}
         <Button
           onClick={handlePlaceOrder}
           disabled={paymentMethod === "mpesa" && !paymentSubmitted}
@@ -515,10 +746,10 @@ const Checkout = () => {
         >
           {paymentMethod === "mpesa" && !paymentSubmitted
             ? "Complete M-Pesa Payment First"
-            : `Confirm Order — KSh ${total}`}
+            : `Confirm Order — KSh ${total}${fulfillmentMethod === "countrywide" ? " + shipping" : ""}`}
         </Button>
 
-        {/* Customer Support */}
+        {/* ── Customer Support ─────────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated text-center space-y-2">
           <p className="text-sm text-muted-foreground">Need help? Contact Stery Customer Care</p>
           <div className="flex gap-2 justify-center">
@@ -530,6 +761,7 @@ const Checkout = () => {
             </a>
           </div>
         </div>
+
       </div>
     </div>
   );

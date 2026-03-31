@@ -1,6 +1,7 @@
 import { Home, Package, DollarSign, Gift, User, Menu } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import steryLogo from "@/assets/stery-logo.png.png";
 
 const navItems = [
   { icon: Home,    label: "Home",    path: "/shop" },
@@ -25,17 +26,51 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle })
         collapsed ? "w-20" : "w-64"
       )}
     >
-      {/* toggle button at top */}
-      <div className="flex items-center justify-end p-2">
-        <button
-          onClick={onToggle}
-          className="p-1 rounded-full hover:bg-muted"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+      {/* ── Sidebar header ── */}
+      <div className="border-b border-border">
+
+        {/* Expanded: full-width logo + collapse toggle */}
+        {!collapsed && (
+          <div className="flex items-center justify-between px-3 py-2">
+            <Link to="/shop" className="flex-1 min-w-0">
+              <img
+                src={steryLogo}
+                alt="Stery Supermarket"
+                className="h-28 w-auto max-w-full object-contain object-left"
+              />
+            </Link>
+            <button
+              onClick={onToggle}
+              className="shrink-0 p-1 rounded-full hover:bg-muted ml-1"
+              aria-label="Collapse sidebar"
+            >
+              <Menu className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+        )}
+
+        {/* Collapsed: centred small logo + toggle */}
+        {collapsed && (
+          <div className="flex flex-col items-center gap-1.5 py-2">
+            <Link to="/shop" aria-label="Stery Supermarket home">
+              <img
+                src={steryLogo}
+                alt="Stery Supermarket"
+                className="h-14 w-auto object-contain"
+              />
+            </Link>
+            <button
+              onClick={onToggle}
+              className="p-1 rounded-full hover:bg-muted"
+              aria-label="Expand sidebar"
+            >
+              <Menu className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+        )}
       </div>
-      <nav className="mt-4 flex-1 flex flex-col space-y-2 px-1">
+
+      <nav className="mt-3 flex-1 flex flex-col space-y-1 px-2">
         {navItems.map((item) => {
           const active =
             item.path === "/shop"

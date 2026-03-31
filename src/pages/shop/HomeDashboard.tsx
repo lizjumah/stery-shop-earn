@@ -1,16 +1,18 @@
+import { useState, useRef, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
-import { Product } from "@/data/products";
+import { Product, subcategoryConfig } from "@/data/products";
 import { SHOP_CATEGORIES } from "@/data/categoryConfig";
 import { ProductCard } from "@/components/ProductCard";
 import { Progress } from "@/components/ui/progress";
 import {
-  Search, ShoppingCart, Star, Gift, ChevronRight,
+  Search, ShoppingCart, Star, Gift, ChevronRight, ChevronDown,
   Phone, RefreshCw, UserCircle, TrendingUp, MessageCircle, LayoutGrid,
 } from "lucide-react";
 import steryLogo from "@/assets/stery-logo.png.png";
 import { Link, useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 /** Business contact — update here when number changes */
 const STERY_PHONE = "0794560657";
@@ -18,8 +20,8 @@ const STERY_PHONE_DISPLAY = "0794560657";
 
 const NEXT_REWARD_AT = 100;
 
-/** Quick-access chips shown in the horizontal scroll strip */
-const CHIP_CATEGORIES = SHOP_CATEGORIES.filter((c) => c.isHomepage && c.db !== "Bakery");
+/** Quick-access chips — all homepage-priority categories */
+const CHIP_CATEGORIES = SHOP_CATEGORIES.filter((c) => c.isHomepage);
 
 /** Horizontal scrolling product shelf */
 const ProductShelf = ({
@@ -57,6 +59,23 @@ const HomeDashboard = () => {
   const navigate = useNavigate();
   const { data: liveProducts = [] } = useProducts();
 
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const browseRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!browseOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (browseRef.current && !browseRef.current.contains(e.target as Node)) {
+        setBrowseOpen(false);
+        setExpandedCat(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [browseOpen]);
+
   const firstName = customer?.name?.split(" ")[0] || null;
   const loyaltyPoints = customer?.loyalty_points || 0;
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
@@ -77,7 +96,6 @@ const HomeDashboard = () => {
 
         {/* Utility row — secondary actions */}
         <div className="flex items-center justify-between px-4 py-1 bg-muted/40 border-b border-border/40">
-          {/* Phone — very subtle, leftmost */}
           <a
             href={`tel:${STERY_PHONE}`}
             className="flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
@@ -85,8 +103,6 @@ const HomeDashboard = () => {
             <Phone className="w-2.5 h-2.5" />
             <span>{STERY_PHONE_DISPLAY}</span>
           </a>
-
-          {/* Reorder + account — right-aligned, muted */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/shop/orders")}
@@ -95,7 +111,6 @@ const HomeDashboard = () => {
               <RefreshCw className="w-3 h-3" />
               <span>Reorder</span>
             </button>
-
             {customer ? (
               <Link
                 to="/profile"
@@ -116,36 +131,176 @@ const HomeDashboard = () => {
           </div>
         </div>
 
-        {/* Main header row — logo / search / cart */}
-        <div className="flex items-center gap-3 px-4 py-3">
-          {/* Stery logo */}
+        {/* Main header row — logo / search / browse-dropdown / cart */}
+        <div className="flex items-center gap-2 px-4 py-3">
+
+          {/* Logo */}
           <Link to="/shop" className="shrink-0 flex items-center">
-            <img
-              src={steryLogo}
-              alt="Stery Supermarket"
-              className="h-11 w-auto object-contain"
-            />
+            <img src={steryLogo} alt="Stery Supermarket" className="h-11 w-auto object-contain" />
           </Link>
 
-          {/* Search bar — taps through to /shop/browse where real search + suggestions live */}
+          {/* Search tap-target */}
           <Link to="/shop/browse" className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <div className="w-full bg-muted rounded-full py-2.5 pl-9 pr-4 text-muted-foreground text-sm select-none">
-              Search products (milk, bread, sugar...)
+              Search products...
             </div>
           </Link>
 
-          {/* Categories entry point */}
-          <Link
-            to="/shop/all-categories"
-            aria-label="Browse by Category"
-            className="shrink-0 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
-          >
-            <LayoutGrid className="w-5 h-5 text-foreground" />
-          </Link>
+          {/* Browse Categories dropdown */}
+          <div ref={browseRef} className="relative shrink-0">
+            <button
+              onClick={() => setBrowseOpen((v) => !v)}
+              className="flex items-center gap-1 px-2.5 py-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+              aria-label="Browse categories"
+              aria-expanded={browseOpen}
+            >
+              <LayoutGrid className="w-4 h-4 text-foreground" />
+              <span className="hidden sm:inline text-xs font-medium text-foreground whitespace-nowrap">
+                Browse
+              </span>
+              <ChevronDown
+                className={cn(
+                  "w-3.5 h-3.5 text-muted-foreground transition-transform duration-150",
+                  browseOpen && "rotate-180"
+                )}
+              />
+            </button>
+
+            {/* Dropdown panel */}
+            {browseOpen && (
+              <div
+                className="absolute right-0 top-full mt-2 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50
+                  w-64 sm:w-auto sm:flex sm:flex-row"
+              >
+                {/* ── Left column: category list (always visible) ── */}
+                <div className="sm:w-52 flex flex-col">
+                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
+                    Categories
+                  </p>
+                  <div className="pb-1 overflow-y-auto max-h-[70vh]">
+                    {SHOP_CATEGORIES.map((cat) => {
+                      const subs = (subcategoryConfig[cat.db] ?? [])
+                        .filter((s) => s !== "General")
+                        .slice(0, 6);
+                      const isExpanded = expandedCat === cat.db;
+                      return (
+                        <div key={cat.db}>
+                          {/* Category row */}
+                          <div
+                            className={cn(
+                              "flex items-center transition-colors",
+                              isExpanded ? "bg-muted" : "hover:bg-muted"
+                            )}
+                            onMouseEnter={() => subs.length > 0 && setExpandedCat(cat.db)}
+                          >
+                            <Link
+                              to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
+                              onClick={() => { setBrowseOpen(false); setExpandedCat(null); }}
+                              className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0"
+                            >
+                              <span className="text-base leading-none shrink-0">{cat.emoji}</span>
+                              <span className="text-sm text-foreground truncate">{cat.label}</span>
+                            </Link>
+                            {subs.length > 0 && (
+                              <button
+                                onClick={() => setExpandedCat(isExpanded ? null : cat.db)}
+                                className="px-2.5 py-2 text-muted-foreground hover:text-foreground"
+                                aria-label={`${isExpanded ? "Collapse" : "Expand"} ${cat.label}`}
+                              >
+                                {/* On desktop: solid right-arrow; on mobile: rotate to point down when open */}
+                                <ChevronRight className={cn(
+                                  "w-3.5 h-3.5 transition-transform duration-150",
+                                  "sm:rotate-0",
+                                  isExpanded && "rotate-90 sm:rotate-0"
+                                )} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Mobile accordion (hidden on sm+) */}
+                          {isExpanded && subs.length > 0 && (
+                            <div className="sm:hidden bg-muted/50 border-t border-b border-border/40">
+                              {subs.map((sub) => (
+                                <Link
+                                  key={sub}
+                                  to={`/shop/categories?cat=${encodeURIComponent(cat.db)}&sub=${encodeURIComponent(sub)}`}
+                                  onClick={() => { setBrowseOpen(false); setExpandedCat(null); }}
+                                  className="flex items-center px-9 py-1.5 text-xs text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                                >
+                                  {sub}
+                                </Link>
+                              ))}
+                              <Link
+                                to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
+                                onClick={() => { setBrowseOpen(false); setExpandedCat(null); }}
+                                className="flex items-center gap-1 px-9 py-1.5 text-xs font-semibold text-primary hover:bg-muted transition-colors"
+                              >
+                                View all {cat.label} <ChevronRight className="w-3 h-3" />
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    <div className="border-t border-border mt-1 pt-1">
+                      <Link
+                        to="/shop/all-categories"
+                        onClick={() => { setBrowseOpen(false); setExpandedCat(null); }}
+                        className="flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors"
+                      >
+                        <span className="text-sm font-semibold text-primary">View all</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-primary" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Right column: subcategories (desktop only) ── */}
+                {expandedCat && (() => {
+                  const cat = SHOP_CATEGORIES.find((c) => c.db === expandedCat);
+                  const subs = (subcategoryConfig[expandedCat] ?? []).filter((s) => s !== "General").slice(0, 6);
+                  if (!cat || subs.length === 0) return null;
+                  return (
+                    <div
+                      className="hidden sm:flex flex-col w-44 border-l border-border bg-muted/30"
+                      onMouseLeave={() => setExpandedCat(null)}
+                    >
+                      <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
+                        {cat.label}
+                      </p>
+                      <div className="pb-1 overflow-y-auto flex-1">
+                        {subs.map((sub) => (
+                          <Link
+                            key={sub}
+                            to={`/shop/categories?cat=${encodeURIComponent(cat.db)}&sub=${encodeURIComponent(sub)}`}
+                            onClick={() => { setBrowseOpen(false); setExpandedCat(null); }}
+                            className="flex items-center px-3 py-2 text-xs text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                          >
+                            {sub}
+                          </Link>
+                        ))}
+                        <Link
+                          to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
+                          onClick={() => { setBrowseOpen(false); setExpandedCat(null); }}
+                          className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-primary hover:bg-muted transition-colors border-t border-border/40 mt-1"
+                        >
+                          View all {cat.label} <ChevronRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
 
           {/* Cart */}
-          <Link to="/shop/cart" className="relative shrink-0 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors">
+          <Link
+            to="/shop/cart"
+            className="relative shrink-0 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+          >
             <ShoppingCart className="w-5 h-5 text-foreground" />
             {cartItemCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -157,7 +312,7 @@ const HomeDashboard = () => {
       </div>
 
       {/* ── Store identity band ── */}
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 py-2.5 border-b border-border">
         <div className="flex items-baseline gap-1.5">
           <span className="font-bold text-foreground text-sm">Stery Supermarket</span>
           <span className="text-muted-foreground text-sm">· Bungoma</span>
@@ -169,66 +324,39 @@ const HomeDashboard = () => {
         </p>
       </div>
 
-      {/* ── Delivery / trust strip ── */}
-      <div className="px-4 py-1.5 bg-primary/5 border-b border-primary/10 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-        <span className="text-[11px] text-primary font-semibold whitespace-nowrap">🚚 Delivery in Bungoma Town</span>
-        <span className="text-border select-none">·</span>
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">Same-day pickup available</span>
-        <span className="text-border select-none">·</span>
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">M-Pesa accepted</span>
-      </div>
 
-      {/* ── 1. Quick category chips — fixed priority list, horizontal scroll ── */}
-      <div className="flex gap-1.5 overflow-x-auto px-4 py-2 scrollbar-hide">
-        {CHIP_CATEGORIES.map((cat) => (
-          <Link
-            key={cat.db}
-            to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
-            className="flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-1.5 shrink-0 card-elevated"
-          >
-            <span className="text-sm">{cat.emoji}</span>
-            <span className="text-xs font-medium text-foreground whitespace-nowrap">{cat.label}</span>
-          </Link>
-        ))}
-      </div>
-
-      {/* ── 2. Browse by Category grid ── */}
-      <div className="px-4 mb-2">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-bold text-foreground text-sm">Browse by Category</h2>
-        </div>
-
-        {/* 2-col on mobile → 3-col sm → 4-col lg: compact tiles, emoji as accent */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
-          {SHOP_CATEGORIES.filter((c) => c.isHomepage).map((cat) => (
+      {/* ── Category chips ── */}
+      <div className="sticky top-24 z-30 bg-background border-b border-border shadow-sm">
+        <div className="flex gap-1.5 overflow-x-auto px-4 py-2 scrollbar-hide">
+          {CHIP_CATEGORIES.map((cat) => (
             <Link
               key={cat.db}
               to={`/shop/categories?cat=${encodeURIComponent(cat.db)}`}
-              className="bg-card rounded-lg card-elevated flex flex-col items-center justify-center gap-1 py-2.5 px-2 text-center"
+              className="flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-1.5 shrink-0 card-elevated"
             >
-              <span className="text-base leading-none">{cat.emoji}</span>
-              <span className="text-[11px] font-medium text-foreground leading-tight">{cat.label}</span>
+              <span className="text-sm">{cat.emoji}</span>
+              <span className="text-xs font-medium text-foreground whitespace-nowrap">{cat.label}</span>
             </Link>
           ))}
+          <Link
+            to="/shop/all-categories"
+            className="flex items-center gap-1 px-3 py-1.5 shrink-0 text-xs font-medium text-primary whitespace-nowrap"
+          >
+            View all <ChevronRight className="w-3 h-3" />
+          </Link>
         </div>
-
-        {/* Browse all — lightweight text action, not a category tile */}
-        <Link
-          to="/shop/all-categories"
-          className="flex items-center justify-center gap-0.5 mt-2 text-xs text-primary font-medium"
-        >
-          Browse all categories <ChevronRight className="w-3 h-3" />
-        </Link>
       </div>
 
-      {/* ── 3. Today's Deals shelf ── */}
-      <ProductShelf
-        title="🔥 Today's Deals"
-        products={dealProducts}
-        seeAllPath="/shop/offers"
-      />
+      {/* ── Today's Deals shelf ── */}
+      <div className="mt-4">
+        <ProductShelf
+          title="🔥 Today's Deals"
+          products={dealProducts}
+          seeAllPath="/shop/offers"
+        />
+      </div>
 
-      {/* ── 4. Popular Products shelf ── */}
+      {/* ── Popular Products shelf ── */}
       <ProductShelf
         title="⭐ Popular Products"
         products={popularProducts}
@@ -256,7 +384,7 @@ const HomeDashboard = () => {
         </div>
       </div>
 
-      {/* ── 5. Category product shelves ── */}
+      {/* ── Category product shelves ── */}
       <ProductShelf
         title="🛒 Fresh & Groceries"
         products={groceryProducts}
