@@ -43,7 +43,13 @@ export function useProducts() {
 
 /** Fetch a single product by id */
 export function useProduct(id: string | undefined) {
-  const { data: all, ...rest } = useProducts();
-  const product = id ? (all ?? []).find((p) => p.id === id) : undefined;
-  return { product, ...rest };
+  const { data: all, isLoading, isFetching, ...rest } = useProducts();
+  // Search live (Supabase) products first; fall back to static catalog for old
+  // bookmarked URLs or any ID mismatch between list and detail page cache states.
+  const product = id
+    ? ((all ?? []).find((p) => p.id === id) ?? staticProducts.find((p) => p.id === id))
+    : undefined;
+  // Treat as loading if the query is still in flight AND we have no product yet.
+  const effectivelyLoading = (isLoading || (isFetching && !product));
+  return { product, isLoading: effectivelyLoading, isFetching, ...rest };
 }

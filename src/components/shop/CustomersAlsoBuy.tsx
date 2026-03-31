@@ -1,4 +1,4 @@
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Users } from "lucide-react";
@@ -9,18 +9,19 @@ import { toast } from "sonner";
 export const CustomersAlsoBuy = ({ productId }: { productId: string }) => {
   const { addToCart } = useApp();
   const navigate = useNavigate();
+  const { data: liveProducts = [] } = useProducts();
 
-  const current = products.find((p) => p.id === productId);
+  const current = liveProducts.find((p) => p.id === productId);
   if (!current) return null;
 
-  const recommendations = products
-    .filter((p) => p.id !== productId && p.inStock && p.category === current.category)
+  const recommendations = liveProducts
+    .filter((p) => p.id !== productId && p.inStock !== false && p.category === current.category)
     .slice(0, 4);
 
   // If not enough in same category, fill from other popular items
   if (recommendations.length < 3) {
-    const extras = products
-      .filter((p) => p.id !== productId && p.inStock && !recommendations.find((r) => r.id === p.id))
+    const extras = liveProducts
+      .filter((p) => p.id !== productId && p.inStock !== false && !recommendations.find((r) => r.id === p.id))
       .slice(0, 4 - recommendations.length);
     recommendations.push(...extras);
   }

@@ -1,6 +1,12 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
 import { verifyAdmin, logAdminAction, supabaseAdmin } from "../middleware/auth";
+import {
+  sendOrderAlert,
+  sendCustomerConfirmation,
+  sendCustomerReadyNotification,
+  sendCustomerDispatchedNotification,
+} from "../lib/whatsapp";
 
 // Multer instance for bulk image uploads — memory storage, images only, max 200 files / 5 MB each
 const bulkImageUpload = multer({
@@ -9,6 +15,90 @@ const bulkImageUpload = multer({
 });
 
 const router = Router();
+
+// Idempotency guard: tracks order IDs that have already been alerted this session.
+// Prevents duplicate WhatsApp alerts when deduct-stock is called more than once
+// for the same order (e.g. button double-click, network retry).
+const alertedOrders = new Set<string>();
+
+/*
+POST /api/admin/orders/:id/deduct-stock
+Called fire-and-forget by the frontend immediately after a successful order insert.
+Does NOT require admin access — placed before verifyAdmin middleware.
+
+Responsibilities:
+  1. Deduct stock_quantity for each ordered product (floor at 0).
+  2. Fetch the saved order and send a WhatsApp alert to configured recipients,
+     but only once per order ID (idempotency guard via alertedOrders Set).
+
+The response is sent first (200) so the caller is never blocked.
+*/
+router.post("/orders/:id/deduct-stock", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { items } = req.body as {
+    items: Array<{ productId: string; quantity: number }>;
+  };
+
+  // Respond immediately — do not block the customer
+  res.json({ success: true });
+
+  console.log(`[deduct-stock] Route reached for order ${id}`);
+
+  try {
+    // 1. Deduct stock for each item
+    if (Array.isArray(items) && items.length > 0) {
+      for (const item of items) {
+        const { data: product } = await supabaseAdmin
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", item.productId)
+          .single();
+
+        if (product && product.stock_quantity !== null) {
+          const newQty = Math.max(0, product.stock_quantity - item.quantity);
+          const stockStatus =
+            newQty === 0 ? "out_of_stock" : newQty <= 5 ? "low_stock" : "in_stock";
+          await supabaseAdmin
+            .from("products")
+            .update({ stock_quantity: newQty, stock_status: stockStatus, in_stock: newQty > 0 })
+            .eq("id", item.productId);
+        }
+      }
+    }
+
+    // 2. Idempotency check — skip alert if this order was already processed
+    if (alertedOrders.has(id)) {
+      return;
+    }
+
+    // 3. Fetch the full order and fire the WhatsApp alert
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("id, order_number, customer_name, customer_phone, total, delivery_option, delivery_area, delivery_location, items, created_at")
+      .eq("id", id)
+      .single();
+
+    if (order) {
+      alertedOrders.add(id);
+      const alertPayload = {
+        id:                order.id,
+        order_number:      order.order_number,
+        customer_name:     order.customer_name,
+        customer_phone:    order.customer_phone,
+        total:             order.total,
+        delivery_option:   order.delivery_option ?? "pickup",
+        delivery_area:     order.delivery_area,
+        delivery_location: order.delivery_location,
+        items:             Array.isArray(order.items) ? order.items : [],
+        created_at:        order.created_at,
+      };
+      sendOrderAlert(alertPayload).catch(console.error);
+      sendCustomerConfirmation(alertPayload).catch(console.error);
+    }
+  } catch (err: any) {
+    console.error("[deduct-stock] Background error for order", id, ":", err?.message ?? err);
+  }
+});
 
 router.use(verifyAdmin);
 
@@ -316,6 +406,28 @@ router.post("/orders/:id/status", async (req: Request, res: Response) => {
     );
 
     res.json({ success: true, order: data });
+
+    // Fire-and-forget customer WhatsApp notification on genuine status transitions
+    if (data && oldOrder?.status !== status) {
+      const notifPayload = {
+        id:                data.id,
+        order_number:      data.order_number,
+        customer_name:     data.customer_name,
+        customer_phone:    data.customer_phone,
+        total:             Number(data.total),
+        delivery_option:   data.delivery_option ?? "pickup",
+        delivery_area:     data.delivery_area,
+        delivery_location: data.delivery_location,
+        items:             Array.isArray(data.items) ? data.items : [],
+        created_at:        data.created_at,
+      };
+
+      if (status === "ready_for_pickup") {
+        sendCustomerReadyNotification(notifPayload).catch(console.error);
+      } else if (status === "out_for_delivery") {
+        sendCustomerDispatchedNotification(notifPayload).catch(console.error);
+      }
+    }
 
   } catch (err: any) {
 

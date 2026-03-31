@@ -56,8 +56,9 @@ const Checkout = () => {
   const [orderNumber, setOrderNumber]     = useState("");
   const [copiedField, setCopiedField]     = useState<string | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError]   = useState(false);
+  const [isLoading, setIsLoading]     = useState(true);
+  const [hasError, setHasError]       = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loyaltyPoints = customer?.loyalty_points || 0;
 
@@ -110,21 +111,23 @@ const Checkout = () => {
 
   // ── Order submission ───────────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
-    if (!customerName.trim()) { toast.error("Please enter your name"); return; }
-    if (!phone.trim())        { toast.error("Please enter your phone number"); return; }
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    if (!customerName.trim()) { toast.error("Please enter your name"); setIsSubmitting(false); return; }
+    if (!phone.trim())        { toast.error("Please enter your phone number"); setIsSubmitting(false); return; }
 
     if (fulfillmentMethod === "local" && !location.trim()) {
       toast.error("Please enter your delivery location");
-      return;
+      setIsSubmitting(false); return;
     }
     if (fulfillmentMethod === "countrywide") {
-      if (!cwDestination.trim())  { toast.error("Please enter destination town"); return; }
-      if (!cwReceiverName.trim()) { toast.error("Please enter receiver name"); return; }
-      if (!cwReceiverPhone.trim()){ toast.error("Please enter receiver phone number"); return; }
+      if (!cwDestination.trim())  { toast.error("Please enter destination town"); setIsSubmitting(false); return; }
+      if (!cwReceiverName.trim()) { toast.error("Please enter receiver name"); setIsSubmitting(false); return; }
+      if (!cwReceiverPhone.trim()){ toast.error("Please enter receiver phone number"); setIsSubmitting(false); return; }
     }
     if (paymentMethod === "mpesa" && !paymentSubmitted) {
       toast.error("Please complete M-Pesa payment first");
-      return;
+      setIsSubmitting(false); return;
     }
 
     try {
@@ -280,6 +283,7 @@ const Checkout = () => {
       });
     } catch {
       toast.error("Something went wrong placing your order. Please try again.");
+      setIsSubmitting(false);
     }
   };
 
@@ -741,10 +745,12 @@ const Checkout = () => {
         {/* ── Place Order ──────────────────────────────────────────────────── */}
         <Button
           onClick={handlePlaceOrder}
-          disabled={paymentMethod === "mpesa" && !paymentSubmitted}
+          disabled={isSubmitting || (paymentMethod === "mpesa" && !paymentSubmitted)}
           className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 disabled:opacity-50"
         >
-          {paymentMethod === "mpesa" && !paymentSubmitted
+          {isSubmitting
+            ? "Placing Order..."
+            : paymentMethod === "mpesa" && !paymentSubmitted
             ? "Complete M-Pesa Payment First"
             : `Confirm Order — KSh ${total}${fulfillmentMethod === "countrywide" ? " + shipping" : ""}`}
         </Button>

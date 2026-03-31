@@ -1,24 +1,9 @@
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-// Map product IDs to commonly bought-together product IDs
-const pairings: Record<string, string[]> = {
-  "1": ["2", "14", "4"],     // Bread → Milk, Eggs, Cooking Oil
-  "2": ["1", "3", "14"],     // Milk → Bread, Sugar, Eggs
-  "3": ["11", "4", "12"],    // Sugar → Flour, Cooking Oil, Tea Leaves
-  "4": ["3", "11", "13"],    // Cooking Oil → Sugar, Flour, Rice
-  "11": ["3", "4", "14"],    // Flour → Sugar, Cooking Oil, Eggs
-  "12": ["3", "2", "1"],     // Tea Leaves → Sugar, Milk, Bread
-  "13": ["4", "3", "11"],    // Rice → Cooking Oil, Sugar, Flour
-  "14": ["1", "2", "3"],     // Eggs → Bread, Milk, Sugar
-};
-
-// Fallback: suggest essentials
-const DEFAULT_PAIRINGS = ["1", "2", "3"];
 
 interface Props {
   productId: string;
@@ -27,27 +12,35 @@ interface Props {
 export const FrequentlyBoughtTogether = ({ productId }: Props) => {
   const { addToCart } = useApp();
   const navigate = useNavigate();
+  const { data: liveProducts = [] } = useProducts();
 
-  const pairedIds = (pairings[productId] || DEFAULT_PAIRINGS).filter((id) => id !== productId);
-  const pairedProducts = pairedIds
-    .map((id) => products.find((p) => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => p !== undefined && p.inStock)
-    .slice(0, 3);
+  const current = liveProducts.find((p) => p.id === productId);
+  if (!current) return null;
 
-  if (pairedProducts.length === 0) return null;
+  // Same-category recommendations, excluding the current product
+  const sameCat = liveProducts.filter(
+    (p) => p.id !== productId && p.inStock !== false && p.category === current.category
+  );
+  // Fill up to 3 with popular items if not enough in category
+  const extras = liveProducts.filter(
+    (p) => p.id !== productId && p.inStock !== false && !sameCat.find((r) => r.id === p.id)
+  );
+  const paired = [...sameCat, ...extras].slice(0, 3);
 
-  const totalPrice = pairedProducts.reduce((sum, p) => sum + p.price, 0);
+  if (paired.length === 0) return null;
 
-  const handleAddOne = (productId: string, name: string) => {
-    addToCart(productId);
+  const totalPrice = paired.reduce((sum, p) => sum + p.price, 0);
+
+  const handleAddOne = (pid: string, name: string) => {
+    addToCart(pid);
     toast(`${name} added to cart!`, {
       action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
     });
   };
 
   const handleAddAll = () => {
-    pairedProducts.forEach((p) => addToCart(p.id));
-    toast(`${pairedProducts.length} items added to cart!`, {
+    paired.forEach((p) => addToCart(p.id));
+    toast(`${paired.length} items added to cart!`, {
       action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
     });
   };
@@ -60,7 +53,7 @@ export const FrequentlyBoughtTogether = ({ productId }: Props) => {
       </div>
 
       <div className="space-y-2 mb-3">
-        {pairedProducts.map((product) => (
+        {paired.map((product) => (
           <div key={product.id} className="bg-card rounded-xl p-3 flex items-center gap-3 card-elevated">
             <img src={product.image} alt={product.name} className="w-14 h-14 rounded-lg object-cover" />
             <div className="flex-1 min-w-0">

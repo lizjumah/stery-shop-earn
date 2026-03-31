@@ -8,7 +8,9 @@ import multer from "multer";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.resolve(__dirname, "../../.env.local");
 
+// .env.local takes priority; .env provides fallback vars (e.g. WHATSAPP_*)
 dotenv.config({ path: envPath });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const app = express();
 
@@ -81,5 +83,6 @@ app.listen(PORT, () => {
     : srk === "your_service_role_key_here"
     ? "✗ PLACEHOLDER — replace with real key from Supabase dashboard → Settings → API"
     : "✓ Loaded";
-  console.log(`Service Role Key: ${srkStatus}\n`);
+  console.log(`Service Role Key: ${srkStatus}`);
+
 });

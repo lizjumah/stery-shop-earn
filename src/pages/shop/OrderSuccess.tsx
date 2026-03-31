@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Package, Phone, MapPin, CreditCard, ShoppingBag } from "lucide-react";
+import { CheckCircle, Package, MapPin, ShoppingBag, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface OrderItem {
   productId: string;
@@ -62,6 +63,37 @@ const OrderSuccess = () => {
     items,
   } = state;
 
+  // ── Status badge ──────────────────────────────────────────────────────────
+  const statusLabel =
+    paymentMethod === "mpesa" ? "Payment Submitted" : "Order Received";
+  const statusStyle =
+    paymentMethod === "mpesa"
+      ? "text-amber-700 bg-amber-50 border-amber-200"
+      : "text-green-700 bg-green-50 border-green-200";
+
+  // ── Next-step copy ────────────────────────────────────────────────────────
+  let nextStepTitle: string;
+  let nextStepBody: string;
+
+  if (paymentMethod === "mpesa") {
+    nextStepTitle = "Awaiting payment confirmation";
+    nextStepBody =
+      deliveryOption === "delivery"
+        ? `Once your M-Pesa payment is confirmed, we'll prepare and deliver your order to ${deliveryArea}.`
+        : "Once your M-Pesa payment is confirmed, your order will be ready for pickup at our store.";
+  } else {
+    // cash on delivery
+    if (deliveryOption === "delivery") {
+      nextStepTitle = "Preparing your delivery";
+      nextStepBody = `We're preparing your order for delivery to ${deliveryArea}. Our team will call you to confirm the delivery time.`;
+    } else {
+      nextStepTitle = "Ready for store pickup";
+      nextStepBody =
+        "Come to our store to collect your order and pay at the counter. Our team will have it ready for you.";
+    }
+  }
+
+  // ── WhatsApp order message (unchanged) ────────────────────────────────────
   const itemsList = items
     .map((i) => `• ${i.name} × ${i.quantity} — KSh ${i.subtotal}`)
     .join("\n");
@@ -99,74 +131,69 @@ const OrderSuccess = () => {
 
   const whatsappUrl = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(whatsappMessage)}`;
 
+  const firstName = customerName?.split(" ")[0] || null;
+
   return (
     <div className="min-h-screen bg-background pb-10">
-      {/* Success header */}
-      <div className="flex flex-col items-center pt-12 pb-6 px-6 text-center">
-        <div className="bg-green-50 rounded-full p-5 mb-4">
-          <CheckCircle className="w-14 h-14 text-green-600" />
+
+      {/* ── Confirmation header ─────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center pt-10 pb-5 px-6 text-center">
+        <div className="bg-green-50 rounded-full p-4 mb-3">
+          <CheckCircle className="w-12 h-12 text-green-600" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-1">Order Received ✓</h1>
-        <p className="text-sm font-semibold text-primary mt-0.5">{orderNumber}</p>
-        <p className="text-sm text-muted-foreground max-w-xs mt-2">
-          We are preparing your order. Stery will contact you shortly.
+        <h1 className="text-2xl font-bold text-foreground">Order Confirmed ✅</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {firstName ? `Thank you, ${firstName}! ` : "Thank you! "}Your order has been received.
         </p>
       </div>
 
       <div className="px-4 space-y-3 max-w-md mx-auto">
-        {/* Order details card */}
-        <div className="bg-card rounded-xl p-4 card-elevated space-y-3">
-          <div className="flex items-center gap-2 border-b border-border pb-3">
+
+        {/* ── Order number + status ─────────────────────────────────────────── */}
+        <div className="bg-card rounded-xl p-4 card-elevated flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Order Number</p>
+            <p className="text-xl font-bold text-foreground">{orderNumber}</p>
+          </div>
+          <span className={cn("shrink-0 text-xs font-semibold px-3 py-1 rounded-full border", statusStyle)}>
+            {statusLabel}
+          </span>
+        </div>
+
+        {/* ── Next step ────────────────────────────────────────────────────── */}
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="bg-primary/10 rounded-full p-2 shrink-0 mt-0.5">
+              <ArrowRight className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-sm">{nextStepTitle}</p>
+              <p className="text-muted-foreground text-sm mt-1 leading-relaxed">{nextStepBody}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Order summary ─────────────────────────────────────────────────── */}
+        <div className="bg-card rounded-xl p-4 card-elevated">
+          <div className="flex items-center gap-2 mb-3">
             <Package className="w-4 h-4 text-muted-foreground" />
-            <span className="font-bold text-foreground text-lg">{orderNumber}</span>
+            <span className="font-semibold text-sm text-foreground">Order Summary</span>
           </div>
 
-          {/* Customer */}
-          <div className="space-y-1.5 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="w-4 text-center">👤</span>
-              <span className="font-medium text-foreground">{customerName}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Phone className="w-3.5 h-3.5 shrink-0" />
-              <span>{phone}</span>
-            </div>
-            {deliveryOption === "delivery" ? (
-              <>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  <span>
-                    {deliveryArea}
-                    {location && ` — ${location}`}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-3.5 h-3.5 shrink-0" />
-                <span>Store Pickup</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <CreditCard className="w-3.5 h-3.5 shrink-0" />
-              <span>{paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}</span>
-            </div>
-          </div>
-
-          {/* Items */}
-          <div className="border-t border-border pt-3 space-y-1">
+          <div className="space-y-1.5 mb-3">
             {items.map((item, idx) => (
               <div key={idx} className="flex justify-between text-sm">
                 <span className="text-muted-foreground">
                   {item.name} × {item.quantity}
                 </span>
-                <span className="text-foreground font-medium">KSh {item.subtotal.toLocaleString()}</span>
+                <span className="text-foreground font-medium">
+                  KSh {item.subtotal.toLocaleString()}
+                </span>
               </div>
             ))}
           </div>
 
-          {/* Totals */}
-          <div className="border-t border-border pt-3 space-y-1 text-sm">
+          <div className="border-t border-border pt-2 space-y-1 text-sm">
             {deliveryFee > 0 && !freeDelivery && (
               <div className="flex justify-between text-muted-foreground">
                 <span>Delivery fee</span>
@@ -176,7 +203,7 @@ const OrderSuccess = () => {
             {freeDelivery && (
               <div className="flex justify-between text-muted-foreground">
                 <span>Delivery fee</span>
-                <span className="text-accent font-medium">Free</span>
+                <span className="text-green-600 font-medium">Free</span>
               </div>
             )}
             {pointsDiscount > 0 && (
@@ -185,17 +212,28 @@ const OrderSuccess = () => {
                 <span>- KSh {pointsDiscount.toLocaleString()}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-foreground text-base pt-1">
-              <span>Total</span>
+            <div className="flex justify-between font-bold text-foreground text-base pt-0.5">
+              <span>Total paid</span>
               <span>KSh {total.toLocaleString()}</span>
             </div>
           </div>
+
+          <div className="border-t border-border pt-2 mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
+            {deliveryOption === "delivery" ? (
+              <span>{deliveryArea}{location ? ` — ${location}` : ""}</span>
+            ) : (
+              <span>Pickup at store</span>
+            )}
+          </div>
         </div>
 
-        {/* Points earned */}
+        {/* ── Loyalty points earned ─────────────────────────────────────────── */}
         {earnedPoints > 0 && (
           <div className="bg-primary/10 rounded-xl p-3 text-center">
-            <p className="text-primary font-semibold text-sm">+{earnedPoints} loyalty points earned! 🎉</p>
+            <p className="text-primary font-semibold text-sm">
+              +{earnedPoints} loyalty points earned! 🎉
+            </p>
             {pointsDiscount > 0 && (
               <p className="text-xs text-muted-foreground mt-0.5">
                 You saved KSh {pointsDiscount} with loyalty points
@@ -204,24 +242,19 @@ const OrderSuccess = () => {
           </div>
         )}
 
-        {/* WhatsApp CTA */}
-        <div className="space-y-2 pt-1">
-          <p className="text-sm text-muted-foreground text-center">
-            Send your order to{" "}
-            <span className="font-semibold text-foreground">Stery Supermarket</span> on WhatsApp
-            so our team can confirm it.
-          </p>
+        {/* ── WhatsApp CTA ──────────────────────────────────────────────────── */}
+        <div className="space-y-1.5 pt-1">
           <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block">
-            <Button className="w-full h-13 text-base font-semibold bg-[hsl(142,70%,40%)] hover:bg-[hsl(142,70%,35%)] text-white rounded-xl gap-2">
-              <span className="text-lg">💬</span> Send Order on WhatsApp
+            <Button className="w-full h-12 text-base font-semibold bg-[hsl(142,70%,40%)] hover:bg-[hsl(142,70%,35%)] text-white rounded-xl gap-2">
+              <span className="text-lg">💬</span> Confirm Order via WhatsApp
             </Button>
           </a>
           <p className="text-xs text-muted-foreground text-center">
-            ✅ Order already saved — WhatsApp is only for confirmation.
+            Your order is saved. WhatsApp helps our team confirm it faster.
           </p>
         </div>
 
-        {/* Navigation */}
+        {/* ── Navigation ───────────────────────────────────────────────────── */}
         <div className="flex gap-3 pt-1">
           <Button
             variant="outline"
@@ -238,23 +271,6 @@ const OrderSuccess = () => {
           </Button>
         </div>
 
-        {/* Support */}
-        <div className="bg-card rounded-xl p-4 card-elevated text-center space-y-2">
-          <p className="text-sm font-medium text-foreground">Need help? Contact Stery Customer Care</p>
-          <p className="text-xs text-muted-foreground">We're available to assist with your order</p>
-          <div className="flex gap-2 justify-center">
-            <a href={`tel:+${STORE_WHATSAPP}`}>
-              <Button size="sm" variant="outline" className="text-xs gap-1">
-                📞 Call Stery
-              </Button>
-            </a>
-            <a href={`https://wa.me/${STORE_WHATSAPP}`} target="_blank" rel="noopener noreferrer">
-              <Button size="sm" variant="outline" className="text-xs gap-1">
-                💬 WhatsApp Stery
-              </Button>
-            </a>
-          </div>
-        </div>
       </div>
     </div>
   );

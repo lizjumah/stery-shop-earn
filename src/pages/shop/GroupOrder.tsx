@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Plus, Check, Users, ArrowLeft } from "lucide-react";
@@ -14,6 +14,7 @@ const GroupOrder = () => {
   const [loaded, setLoaded] = useState(false);
   const [sharedItems, setSharedItems] = useState<{ productId: string; quantity: number }[]>([]);
 
+  const { data: liveProducts = [] } = useProducts();
   const cartCode = searchParams.get("cart");
 
   useEffect(() => {
@@ -34,7 +35,7 @@ const GroupOrder = () => {
   }, [cartCode, loaded]);
 
   const sharedProducts = sharedItems.map((item) => {
-    const product = products.find((p) => p.id === item.productId);
+    const product = liveProducts.find((p) => p.id === item.productId);
     return { ...item, product };
   }).filter((i) => i.product);
 
@@ -49,7 +50,7 @@ const GroupOrder = () => {
     }
   };
 
-  const suggestedProducts = products.filter(
+  const suggestedProducts = liveProducts.filter(
     (p) => !sharedItems.find((s) => s.productId === p.id)
   ).slice(0, 6);
 
