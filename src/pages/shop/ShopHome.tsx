@@ -138,7 +138,7 @@ const ShopHome = () => {
               </p>
 
               {/* Product grid — reuses existing ProductCard */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

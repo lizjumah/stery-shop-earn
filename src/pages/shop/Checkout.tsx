@@ -50,11 +50,12 @@ const Checkout = () => {
   const [email, setEmail]               = useState(customer?.email || "");
   const [location, setLocation]         = useState(customer?.delivery_location || "");
   const [deliveryNotes, setDeliveryNotes] = useState(customer?.delivery_notes || "");
+  const [pendingOrderNum] = useState(() => `STR-${String(Date.now()).slice(-4)}`);
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "cash">("mpesa");
   const [mpesaCode, setMpesaCode]         = useState("");
-  const [paymentSubmitted, setPaymentSubmitted] = useState(false);
-  const [orderNumber, setOrderNumber]     = useState("");
-  const [copiedField, setCopiedField]     = useState<string | null>(null);
+  const [paymentSubmitted, setPaymentSubmitted]       = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
+  const [copiedField, setCopiedField]                 = useState<string | null>(null);
 
   const [isLoading, setIsLoading]     = useState(true);
   const [hasError, setHasError]       = useState(false);
@@ -68,6 +69,16 @@ const Checkout = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, []);
+
+  // Autofill form fields when customer session resolves (e.g. returning user)
+  // Guards prevent overwriting values the user has already typed
+  useEffect(() => {
+    if (!customer) return;
+    if (!customerName && customer.name)              setCustomerName(customer.name);
+    if (!phone       && customer.phone)              setPhone(customer.phone);
+    if (!email       && customer.email)              setEmail(customer.email);
+    if (!location    && customer.delivery_location)  setLocation(customer.delivery_location);
+  }, [customer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cart resolution ────────────────────────────────────────────────────────
   const cartProducts = (() => {
@@ -162,8 +173,7 @@ const Checkout = () => {
 
       if (!cust) { toast.error("Failed to create account. Please try again."); return; }
 
-      const num = `STR-${String(Date.now()).slice(-4)}`;
-      setOrderNumber(num);
+      const num = pendingOrderNum;
 
       const orderItems = cartProducts.map((item) => ({
         productId: item.productId,
@@ -683,38 +693,37 @@ const Checkout = () => {
 
             {paymentMethod === "mpesa" && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-4 mt-2">
-                <div className="bg-card rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Paybill Number</p>
-                      <p className="text-lg font-bold text-foreground">4076859</p>
+                <div className="bg-card rounded-lg p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="flex items-center justify-between sm:block">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Paybill</p>
+                        <p className="text-base font-semibold text-foreground">4076859</p>
+                      </div>
+                      <button onClick={() => copyToClipboard("4076859", "paybill")} className="bg-secondary rounded-lg p-2 sm:mt-1">
+                        {copiedField === "paybill" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                      </button>
                     </div>
-                    <button onClick={() => copyToClipboard("4076859", "paybill")} className="bg-secondary rounded-lg p-2">
-                      {copiedField === "paybill" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
-                    </button>
-                  </div>
-                  <div className="border-t border-border pt-2 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Account Number</p>
-                      <p className="text-lg font-bold text-foreground">Stery</p>
+                    <div className="flex items-center justify-between sm:block border-t border-border pt-3 sm:border-0 sm:pt-0">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Account</p>
+                        <p className="text-base font-semibold text-foreground">{pendingOrderNum}</p>
+                      </div>
+                      <button onClick={() => copyToClipboard(pendingOrderNum, "account")} className="bg-secondary rounded-lg p-2 sm:mt-1">
+                        {copiedField === "account" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                      </button>
                     </div>
-                    <button onClick={() => copyToClipboard("Stery", "account")} className="bg-secondary rounded-lg p-2">
-                      {copiedField === "account" ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
-                    </button>
-                  </div>
-                  <div className="border-t border-border pt-2">
-                    <p className="text-xs text-muted-foreground">Amount</p>
-                    <p className="text-lg font-bold text-primary">
-                      KSh {total}
-                      {fulfillmentMethod === "countrywide" && (
-                        <span className="text-xs font-normal text-muted-foreground ml-1">(items only, shipping TBC)</span>
-                      )}
-                    </p>
+                    <div className="border-t border-border pt-3 sm:border-0 sm:pt-0">
+                      <p className="text-xs text-muted-foreground">Amount</p>
+                      <p className="text-base font-semibold text-primary">
+                        KSh {total}
+                        {fulfillmentMethod === "countrywide" && (
+                          <span className="text-xs font-normal text-muted-foreground ml-1">(+ shipping)</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground text-center bg-secondary/50 rounded-lg p-2">
-                  ⚠️ Pay using the Paybill details above before placing your order.
-                </p>
                 {!paymentSubmitted ? (
                   <div className="space-y-3">
                     <div>
@@ -726,8 +735,19 @@ const Checkout = () => {
                         className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary font-mono tracking-wider placeholder:text-muted-foreground"
                       />
                     </div>
-                    <Button onClick={handleIHavePaid} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold">
-                      ✅ I Have Paid
+                    <Button
+                      onClick={() => {
+                        if (!mpesaCode.trim()) {
+                          toast.error("Please enter your M-Pesa confirmation code");
+                          return;
+                        }
+                        setIsConfirmingPayment(true);
+                        handleIHavePaid();
+                      }}
+                      disabled={isConfirmingPayment}
+                      className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold disabled:opacity-70"
+                    >
+                      {isConfirmingPayment ? "Processing..." : "Confirm Order"}
                     </Button>
                   </div>
                 ) : (

@@ -97,7 +97,7 @@ const GroupOrder = () => {
         <h2 className="text-lg font-bold text-foreground mb-3">Add your items to the order</h2>
         <p className="text-sm text-muted-foreground mb-4">Browse and add items before joining the group order.</p>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-6">
           {suggestedProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

@@ -177,7 +177,7 @@ const Categories = () => {
         <p className="text-sm text-muted-foreground mb-3">{filteredProducts.length} products</p>
 
         {/* Grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

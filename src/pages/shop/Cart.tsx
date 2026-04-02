@@ -1,13 +1,10 @@
 import { useApp } from "@/contexts/AppContext";
 import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, ShoppingBag, Star, Share2 } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, Share2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
-
-const FREE_DELIVERY_THRESHOLD = 3000;
-
 
 const Cart = () => {
   const { cart, updateCartQuantity, removeFromCart, generateCartShareCode } = useApp();
@@ -112,57 +109,6 @@ const Cart = () => {
           ))}
         </div>
 
-        {/* Basket rewards */}
-        <div className="bg-card rounded-xl p-4 card-elevated mb-4 border border-primary/20">
-          <div className="flex items-center gap-2 mb-3">
-            <Star className="w-5 h-5 text-primary fill-primary" />
-            <h2 className="font-semibold text-foreground text-sm">Unlock rewards</h2>
-          </div>
-
-          {/* Free delivery milestone */}
-          {(() => {
-            const unlocked = subtotal >= FREE_DELIVERY_THRESHOLD;
-            const remaining = FREE_DELIVERY_THRESHOLD - subtotal;
-            const progress = Math.min(100, (subtotal / FREE_DELIVERY_THRESHOLD) * 100);
-            return (
-              <div className="mb-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${unlocked ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"}`}>
-                    {unlocked ? "✓" : ""}
-                  </div>
-                  <span className={`text-sm ${unlocked ? "text-accent font-medium line-through" : "text-foreground"}`}>
-                    Spend KSh {FREE_DELIVERY_THRESHOLD.toLocaleString()} for FREE delivery
-                  </span>
-                </div>
-                {/* Progress bar */}
-                <div className="h-1.5 bg-secondary rounded-full overflow-hidden ml-7">
-                  <div
-                    className="h-full bg-accent rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                {!unlocked && subtotal > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1.5 ml-7">
-                    Add KSh {remaining.toLocaleString()} more
-                  </p>
-                )}
-                {unlocked && (
-                  <p className="text-xs text-accent font-medium mt-1.5 ml-7">
-                    🎉 Free delivery unlocked on this order!
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Loyalty points */}
-          <div className="flex items-center gap-2 pt-3 border-t border-border">
-            <span className="text-base">⭐</span>
-            <p className="text-sm text-amber-600 font-medium">
-              You'll earn {Math.floor(subtotal / 100)} loyalty points from this order
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Fixed Bottom */}

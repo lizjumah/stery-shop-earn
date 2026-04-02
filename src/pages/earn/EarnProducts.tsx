@@ -51,7 +51,7 @@ const EarnProducts = () => {
         </div>
 
         <p className="text-sm text-muted-foreground mb-3">{filteredProducts.length} products available</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

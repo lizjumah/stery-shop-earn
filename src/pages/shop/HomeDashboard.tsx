@@ -2,16 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
+import { useBuyAgain } from "@/hooks/useBuyAgain";
 import { Product, subcategoryConfig } from "@/data/products";
 import { SHOP_CATEGORIES } from "@/data/categoryConfig";
 import { ProductCard } from "@/components/ProductCard";
 import { Progress } from "@/components/ui/progress";
 import {
   Search, ShoppingCart, Star, Gift, ChevronRight, ChevronDown,
-  Phone, RefreshCw, UserCircle, TrendingUp, MessageCircle, LayoutGrid,
+  Phone, RefreshCw, UserCircle, TrendingUp, MessageCircle, LayoutGrid, PackagePlus,
 } from "lucide-react";
 import steryLogo from "@/assets/stery-logo.png.png";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /** Business contact — update here when number changes */
@@ -54,7 +56,7 @@ const ProductShelf = ({
 };
 
 const HomeDashboard = () => {
-  const { cartItemCount } = useApp();
+  const { cartItemCount, addToCart } = useApp();
   const { customer } = useCustomer();
   const navigate = useNavigate();
   const { data: liveProducts = [] } = useProducts();
@@ -81,7 +83,16 @@ const HomeDashboard = () => {
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
   const progress = ((loyaltyPoints % NEXT_REWARD_AT) / NEXT_REWARD_AT) * 100;
 
-  const dealProducts      = liveProducts.filter((p) => p.isOffer || p.originalPrice);
+  const buyAgainProducts  = useBuyAgain(customer?.id);
+
+  const handleAddAllBuyAgain = () => {
+    buyAgainProducts.forEach((p) => addToCart(p.id));
+    toast(`${buyAgainProducts.length} item${buyAgainProducts.length !== 1 ? "s" : ""} added to cart.`, {
+      action: { label: "View Cart", onClick: () => navigate("/shop/cart") },
+    });
+  };
+
+  // const dealProducts = liveProducts.filter((p) => p.isOffer || p.originalPrice); // disabled with Today's Deals shelf
   const popularProducts   = liveProducts.filter((p) => p.inStock !== false).slice(0, 8);
   const groceryProducts   = liveProducts.filter((p) => p.category === "Groceries" || p.category === "Bakery");
   const householdProducts = liveProducts.filter((p) => p.category === "Household" || p.category === "Electronics");
@@ -347,14 +358,41 @@ const HomeDashboard = () => {
         </div>
       </div>
 
-      {/* ── Today's Deals shelf ── */}
-      <div className="mt-4">
+      {/* ── Buy Again ── */}
+      {buyAgainProducts.length > 0 && (
+        <div className="mt-4 mb-6">
+          <div className="flex items-center justify-between px-4 mb-1">
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-bold text-foreground text-base">🔁 Buy Again</h2>
+            </div>
+            <button
+              onClick={handleAddAllBuyAgain}
+              className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors rounded-full px-3 py-1"
+            >
+              <PackagePlus className="w-3 h-3" />
+              Add All
+            </button>
+          </div>
+          <p className="px-4 text-xs text-muted-foreground mb-3">Reorder in seconds</p>
+          <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+            {buyAgainProducts.map((p) => (
+              <div key={p.id} className="w-36 shrink-0">
+                <ProductCard product={p} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Today's Deals shelf ── (temporarily disabled — re-enable when deal IDs are updated to Supabase UUIDs)
+      <div className={buyAgainProducts.length > 0 ? "" : "mt-4"}>
         <ProductShelf
           title="🔥 Today's Deals"
           products={dealProducts}
           seeAllPath="/shop/offers"
         />
       </div>
+      */}
 
       {/* ── Popular Products shelf ── */}
       <ProductShelf
@@ -412,7 +450,7 @@ const HomeDashboard = () => {
               See all <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3 px-4">
+          <div className="grid grid-cols-2 gap-2 px-4">
             {newProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
