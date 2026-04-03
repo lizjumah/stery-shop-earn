@@ -75,7 +75,7 @@ router.post("/orders/:id/deduct-stock", async (req: Request, res: Response) => {
     // 3. Fetch the full order and fire the WhatsApp alert
     const { data: order, error: orderFetchError } = await supabaseAdmin
       .from("orders")
-      .select("id, order_number, customer_name, customer_phone, total, delivery_option, delivery_area, delivery_location, items, created_at")
+      .select("id, order_number, customer_name, customer_phone, total, payment_status, delivery_option, delivery_area, delivery_location, items, created_at")
       .eq("id", id)
       .single();
 
@@ -91,6 +91,7 @@ router.post("/orders/:id/deduct-stock", async (req: Request, res: Response) => {
         customer_name:     order.customer_name,
         customer_phone:    order.customer_phone,
         total:             order.total,
+        payment_status:    order.payment_status,
         delivery_option:   order.delivery_option ?? "pickup",
         delivery_area:     order.delivery_area,
         delivery_location: order.delivery_location,

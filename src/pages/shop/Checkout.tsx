@@ -54,7 +54,6 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "cash">("mpesa");
   const [mpesaCode, setMpesaCode]         = useState("");
   const [paymentSubmitted, setPaymentSubmitted]       = useState(false);
-  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [copiedField, setCopiedField]                 = useState<string | null>(null);
 
   const [isLoading, setIsLoading]     = useState(true);
@@ -112,18 +111,11 @@ const Checkout = () => {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleIHavePaid = () => {
-    if (!mpesaCode.trim()) {
-      toast.error("Please enter your M-Pesa confirmation code");
-      return;
-    }
-    setPaymentSubmitted(true);
-  };
-
   // ── Order submission ───────────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    let didNavigate = false;
     if (!customerName.trim()) { toast.error("Please enter your name"); setIsSubmitting(false); return; }
     if (!phone.trim())        { toast.error("Please enter your phone number"); setIsSubmitting(false); return; }
 
@@ -136,8 +128,8 @@ const Checkout = () => {
       if (!cwReceiverName.trim()) { toast.error("Please enter receiver name"); setIsSubmitting(false); return; }
       if (!cwReceiverPhone.trim()){ toast.error("Please enter receiver phone number"); setIsSubmitting(false); return; }
     }
-    if (paymentMethod === "mpesa" && !paymentSubmitted) {
-      toast.error("Please complete M-Pesa payment first");
+    if (paymentMethod === "mpesa" && !mpesaCode.trim()) {
+      toast.error("Please enter your M-Pesa confirmation code");
       setIsSubmitting(false); return;
     }
 
@@ -274,6 +266,8 @@ const Checkout = () => {
       });
 
       clearCart();
+      if (paymentMethod === "mpesa") setPaymentSubmitted(true);
+      didNavigate = true;
       navigate("/shop/order-success", {
         state: {
           orderNumber:    num,
@@ -293,7 +287,8 @@ const Checkout = () => {
       });
     } catch {
       toast.error("Something went wrong placing your order. Please try again.");
-      setIsSubmitting(false);
+    } finally {
+      if (!didNavigate) setIsSubmitting(false);
     }
   };
 
@@ -693,11 +688,16 @@ const Checkout = () => {
 
             {paymentMethod === "mpesa" && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-4 mt-2">
+                <div className="bg-card rounded-lg p-3 space-y-1">
+                  <p className="text-sm font-medium text-foreground">Step 1 — Complete M-Pesa payment</p>
+                  <p className="text-sm font-medium text-foreground">Step 2 — Enter your transaction code</p>
+                  <p className="text-sm font-medium text-foreground">Step 3 — Confirm your order</p>
+                </div>
                 <div className="bg-card rounded-lg p-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="flex items-center justify-between sm:block">
                       <div>
-                        <p className="text-xs text-muted-foreground">Paybill</p>
+                        <p className="text-xs text-muted-foreground">Business Number</p>
                         <p className="text-base font-semibold text-foreground">4076859</p>
                       </div>
                       <button onClick={() => copyToClipboard("4076859", "paybill")} className="bg-secondary rounded-lg p-2 sm:mt-1">
@@ -706,7 +706,7 @@ const Checkout = () => {
                     </div>
                     <div className="flex items-center justify-between sm:block border-t border-border pt-3 sm:border-0 sm:pt-0">
                       <div>
-                        <p className="text-xs text-muted-foreground">Account</p>
+                        <p className="text-xs text-muted-foreground">Account Number</p>
                         <p className="text-base font-semibold text-foreground">{pendingOrderNum}</p>
                       </div>
                       <button onClick={() => copyToClipboard(pendingOrderNum, "account")} className="bg-secondary rounded-lg p-2 sm:mt-1">
@@ -714,7 +714,7 @@ const Checkout = () => {
                       </button>
                     </div>
                     <div className="border-t border-border pt-3 sm:border-0 sm:pt-0">
-                      <p className="text-xs text-muted-foreground">Amount</p>
+                      <p className="text-xs text-muted-foreground">Amount to Pay</p>
                       <p className="text-base font-semibold text-primary">
                         KSh {total}
                         {fulfillmentMethod === "countrywide" && (
@@ -734,20 +734,16 @@ const Checkout = () => {
                         placeholder="e.g. SLK4H7TXYZ"
                         className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary font-mono tracking-wider placeholder:text-muted-foreground"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You will receive this code by SMS after payment.
+                      </p>
                     </div>
                     <Button
-                      onClick={() => {
-                        if (!mpesaCode.trim()) {
-                          toast.error("Please enter your M-Pesa confirmation code");
-                          return;
-                        }
-                        setIsConfirmingPayment(true);
-                        handleIHavePaid();
-                      }}
-                      disabled={isConfirmingPayment}
-                      className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold disabled:opacity-70"
+                      onClick={handlePlaceOrder}
+                      disabled={isSubmitting}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold disabled:opacity-70"
                     >
-                      {isConfirmingPayment ? "Processing..." : "Confirm Order"}
+                      {isSubmitting ? "Placing Order..." : "Confirm Order"}
                     </Button>
                   </div>
                 ) : (
@@ -765,13 +761,17 @@ const Checkout = () => {
         {/* ── Place Order ──────────────────────────────────────────────────── */}
         <Button
           onClick={handlePlaceOrder}
-          disabled={isSubmitting || (paymentMethod === "mpesa" && !paymentSubmitted)}
-          className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 disabled:opacity-50"
+          disabled={isSubmitting}
+          className={
+            paymentMethod === "mpesa" && !mpesaCode.trim()
+              ? "w-full h-auto whitespace-normal px-4 py-4 text-sm font-medium border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:text-amber-900 shadow-none disabled:opacity-70"
+              : "w-full h-14 text-lg font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+          }
         >
           {isSubmitting
             ? "Placing Order..."
-            : paymentMethod === "mpesa" && !paymentSubmitted
-            ? "Complete M-Pesa Payment First"
+            : paymentMethod === "mpesa" && !mpesaCode.trim()
+            ? "Enter your M-Pesa confirmation code to place your order."
             : `Confirm Order — KSh ${total}${fulfillmentMethod === "countrywide" ? " + shipping" : ""}`}
         </Button>
 

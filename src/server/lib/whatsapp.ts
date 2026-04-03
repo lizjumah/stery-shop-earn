@@ -31,6 +31,7 @@ export interface OrderAlertPayload {
   customer_name: string;
   customer_phone: string;
   total: number;
+  payment_status?: string | null;
   delivery_option: string;          // "pickup" | "delivery" | "countrywide"
   delivery_area?: string | null;
   delivery_location?: string | null;
@@ -73,6 +74,26 @@ function buildStoreTemplateVars(order: OrderAlertPayload): [string, string, stri
   ];
 }
 
+function formatOrderTime(createdAt?: string | null): string {
+  if (!createdAt) return "-";
+
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("en-KE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatPaymentStatus(paymentStatus?: string | null): string {
+  const value = (paymentStatus ?? "pending").replace(/_/g, " ").trim();
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "Pending";
+}
+
 // ── Store / admin alert ───────────────────────────────────────────────────────
 
 /**
@@ -83,7 +104,6 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
   const token        = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
   const phoneId      = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
   const alertTo      = process.env.WHATSAPP_ALERT_TO?.trim();
-  const templateName = process.env.WHATSAPP_TEMPLATE_NAME?.trim() || "new_order_alert";
 
   if (!token || !phoneId || !alertTo) {
     console.warn(
@@ -104,44 +124,30 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
   }
 
   const [var1, var2, var3, var4] = buildStoreTemplateVars(order);
-  const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
+  const orderTime = formatOrderTime(order.created_at);
+  const itemsBlock = order.items.length > 0
+    ? order.items.map((item) => {
+        const amount = item.subtotal ?? item.price * item.quantity;
+        return `• ${item.name} × ${item.quantity} — KSh ${amount.toLocaleString()}`;
+      }).join("\n")
+    : "• No items listed";
+  const message =
+    `NEW STERY ORDER 🛒\n\n` +
+    `Order: ${var1}\n` +
+    `Time: ${orderTime}\n\n` +
+    `Customer: ${var2}\n` +
+    `Phone: ${order.customer_phone}\n\n` +
+    `Items:\n` +
+    `${itemsBlock}\n\n` +
+    `Total: KSh ${order.total.toLocaleString()}\n` +
+    `Payment: ${formatPaymentStatus(order.payment_status)}\n` +
+    `Fulfilment: ${var4}\n\n` +
+    `Action: Start preparing this order.`;
 
   for (const to of recipients) {
-    const payload = {
-      messaging_product: "whatsapp",
-      to,
-      type: "template",
-      template: {
-        name: templateName,
-        language: { code: "en" },
-        components: [
-          {
-            type: "body",
-            parameters: [
-              { type: "text", text: var1 },
-              { type: "text", text: var2 },
-              { type: "text", text: var3 },
-              { type: "text", text: var4 },
-            ],
-          },
-        ],
-      },
-    };
-
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const rawBody = await response.text().catch(() => "(unreadable body)");
-
-      if (!response.ok) {
-        console.error(`[whatsapp] Store alert FAILED to ${to} — HTTP ${response.status} — ${rawBody}`);
-      } else {
-        console.log(`[whatsapp] Store alert sent to ${to} for order ${order.order_number}`);
-      }
+      await sendWhatsAppMessage(to, message);
+      console.log(`[whatsapp] Store alert sent to ${to} for order ${order.order_number}`);
     } catch (err: any) {
       console.error(
         `[whatsapp] Network error (store alert) to ${to} for order ${order.order_number}:`,
@@ -162,9 +168,8 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
  * Never throws — safe for fire-and-forget use.
  */
 export async function sendCustomerConfirmation(order: OrderAlertPayload): Promise<void> {
-  const token        = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
-  const phoneId      = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
-  const templateName = process.env.WHATSAPP_CUSTOMER_TEMPLATE_NAME?.trim() || "customer_order_received";
+  const token   = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
 
   if (!token || !phoneId) {
     console.warn(
@@ -189,43 +194,15 @@ export async function sendCustomerConfirmation(order: OrderAlertPayload): Promis
     return;
   }
 
-  const payload = {
-    messaging_product: "whatsapp",
-    to,
-    type: "template",
-    template: {
-      name: templateName,
-      language: { code: "en" },
-      components: [
-        {
-          type: "body",
-          parameters: [
-            { type: "text", text: order.customer_name },
-            { type: "text", text: order.order_number  },
-          ],
-        },
-      ],
-    },
-  };
-
-  const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
+  const message =
+    `Hi ${order.customer_name} 😊\n` +
+    `Thank you for shopping with Stery Supermarket 🛒\n\n` +
+    `Your order #${order.order_number} has been received and our team is preparing it.\n\n` +
+    `We will notify you once it is on the way.`;
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const rawBody = await response.text().catch(() => "(unreadable body)");
-
-    if (!response.ok) {
-      console.error(
-        `[whatsapp] Customer confirmation FAILED to ${to} — HTTP ${response.status} — ${rawBody}`
-      );
-    } else {
-      console.log(`[whatsapp] Customer confirmation sent to ${to} for order ${order.order_number}`);
-    }
+    await sendWhatsAppMessage(to, message);
+    console.log(`[whatsapp] Customer confirmation sent to ${to} for order ${order.order_number}`);
   } catch (err: any) {
     console.error(
       `[whatsapp] Network error (customer confirmation) to ${to} for order ${order.order_number}:`,
@@ -331,8 +308,47 @@ export async function sendCustomerReadyNotification(order: OrderAlertPayload): P
  * Template: customer_order_dispatched  (set WHATSAPP_DISPATCH_TEMPLATE_NAME to override)
  */
 export async function sendCustomerDispatchedNotification(order: OrderAlertPayload): Promise<void> {
-  const templateName = process.env.WHATSAPP_DISPATCH_TEMPLATE_NAME?.trim() || "customer_order_dispatched";
-  return sendCustomerStatusTemplate(order, templateName, "customer DISPATCH notification");
+  const token   = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+
+  if (!token || !phoneId) {
+    console.warn(
+      "[whatsapp] Skipping customer DISPATCH notification — missing env var(s):",
+      [!token && "WHATSAPP_ACCESS_TOKEN", !phoneId && "WHATSAPP_PHONE_NUMBER_ID"]
+        .filter(Boolean).join(", ")
+    );
+    return;
+  }
+
+  const rawPhone = order.customer_phone?.trim();
+  if (!rawPhone) {
+    console.warn(`[whatsapp] Skipping customer DISPATCH notification for order ${order.order_number} — no phone on record`);
+    return;
+  }
+
+  const to = normalizeKenyanPhone(rawPhone);
+  if (!to) {
+    console.warn(
+      `[whatsapp] Skipping customer DISPATCH notification for order ${order.order_number} — unrecognised phone format: ${rawPhone}`
+    );
+    return;
+  }
+
+  const message =
+    `Hi ${order.customer_name} 🚚\n` +
+    `Your Stery order #${order.order_number} is now out for delivery.\n\n` +
+    `Our rider will contact you shortly if needed.\n\n` +
+    `Thank you for shopping with us.`;
+
+  try {
+    await sendWhatsAppMessage(to, message);
+    console.log(`[whatsapp] customer DISPATCH notification sent to ${to} for order ${order.order_number}`);
+  } catch (err: any) {
+    console.error(
+      `[whatsapp] Network error (customer DISPATCH notification) to ${to} for order ${order.order_number}:`,
+      err?.message ?? err
+    );
+  }
 }
 
 // ── Free-text message sender ──────────────────────────────────────────────────

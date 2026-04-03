@@ -28,12 +28,12 @@ interface SuccessState {
 }
 
 const STORE_WHATSAPP = "254794560657";
+const STORE_CALL = "+254794560657";
 
 const OrderSuccess = () => {
   const navigate = useNavigate();
   const { state } = useLocation() as { state: SuccessState | null };
 
-  // Guard against direct navigation with no state
   if (!state?.orderNumber) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-4">
@@ -63,71 +63,20 @@ const OrderSuccess = () => {
     items,
   } = state;
 
-  // ── Status badge ──────────────────────────────────────────────────────────
-  const statusLabel =
-    paymentMethod === "mpesa" ? "Payment Submitted" : "Order Received";
-  const statusStyle =
-    paymentMethod === "mpesa"
-      ? "text-amber-700 bg-amber-50 border-amber-200"
-      : "text-green-700 bg-green-50 border-green-200";
+  const statusLabel = "Order Received";
+  const statusStyle = "text-green-700 bg-green-50 border-green-200";
 
-  // ── Next-step copy ────────────────────────────────────────────────────────
-  let nextStepTitle: string;
-  let nextStepBody: string;
-
-  if (paymentMethod === "mpesa") {
-    nextStepTitle = "Awaiting payment confirmation";
-    nextStepBody =
-      deliveryOption === "delivery"
-        ? `Once your M-Pesa payment is confirmed, we'll prepare and deliver your order to ${deliveryArea}.`
-        : "Once your M-Pesa payment is confirmed, your order will be ready for pickup at our store.";
-  } else {
-    // cash on delivery
-    if (deliveryOption === "delivery") {
-      nextStepTitle = "Preparing your delivery";
-      nextStepBody = `We're preparing your order for delivery to ${deliveryArea}. Our team will call you to confirm the delivery time.`;
-    } else {
-      nextStepTitle = "Ready for store pickup";
-      nextStepBody =
-        "Come to our store to collect your order and pay at the counter. Our team will have it ready for you.";
-    }
-  }
-
-  // ── WhatsApp order message (unchanged) ────────────────────────────────────
-  const itemsList = items
-    .map((i) => `• ${i.name} × ${i.quantity} — KSh ${i.subtotal}`)
-    .join("\n");
-
-  const deliveryInfo =
-    deliveryOption === "delivery"
-      ? `📍 *Delivery Area:* ${deliveryArea}\n📍 *Location:* ${location}${
-          freeDelivery
-            ? "\n🎉 *Free Delivery*"
-            : `\n🚚 *Delivery Fee:* KSh ${deliveryFee}`
-        }`
-      : `🏪 *Pickup at Store*`;
-
-  const pointsInfo =
-    pointsDiscount > 0
-      ? `\n🎁 *Points Redeemed:* ${pointsDiscount} pts (- KSh ${pointsDiscount})`
-      : "";
+  const nextStepTitle = "Your order has been received and is being prepared.";
+  const nextStepBody = "You can track your order progress anytime below.";
 
   const whatsappMessage = [
-    `🛒 *New Order: ${orderNumber}*`,
-    ``,
-    `👤 *Name:* ${customerName}`,
-    `📞 *Phone:* ${phone}`,
-    ``,
-    `📦 *Items Ordered:*`,
-    itemsList,
-    ``,
-    `💰 *Total:* KSh ${total}`,
-    `💳 *Payment:* ${paymentMethod === "mpesa" ? "M-Pesa Paybill" : "Cash on Delivery"}`,
-    pointsInfo,
-    deliveryInfo,
-  ]
-    .filter(Boolean)
-    .join("\n");
+    `Hello Stery, I have placed order #${orderNumber}.`,
+    "",
+    `Name: ${customerName}`,
+    `Phone: ${phone}`,
+    "",
+    "Please assist me with this order.",
+  ].join("\n");
 
   const whatsappUrl = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(whatsappMessage)}`;
 
@@ -135,21 +84,17 @@ const OrderSuccess = () => {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-
-      {/* ── Confirmation header ─────────────────────────────────────────────── */}
       <div className="flex flex-col items-center pt-10 pb-5 px-6 text-center">
         <div className="bg-green-50 rounded-full p-4 mb-3">
           <CheckCircle className="w-12 h-12 text-green-600" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Order Confirmed ✅</h1>
+        <h1 className="text-2xl font-bold text-foreground">Order Received ✅</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {firstName ? `Thank you, ${firstName}! ` : "Thank you! "}Your order has been received.
         </p>
       </div>
 
       <div className="px-4 space-y-3 max-w-md mx-auto">
-
-        {/* ── Order number + status ─────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Order Number</p>
@@ -160,7 +105,6 @@ const OrderSuccess = () => {
           </span>
         </div>
 
-        {/* ── Next step ────────────────────────────────────────────────────── */}
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <div className="bg-primary/10 rounded-full p-2 shrink-0 mt-0.5">
@@ -173,7 +117,6 @@ const OrderSuccess = () => {
           </div>
         </div>
 
-        {/* ── Order summary ─────────────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated">
           <div className="flex items-center gap-2 mb-3">
             <Package className="w-4 h-4 text-muted-foreground" />
@@ -228,7 +171,6 @@ const OrderSuccess = () => {
           </div>
         </div>
 
-        {/* ── Loyalty points earned ─────────────────────────────────────────── */}
         {earnedPoints > 0 && (
           <div className="bg-primary/10 rounded-xl p-3 text-center">
             <p className="text-primary font-semibold text-sm">
@@ -242,35 +184,42 @@ const OrderSuccess = () => {
           </div>
         )}
 
-        {/* ── WhatsApp CTA ──────────────────────────────────────────────────── */}
-        <div className="space-y-1.5 pt-1">
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block">
-            <Button className="w-full h-12 text-base font-semibold bg-[hsl(142,70%,40%)] hover:bg-[hsl(142,70%,35%)] text-white rounded-xl gap-2">
-              <span className="text-lg">💬</span> Confirm Order via WhatsApp
-            </Button>
-          </a>
-          <p className="text-xs text-muted-foreground text-center">
-            Your order is saved. WhatsApp helps our team confirm it faster.
-          </p>
-        </div>
-
-        {/* ── Navigation ───────────────────────────────────────────────────── */}
         <div className="flex gap-3 pt-1">
+          <Button
+            className="flex-1 bg-primary hover:bg-primary/90"
+            onClick={() => navigate("/shop/orders")}
+          >
+            Track My Order
+          </Button>
           <Button
             variant="outline"
             className="flex-1"
-            onClick={() => navigate("/shop/orders")}
-          >
-            View My Orders
-          </Button>
-          <Button
-            className="flex-1 bg-primary hover:bg-primary/90"
             onClick={() => navigate("/shop")}
           >
             Continue Shopping
           </Button>
         </div>
 
+        <div className="pt-1 text-center">
+          <p className="text-sm font-medium text-foreground">Need help?</p>
+          <div className="mt-2 flex items-center justify-center gap-3 text-sm">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 underline-offset-4 hover:underline"
+            >
+              Chat with Stery
+            </a>
+            <span className="text-muted-foreground">|</span>
+            <a
+              href={`tel:${STORE_CALL}`}
+              className="text-primary hover:text-primary/80 underline-offset-4 hover:underline"
+            >
+              Call Stery
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );
