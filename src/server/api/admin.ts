@@ -7,6 +7,7 @@ import {
   sendCustomerReadyNotification,
   sendCustomerDispatchedNotification,
 } from "../lib/whatsapp";
+import { logActivity } from "../lib/logActivity";
 
 // Multer instance for bulk image uploads — memory storage, images only, max 200 files / 5 MB each
 const bulkImageUpload = multer({
@@ -72,11 +73,15 @@ router.post("/orders/:id/deduct-stock", async (req: Request, res: Response) => {
     }
 
     // 3. Fetch the full order and fire the WhatsApp alert
-    const { data: order } = await supabaseAdmin
+    const { data: order, error: orderFetchError } = await supabaseAdmin
       .from("orders")
       .select("id, order_number, customer_name, customer_phone, total, delivery_option, delivery_area, delivery_location, items, created_at")
       .eq("id", id)
       .single();
+
+    if (orderFetchError) {
+      console.error("[deduct-stock] Supabase fetch failed for order", id, "—", orderFetchError.message);
+    }
 
     if (order) {
       alertedOrders.add(id);
@@ -335,6 +340,12 @@ router.post("/orders/:id/payment-status", async (req: Request, res: Response) =>
       return res.status(400).json({ error: "payment_status is required" });
     }
 
+    const { data: oldOrder } = await supabaseAdmin
+      .from("orders")
+      .select("payment_status")
+      .eq("id", id)
+      .single();
+
     const updates: Record<string, unknown> = { payment_status };
     if (payment_status === "paid") {
       updates.paid_at = new Date().toISOString();
@@ -357,6 +368,20 @@ router.post("/orders/:id/payment-status", async (req: Request, res: Response) =>
       { payment_status },
       req.adminId!
     );
+
+    // Flat field-level activity log — only if value actually changed (non-blocking)
+    if (oldOrder?.payment_status !== payment_status) {
+      logActivity({
+        entity_type:   "order",
+        entity_id:     id,
+        action:        "status_changed",
+        field_changed: "payment_status",
+        old_value:     oldOrder?.payment_status ?? "unknown",
+        new_value:     payment_status,
+        changed_by:    req.adminId ?? "unknown",
+        source:        "admin_dashboard",
+      }).catch(console.error);
+    }
 
     res.json({ success: true, order: data });
   } catch (err: any) {
@@ -396,14 +421,29 @@ router.post("/orders/:id/status", async (req: Request, res: Response) => {
       throw error;
     }
 
-    await logAdminAction(
-      "UPDATE_ORDER_STATUS",
-      "order",
-      id,
-      { status: oldOrder?.status },
-      { status },
-      req.adminId!
-    );
+    // Only log when status actually changed — avoids noise from no-op saves
+    if (oldOrder?.status !== status) {
+      await logAdminAction(
+        "UPDATE_ORDER_STATUS",
+        "order",
+        id,
+        { status: oldOrder?.status },
+        { status },
+        req.adminId!
+      );
+
+      // Flat field-level activity log (non-blocking)
+      logActivity({
+        entity_type:   "order",
+        entity_id:     id,
+        action:        "status_changed",
+        field_changed: "order_status",
+        old_value:     oldOrder?.status ?? "unknown",
+        new_value:     status,
+        changed_by:    req.adminId ?? "unknown",
+        source:        "admin_dashboard",
+      }).catch(console.error);
+    }
 
     res.json({ success: true, order: data });
 

@@ -45,10 +45,12 @@ app.get("/health", (req: Request, res: Response) => {
 // Import admin routes
 import adminRouter from "./api/admin";
 import inventoryRouter from "./api/inventory";
+import whatsappRouter from "./api/whatsapp";
 
 // Mount admin routes
 app.use("/api/admin", adminRouter);
 app.use("/api/admin/inventory", inventoryRouter);
+app.use("/api/whatsapp", whatsappRouter);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

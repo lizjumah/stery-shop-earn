@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
 import { verifyAdmin, logAdminAction, supabaseAdmin } from "../middleware/auth";
+import { logActivity } from "../lib/logActivity";
 
 const router = Router();
 router.use(verifyAdmin);
@@ -395,10 +396,10 @@ router.post("/uploads/:id/apply", async (req: Request, res: Response) => {
         .json({ error: "This upload has already been applied" });
     }
 
-    // Fetch all changed items for this upload
+    // Fetch all changed items for this upload (stock_in_db needed for activity log)
     const { data: changedItems, error: itemsError } = await supabaseAdmin
       .from("inventory_upload_items")
-      .select("product_id, stock_in_file")
+      .select("product_id, stock_in_file, stock_in_db")
       .eq("upload_id", id)
       .eq("status", "changed");
 
@@ -420,31 +421,46 @@ router.post("/uploads/:id/apply", async (req: Request, res: Response) => {
     for (let i = 0; i < changedItems.length; i += CONCURRENCY) {
       const batch = changedItems.slice(i, i + CONCURRENCY);
 
-      const results = await Promise.allSettled(
-        batch
-          .filter((item) => item.product_id)
-          .map((item) => {
-            const qty = item.stock_in_file;
-            const stockStatus =
-              qty === 0 ? "out_of_stock" : qty <= 5 ? "low_stock" : "in_stock";
+      const filteredBatch = batch.filter((item) => item.product_id);
 
-            return supabaseAdmin
-              .from("products")
-              .update({
-                stock_quantity: qty,
-                stock_status: stockStatus,
-                in_stock: qty > 0,
-              })
-              .eq("id", item.product_id);
-          })
+      const results = await Promise.allSettled(
+        filteredBatch.map((item) => {
+          const qty = item.stock_in_file;
+          const stockStatus =
+            qty === 0 ? "out_of_stock" : qty <= 5 ? "low_stock" : "in_stock";
+
+          return supabaseAdmin
+            .from("products")
+            .update({
+              stock_quantity: qty,
+              stock_status: stockStatus,
+              in_stock: qty > 0,
+            })
+            .eq("id", item.product_id);
+        })
       );
 
-      for (const result of results) {
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
         if (result.status === "fulfilled") {
           if (result.value.error) {
             errors.push(result.value.error.message);
           } else {
             updated++;
+            // Log stock quantity change per product (non-blocking)
+            const item = filteredBatch[j];
+            if (Number(item.stock_in_db ?? 0) !== Number(item.stock_in_file)) {
+              logActivity({
+                entity_type:   "product",
+                entity_id:     item.product_id!,
+                action:        "updated",
+                field_changed: "stock_quantity",
+                old_value:     String(item.stock_in_db ?? 0),
+                new_value:     String(item.stock_in_file),
+                changed_by:    req.adminId ?? "unknown",
+                source:        "admin_dashboard",
+              }).catch(console.error);
+            }
           }
         } else {
           errors.push(String(result.reason));

@@ -104,7 +104,7 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
   }
 
   const [var1, var2, var3, var4] = buildStoreTemplateVars(order);
-  const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+  const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
   for (const to of recipients) {
     const payload = {
@@ -118,10 +118,10 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
           {
             type: "body",
             parameters: [
-              { type: "text", parameter_name: "order_number",  text: var1 },
-              { type: "text", parameter_name: "customer_name", text: var2 },
-              { type: "text", parameter_name: "total",         text: var3 },
-              { type: "text", parameter_name: "fulfillment",   text: var4 },
+              { type: "text", text: var1 },
+              { type: "text", text: var2 },
+              { type: "text", text: var3 },
+              { type: "text", text: var4 },
             ],
           },
         ],
@@ -200,15 +200,15 @@ export async function sendCustomerConfirmation(order: OrderAlertPayload): Promis
         {
           type: "body",
           parameters: [
-            { type: "text", parameter_name: "customer_name", text: order.customer_name },
-            { type: "text", parameter_name: "order_number",  text: order.order_number  },
+            { type: "text", text: order.customer_name },
+            { type: "text", text: order.order_number  },
           ],
         },
       ],
     },
   };
 
-  const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+  const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
   try {
     const response = await fetch(url, {
@@ -283,15 +283,15 @@ async function sendCustomerStatusTemplate(
         {
           type: "body",
           parameters: [
-            { type: "text", parameter_name: "customer_name", text: order.customer_name },
-            { type: "text", parameter_name: "order_number",  text: order.order_number  },
+            { type: "text", text: order.customer_name },
+            { type: "text", text: order.order_number  },
           ],
         },
       ],
     },
   };
 
-  const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+  const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
   try {
     const response = await fetch(url, {
@@ -334,3 +334,98 @@ export async function sendCustomerDispatchedNotification(order: OrderAlertPayloa
   const templateName = process.env.WHATSAPP_DISPATCH_TEMPLATE_NAME?.trim() || "customer_order_dispatched";
   return sendCustomerStatusTemplate(order, templateName, "customer DISPATCH notification");
 }
+
+// ── Free-text message sender ──────────────────────────────────────────────────
+
+/**
+ * Sends a free-text WhatsApp message to a single recipient.
+ * Only works within the 24-hour customer service window (Meta policy).
+ * Normalises Kenyan phone numbers automatically.
+ * Never throws — safe for fire-and-forget use.
+ */
+export async function sendWhatsAppMessage(to: string, message: string): Promise<void> {
+  const token   = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+  const version = process.env.WHATSAPP_API_VERSION?.trim() || "v22.0";
+
+  if (!token || !phoneId) {
+    console.warn(
+      "[whatsapp] Skipping free-text message — missing env var(s):",
+      [!token && "WHATSAPP_ACCESS_TOKEN", !phoneId && "WHATSAPP_PHONE_NUMBER_ID"]
+        .filter(Boolean).join(", ")
+    );
+    return;
+  }
+
+  if (!to?.trim() || !message?.trim()) {
+    console.warn("[whatsapp] sendWhatsAppMessage called with empty 'to' or 'message' — skipping");
+    return;
+  }
+
+  const normalized = normalizeKenyanPhone(to.trim());
+  if (!normalized) {
+    console.warn(`[whatsapp] sendWhatsAppMessage — unrecognised phone format: ${to}`);
+    return;
+  }
+
+  const url = `https://graph.facebook.com/${version}/${phoneId}/messages`;
+
+  const payload = {
+    messaging_product: "whatsapp",
+    to: normalized,
+    type: "text",
+    text: { body: message.trim() },
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const rawBody = await response.text().catch(() => "(unreadable body)");
+
+    if (!response.ok) {
+      console.error(`[whatsapp] Free-text message FAILED to ${normalized} — HTTP ${response.status} — ${rawBody}`);
+    } else {
+      console.log(`[whatsapp] Free-text message sent to ${normalized}`);
+    }
+  } catch (err: any) {
+    console.error(`[whatsapp] Network error (free-text) to ${normalized}:`, err?.message ?? err);
+  }
+}
+
+// ── Status dispatcher ─────────────────────────────────────────────────────────
+
+/**
+ * Dispatches the correct customer notification based on order status.
+ * Handles: ready_for_pickup → sendCustomerReadyNotification
+ *          out_for_delivery → sendCustomerDispatchedNotification
+ * Unknown statuses are logged and skipped — existing flows are never affected.
+ * Never throws — safe for fire-and-forget use.
+ */
+export async function sendOrderStatusUpdate(
+  order: OrderAlertPayload,
+  status: string,
+): Promise<void> {
+  if (status === "ready_for_pickup") {
+    return sendCustomerReadyNotification(order);
+  }
+
+  if (status === "out_for_delivery") {
+    return sendCustomerDispatchedNotification(order);
+  }
+
+  console.log(
+    `[whatsapp] sendOrderStatusUpdate — no notification defined for status "${status}" on order ${order.order_number}, skipping`
+  );
+}
+
+// ── Named alias ───────────────────────────────────────────────────────────────
+
+/**
+ * Alias for sendCustomerConfirmation — satisfies the sendOrderConfirmation contract.
+ * Delegates entirely; no logic is duplicated.
+ */
+export { sendCustomerConfirmation as sendOrderConfirmation };
