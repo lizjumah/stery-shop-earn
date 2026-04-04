@@ -56,13 +56,13 @@ const Profile = () => {
       return;
     }
     const foundRole: CustomerRole = getCustomerRole(found);
-    if (foundRole === "staff" || foundRole === "owner" || foundRole === "product_manager") {
+    if (foundRole === "staff" || foundRole === "product_manager") {
       // Session NOT yet set — pause and request PIN
       setPendingStaff({ name: found.name, staff_pin: found.staff_pin, completeWith: found });
       setPinInput("");
       return;
     }
-    // Regular customer — session already completed by loginByPhone
+    // Owner and regular customers — session already completed by loginByPhone
     toast.success(`Welcome back, ${found.name}!`);
     setShowPhoneInput(false);
   };
