@@ -742,6 +742,16 @@ router.post("/products/bulk-images", async (req: Request, res: Response) => {
         if (updateError) throw updateError;
 
         matched++;
+
+        // Track who updated this product's image (non-blocking)
+        logActivity({
+          entity_type: "product",
+          entity_id: product.id,
+          action: "image_updated",
+          field_changed: "image_url",
+          changed_by: req.adminId!,
+          source: "bulk_image_upload",
+        }).catch(() => {});
       } catch (err: any) {
         console.error(`[bulk-images] Failed for ${file.originalname}:`, err.message);
         failed++;
@@ -843,6 +853,60 @@ router.get("/audit", async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ error: "Failed to fetch audit logs", message: err.message });
+  }
+});
+
+/*
+GET /api/admin/image-activity/today
+Returns per-staff summary of product image updates made today.
+Used by AdminOverview to show "Today's Product Image Activity".
+*/
+router.get("/image-activity/today", async (req: Request, res: Response) => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabaseAdmin
+      .from("activity_logs")
+      .select("changed_by, changed_at")
+      .eq("action", "image_updated")
+      .gte("changed_at", todayStart.toISOString())
+      .order("changed_at", { ascending: false });
+
+    if (error) throw error;
+
+    // Group by staff ID — rows are DESC so first hit per ID is the latest
+    const staffMap = new Map<string, { count: number; lastAt: string }>();
+    for (const row of data ?? []) {
+      const id = row.changed_by ?? "unknown";
+      if (!staffMap.has(id)) {
+        staffMap.set(id, { count: 1, lastAt: row.changed_at });
+      } else {
+        staffMap.get(id)!.count++;
+      }
+    }
+
+    if (staffMap.size === 0) return res.json([]);
+
+    // Batch-fetch names for all staff IDs
+    const ids = [...staffMap.keys()].filter((id) => id !== "unknown");
+    const { data: customers } = await supabaseAdmin
+      .from("customers")
+      .select("id, name")
+      .in("id", ids);
+
+    const nameMap = new Map((customers ?? []).map((c: any) => [c.id, c.name]));
+
+    const result = [...staffMap.entries()].map(([id, { count, lastAt }]) => ({
+      staff_name: nameMap.get(id) ?? id,
+      products_updated: count,
+      last_activity: lastAt,
+    }));
+
+    return res.json(result);
+  } catch (err: any) {
+    console.error("[image-activity/today] error:", err.message);
+    return res.status(500).json({ error: "Failed to fetch image activity" });
   }
 });
 
