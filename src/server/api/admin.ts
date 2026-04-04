@@ -107,6 +107,39 @@ router.post("/orders/:id/deduct-stock", async (req: Request, res: Response) => {
   }
 });
 
+/*
+POST /api/admin/owner-pin/login-verify
+Verifies the owner PIN at login time — before a session exists.
+Does NOT require verifyAdmin. Accepts { customerId, pin }.
+Returns 200 on success, 401 on wrong PIN, 403 if not owner, 400 if no PIN set.
+*/
+router.post("/owner-pin/login-verify", async (req: Request, res: Response) => {
+  try {
+    const { customerId, pin } = req.body as { customerId?: string; pin?: string };
+    if (!customerId || !pin) {
+      return res.status(400).json({ error: "customerId and pin are required." });
+    }
+
+    const { data: owner, error } = await supabaseAdmin
+      .from("customers")
+      .select("id, role, owner_pin")
+      .eq("id", customerId)
+      .single();
+
+    if (error || !owner) return res.status(404).json({ error: "Account not found." });
+    if (owner.role !== "owner") return res.status(403).json({ error: "Not an owner account." });
+    if (!owner.owner_pin) return res.status(400).json({ error: "no_pin" });
+
+    const match = await bcrypt.compare(pin, owner.owner_pin);
+    if (!match) return res.status(401).json({ error: "Incorrect PIN." });
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error("[owner-pin/login-verify]", err.message);
+    return res.status(500).json({ error: "Verification failed." });
+  }
+});
+
 router.use(verifyAdmin);
 
 /*

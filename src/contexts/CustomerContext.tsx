@@ -149,12 +149,12 @@ export const CustomerProvider = ({ children }: { children: ReactNode }) => {
     }
     const c = data as Customer;
     const role = getCustomerRole(c);
-    if (role === "staff" || role === "product_manager") {
+    if (role === "staff" || role === "product_manager" || role === "owner") {
       // Return the customer WITHOUT completing the session.
       // The caller must verify the PIN and then call completeLogin().
       return c;
     }
-    // Owner and regular customers: complete login immediately (no PIN required).
+    // Regular customers: complete login immediately (no PIN required).
     await completeLogin(c);
     return c;
   };

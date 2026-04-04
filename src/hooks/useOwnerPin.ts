@@ -127,5 +127,44 @@ export function useOwnerPin() {
     }
   }, []);
 
-  return { isVerified, verifyPin, setPin, fetchPinStatus, getLockoutState, pendingResolveRef };
+  /**
+   * Verifies the owner PIN at login time (no session exists yet).
+   * Uses the public login-verify endpoint — no X-Customer-ID auth required.
+   * Returns same result codes as verifyPin.
+   */
+  const loginVerify = useCallback(async (customerId: string, pin: string): Promise<"ok" | "wrong" | "locked" | "error" | "no_pin"> => {
+    const ls = getLockoutState();
+    if (ls.locked) return "locked";
+
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/owner-pin/login-verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, pin }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (res.status === 400 && json.error === "no_pin") return "no_pin";
+
+      if (res.status === 401) {
+        _lockout.attempts++;
+        if (_lockout.attempts >= MAX_ATTEMPTS) {
+          _lockout.lockedUntil = Date.now() + LOCKOUT_MS;
+          _lockout.attempts = 0;
+          return "locked";
+        }
+        return "wrong";
+      }
+
+      if (!res.ok) return "error";
+
+      _lockout.attempts = 0;
+      _lockout.lockedUntil = null;
+      return "ok";
+    } catch {
+      return "error";
+    }
+  }, [getLockoutState]);
+
+  return { isVerified, verifyPin, setPin, fetchPinStatus, getLockoutState, loginVerify, pendingResolveRef };
 }

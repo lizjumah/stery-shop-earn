@@ -32,8 +32,13 @@ const Profile = () => {
 
   const role = getCustomerRole(customer);
   const loyaltyPoints = customer?.loyalty_points || 0;
-  const { fetchPinStatus } = useOwnerPin();
+  const { fetchPinStatus, loginVerify, getLockoutState } = useOwnerPin();
   const [ownerHasPin, setOwnerHasPin] = useState(false);
+  // true when pendingStaff is an owner (PIN verified via backend, not plain text)
+  const [pendingIsOwner, setPendingIsOwner] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinLocked, setPinLocked] = useState(false);
+  const [lockSecondsLeft, setLockSecondsLeft] = useState(0);
 
   useEffect(() => {
     if (role !== "owner") return;
@@ -66,12 +71,20 @@ const Profile = () => {
     }
     const foundRole: CustomerRole = getCustomerRole(found);
     if (foundRole === "staff" || foundRole === "product_manager") {
-      // Session NOT yet set — pause and request PIN
       setPendingStaff({ name: found.name, staff_pin: found.staff_pin, completeWith: found });
+      setPendingIsOwner(false);
       setPinInput("");
+      setPinError(null);
       return;
     }
-    // Owner and regular customers — session already completed by loginByPhone
+    if (foundRole === "owner") {
+      setPendingStaff({ name: found.name, staff_pin: null, completeWith: found });
+      setPendingIsOwner(true);
+      setPinInput("");
+      setPinError(null);
+      return;
+    }
+    // Regular customers — session already completed by loginByPhone
     toast.success(`Welcome back, ${found.name}!`);
     setShowPhoneInput(false);
   };
@@ -82,17 +95,64 @@ const Profile = () => {
       toast.error("Please enter your PIN");
       return;
     }
-    if (pendingStaff.staff_pin && pinInput === pendingStaff.staff_pin) {
-      await completeLogin(pendingStaff.completeWith);
-      toast.success(`Welcome back, ${pendingStaff.name}!`);
-      setPendingStaff(null);
-      setPinInput("");
-      setShowPhoneInput(false);
+
+    if (pendingIsOwner) {
+      // Owner: verify against bcrypt hash via backend
+      const ls = getLockoutState();
+      if (ls.locked) {
+        setPinLocked(true);
+        setLockSecondsLeft(ls.secondsLeft);
+        return;
+      }
+      const result = await loginVerify(pendingStaff.completeWith.id, pinInput);
+      if (result === "ok") {
+        await completeLogin(pendingStaff.completeWith);
+        toast.success(`Welcome back, ${pendingStaff.name}!`);
+        setPendingStaff(null);
+        setPendingIsOwner(false);
+        setPinInput("");
+        setPinError(null);
+        setPinLocked(false);
+        setShowPhoneInput(false);
+      } else if (result === "no_pin") {
+        // Owner hasn't set a PIN yet — let them in and prompt to set one
+        await completeLogin(pendingStaff.completeWith);
+        toast.success(`Welcome back, ${pendingStaff.name}!`);
+        toast("Go to Profile → Security PIN to set your owner PIN.", { duration: 6000 });
+        setPendingStaff(null);
+        setPendingIsOwner(false);
+        setPinInput("");
+        setPinError(null);
+        setShowPhoneInput(false);
+      } else if (result === "locked") {
+        const fresh = getLockoutState();
+        setPinLocked(true);
+        setLockSecondsLeft(fresh.secondsLeft);
+        setPinError(`Too many attempts. Try again in ${fresh.secondsLeft}s.`);
+        setPinInput("");
+      } else {
+        const fresh = getLockoutState();
+        const remaining = MAX_ATTEMPTS - fresh.attempts;
+        setPinError(`Incorrect PIN.${remaining > 0 && remaining < MAX_ATTEMPTS ? ` ${remaining} attempt${remaining !== 1 ? "s" : ""} left.` : ""}`);
+        setPinInput("");
+      }
     } else {
-      toast.error("Incorrect PIN. Please try again.");
-      setPinInput("");
+      // Staff / product_manager: plain-text compare (unchanged)
+      if (pendingStaff.staff_pin && pinInput === pendingStaff.staff_pin) {
+        await completeLogin(pendingStaff.completeWith);
+        toast.success(`Welcome back, ${pendingStaff.name}!`);
+        setPendingStaff(null);
+        setPinInput("");
+        setPinError(null);
+        setShowPhoneInput(false);
+      } else {
+        toast.error("Incorrect PIN. Please try again.");
+        setPinInput("");
+      }
     }
   };
+
+  const MAX_ATTEMPTS = 3;
 
   // ── Not logged in ──────────────────────────────────────────────────────────
   if (!customer) {
@@ -121,26 +181,38 @@ const Profile = () => {
                 </Button>
               </div>
             ) : pendingStaff ? (
-              /* PIN step — only reached by staff/owner */
+              /* PIN step — staff, product_manager, and owner */
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <Lock className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-medium text-foreground">Enter your 6-digit PIN</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {pendingIsOwner ? "Owner Security PIN" : "Enter your 6-digit PIN"}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">Hi {pendingStaff.name}, please enter your PIN to continue.</p>
-                <input
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="••••••"
-                  autoFocus
-                  className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                />
+                <p className="text-xs text-muted-foreground">
+                  Hi {pendingStaff.name}, please enter your {pendingIsOwner ? "owner security" : ""} PIN to continue.
+                </p>
+                {pinLocked ? (
+                  <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                    Too many attempts. Try again in {lockSecondsLeft}s.
+                  </p>
+                ) : (
+                  <input
+                    value={pinInput}
+                    onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(null); }}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="••••••"
+                    autoFocus
+                    onKeyDown={(e) => e.key === "Enter" && handlePinSubmit()}
+                    className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+                  />
+                )}
+                {pinError && <p className="text-xs text-destructive">{pinError}</p>}
                 <div className="flex gap-2">
-                  <Button onClick={() => { setPendingStaff(null); setPinInput(""); setShowPhoneInput(false); }} variant="outline" className="flex-1">Cancel</Button>
-                  <Button onClick={handlePinSubmit} className="flex-1 bg-primary hover:bg-primary/90" disabled={pinInput.length !== 6}>Confirm</Button>
+                  <Button onClick={() => { setPendingStaff(null); setPendingIsOwner(false); setPinInput(""); setPinError(null); setPinLocked(false); setShowPhoneInput(false); }} variant="outline" className="flex-1">Cancel</Button>
+                  <Button onClick={handlePinSubmit} className="flex-1 bg-primary hover:bg-primary/90" disabled={pinInput.length !== 6 || pinLocked}>Confirm</Button>
                 </div>
               </div>
             ) : (
