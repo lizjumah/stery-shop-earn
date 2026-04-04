@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
+import bcrypt from "bcryptjs";
 import { verifyAdmin, logAdminAction, supabaseAdmin } from "../middleware/auth";
 import {
   sendOrderAlert,
@@ -107,6 +108,111 @@ router.post("/orders/:id/deduct-stock", async (req: Request, res: Response) => {
 });
 
 router.use(verifyAdmin);
+
+/*
+POST /api/admin/owner-pin/set
+Sets or changes the owner's security PIN. Accepts:
+  { pin: string (6 digits), currentPin?: string }
+- If no PIN is set yet, currentPin is not required.
+- If a PIN already exists, currentPin must match before the new one is saved.
+- PIN is bcrypt-hashed before storage.
+*/
+router.post("/owner-pin/set", async (req: Request, res: Response) => {
+  try {
+    const { pin, currentPin } = req.body as { pin?: string; currentPin?: string };
+
+    if (!pin || !/^\d{6}$/.test(pin)) {
+      return res.status(400).json({ error: "PIN must be exactly 6 digits." });
+    }
+
+    const { data: owner, error: fetchErr } = await supabaseAdmin
+      .from("customers")
+      .select("id, owner_pin, role")
+      .eq("id", req.adminId!)
+      .single();
+
+    if (fetchErr || !owner) return res.status(404).json({ error: "Account not found." });
+    if (owner.role !== "owner") return res.status(403).json({ error: "Only the owner can set this PIN." });
+
+    // If a PIN is already set, verify the current one first
+    if (owner.owner_pin) {
+      if (!currentPin) return res.status(400).json({ error: "Current PIN is required to change an existing PIN." });
+      const match = await bcrypt.compare(currentPin, owner.owner_pin);
+      if (!match) return res.status(401).json({ error: "Current PIN is incorrect." });
+    }
+
+    const hash = await bcrypt.hash(pin, 10);
+    const { error: updateErr } = await supabaseAdmin
+      .from("customers")
+      .update({ owner_pin: hash })
+      .eq("id", req.adminId!);
+
+    if (updateErr) throw updateErr;
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error("[owner-pin/set]", err.message);
+    return res.status(500).json({ error: "Failed to set PIN." });
+  }
+});
+
+/*
+POST /api/admin/owner-pin/verify
+Verifies the owner's security PIN. Returns a short-lived token (valid 10 min)
+that the frontend stores in memory to avoid repeated prompts.
+Body: { pin: string }
+Response: { token: string, expiresAt: number (unix ms) }
+*/
+router.post("/owner-pin/verify", async (req: Request, res: Response) => {
+  try {
+    const { pin } = req.body as { pin?: string };
+    if (!pin) return res.status(400).json({ error: "PIN is required." });
+
+    const { data: owner, error: fetchErr } = await supabaseAdmin
+      .from("customers")
+      .select("id, owner_pin, role")
+      .eq("id", req.adminId!)
+      .single();
+
+    if (fetchErr || !owner) return res.status(404).json({ error: "Account not found." });
+    if (owner.role !== "owner") return res.status(403).json({ error: "Only the owner can verify this PIN." });
+    if (!owner.owner_pin) return res.status(400).json({ error: "No security PIN set. Please set one in your profile." });
+
+    const match = await bcrypt.compare(pin, owner.owner_pin);
+    if (!match) {
+      return res.status(401).json({ error: "Incorrect PIN." });
+    }
+
+    // Issue a simple time-bounded token: base64(ownerId:expiresAt:hmac-ish nonce)
+    // No JWT dependency — the frontend only needs to trust it for 10 min in memory.
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+    const token = Buffer.from(`${req.adminId!}:${expiresAt}:${Math.random().toString(36).slice(2)}`).toString("base64");
+
+    return res.json({ success: true, token, expiresAt });
+  } catch (err: any) {
+    console.error("[owner-pin/verify]", err.message);
+    return res.status(500).json({ error: "Verification failed." });
+  }
+});
+
+/*
+GET /api/admin/owner-pin/status
+Returns whether the caller has an owner_pin set (true/false).
+Used by Profile to know whether to show Set or Change UI.
+*/
+router.get("/owner-pin/status", async (req: Request, res: Response) => {
+  try {
+    const { data: owner } = await supabaseAdmin
+      .from("customers")
+      .select("owner_pin, role")
+      .eq("id", req.adminId!)
+      .single();
+
+    return res.json({ hasPin: !!(owner?.owner_pin), isOwner: owner?.role === "owner" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to fetch PIN status." });
+  }
+});
 
 /*
 POST /api/admin/images/upload

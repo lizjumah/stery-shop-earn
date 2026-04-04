@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 import { API_BASE } from "@/lib/api/client";
+import { useOwnerPinContext } from "@/contexts/OwnerPinContext";
 const BACKEND_URL = API_BASE;
 
 type Order = Tables<"orders">;
@@ -76,10 +77,14 @@ const PAYMENT_STATUS_BADGE: Record<string, { label: string; className: string }>
   delivery_fee_paid: { label: "Delivery Fee Paid",  className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
 };
 
+// Statuses that are "post-processing" and require owner PIN to set
+const OWNER_GATED_STATUSES: OrderStatus[] = ["out_for_delivery", "delivered", "cancelled"];
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const { requireOwnerPin } = useOwnerPinContext();
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -166,6 +171,13 @@ const AdminOrders = () => {
   };
 
   const handleStatus = async (orderId: string, newStatus: OrderStatus) => {
+    // Gate post-processing status changes with owner PIN
+    if (OWNER_GATED_STATUSES.includes(newStatus)) {
+      const label = newStatus === "cancelled" ? "Cancel order" : `Mark as ${STATUS_BADGE[newStatus]?.label ?? newStatus}`;
+      const ok = await requireOwnerPin(label);
+      if (!ok) return;
+    }
+
     // Block dispatch/preparation if payment has not been confirmed
     if (PAYMENT_GATED_STATUSES.includes(newStatus)) {
       const order = orders.find((o) => o.id === orderId);

@@ -9,8 +9,10 @@ import {
   Cake, LayoutDashboard, PhoneCall, MessageCircle, Lock,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { OwnerPinSetSection } from "@/components/OwnerPinModal";
+import { useOwnerPin } from "@/hooks/useOwnerPin";
 
 const STERY_PHONE = "+254712426918";
 const STERY_WHATSAPP = "254712426918";
@@ -30,6 +32,13 @@ const Profile = () => {
 
   const role = getCustomerRole(customer);
   const loyaltyPoints = customer?.loyalty_points || 0;
+  const { fetchPinStatus } = useOwnerPin();
+  const [ownerHasPin, setOwnerHasPin] = useState(false);
+
+  useEffect(() => {
+    if (role !== "owner") return;
+    fetchPinStatus().then(({ hasPin }) => setOwnerHasPin(hasPin));
+  }, [role, fetchPinStatus]);
 
   // Earn wallet — only confirmed commissions count as available balance
   const earnConfirmed = commissions
@@ -302,6 +311,14 @@ const Profile = () => {
             className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
+
+        {/* ── Owner Security PIN ─────────────────────────────────────────── */}
+        {role === "owner" && (
+          <OwnerPinSetSection
+            hasPin={ownerHasPin}
+            onSaved={() => setOwnerHasPin(true)}
+          />
+        )}
 
         {/* ── Main menu ──────────────────────────────────────────────────── */}
         <div className="bg-card rounded-xl overflow-hidden card-elevated">

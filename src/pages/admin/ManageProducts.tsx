@@ -6,6 +6,7 @@ import { CsvImportModal } from "@/components/CsvImportModal";
 import { BulkImageUploadModal } from "@/components/BulkImageUploadModal";
 import { useProductManagement } from "@/hooks/useProductManagement";
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
+import { useOwnerPinContext } from "@/contexts/OwnerPinContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { subcategoryConfig } from "@/data/products";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ const ManageProducts = () => {
   const { products, isLoading, missingImageCount, fetchProducts, addProduct, updateProduct, deleteProduct, toggleVisibility } =
     useProductManagement();
   const { customer } = useCustomer();
+  const { requireOwnerPin } = useOwnerPinContext();
   const { uploading: imageUploading, uploadImage } = useImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,6 +105,19 @@ const ManageProducts = () => {
     if (!formData.name.trim() || formData.price <= 0) {
       toast.error("Please fill in all required fields");
       return;
+    }
+
+    // Gate sensitive edits: price change or category change require owner PIN
+    if (editingId) {
+      const before = products.find((p) => p.id === editingId);
+      const priceChanged = before && before.price !== formData.price;
+      const categoryChanged = before && before.category !== formData.category;
+      if (priceChanged || categoryChanged) {
+        const label = [priceChanged && "price change", categoryChanged && "category change"]
+          .filter(Boolean).join(" & ");
+        const ok = await requireOwnerPin(`Confirm ${label}`);
+        if (!ok) return;
+      }
     }
 
     if (!editingId) {
@@ -909,7 +924,10 @@ const ManageProducts = () => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => deleteProduct(p.id)}
+                    onClick={async () => {
+                      const ok = await requireOwnerPin(`Delete "${p.name}"`);
+                      if (ok) deleteProduct(p.id);
+                    }}
                     className="h-8 w-8 text-destructive hover:text-destructive"
                   >
                     <Trash2 className="w-4 h-4" />

@@ -44,6 +44,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { FloatingCart } from "./components/FloatingCart";
 import { Layout } from "./components/Layout";
+import { OwnerPinProvider } from "./contexts/OwnerPinContext";
 
 const queryClient = new QueryClient();
 
@@ -139,14 +140,16 @@ const App = () => (
     <TooltipProvider>
       <AppProvider>
         <CustomerProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <div id="app-shell">
-              <FloatingCart />
-              <AppRoutes />
-            </div>
-          </BrowserRouter>
+          <OwnerPinProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <div id="app-shell">
+                <FloatingCart />
+                <AppRoutes />
+              </div>
+            </BrowserRouter>
+          </OwnerPinProvider>
         </CustomerProvider>
       </AppProvider>
     </TooltipProvider>

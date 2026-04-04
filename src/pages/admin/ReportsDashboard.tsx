@@ -5,9 +5,16 @@ import { Button } from "@/components/ui/button";
 import { ShopHeader } from "@/components/ShopHeader";
 import { TrendingUp, Package, ShoppingCart, DollarSign, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOwnerPinContext } from "@/contexts/OwnerPinContext";
 
 const ReportsDashboard = () => {
   const [dateRange, setDateRange] = useState<"week" | "month" | "all">("month");
+  const { requireOwnerPin } = useOwnerPinContext();
+  const [pinVerified, setPinVerified] = useState(false);
+
+  useEffect(() => {
+    requireOwnerPin("View financial reports").then((ok) => setPinVerified(ok));
+  }, [requireOwnerPin]);
 
   // Fetch orders data
   const { data: stats, isLoading } = useQuery({
@@ -81,6 +88,18 @@ const ReportsDashboard = () => {
         <ShopHeader title="Reports & Analytics" showBack />
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!pinVerified) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <ShopHeader title="Reports & Analytics" showBack />
+        <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <p className="text-sm">Waiting for security PIN…</p>
         </div>
       </div>
     );

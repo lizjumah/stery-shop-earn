@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useStaffManagement } from "@/hooks/useStaffManagement";
+import { useOwnerPinContext } from "@/contexts/OwnerPinContext";
 import { Button } from "@/components/ui/button";
 import { ShopHeader } from "@/components/ShopHeader";
 import { Users, Plus, Edit2, Trash2, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 const ManageStaff = () => {
   const { staff, isLoading, fetchStaff, addStaff, updateStaff, toggleStaffStatus } =
     useStaffManagement();
+  const { requireOwnerPin } = useOwnerPinContext();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -27,6 +29,9 @@ const ManageStaff = () => {
     if (!formData.name.trim() || !formData.phone.trim()) {
       return;
     }
+
+    const ok = await requireOwnerPin(editingId ? "Edit staff member" : "Add staff member");
+    if (!ok) return;
 
     if (editingId) {
       await updateStaff(editingId, { name: formData.name, phone: formData.phone, role: formData.role, ...(formData.pin ? { pin: formData.pin } : {}) });
@@ -211,7 +216,10 @@ const ManageStaff = () => {
                   <Button
                     size="sm"
                     variant={s.status === "active" ? "outline" : "default"}
-                    onClick={() => toggleStaffStatus(s.id, s.status)}
+                    onClick={async () => {
+                      const ok = await requireOwnerPin(`${s.status === "active" ? "Disable" : "Enable"} ${s.name}`);
+                      if (ok) toggleStaffStatus(s.id, s.status);
+                    }}
                   >
                     {s.status === "active" ? "Disable" : "Enable"}
                   </Button>

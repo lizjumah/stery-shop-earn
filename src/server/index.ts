@@ -46,6 +46,34 @@ app.get("/health", (req: Request, res: Response) => {
 import adminRouter from "./api/admin";
 import inventoryRouter from "./api/inventory";
 import whatsappRouter from "./api/whatsapp";
+import pg from "pg";
+
+/**
+ * Applies pending DDL that supabase-js cannot run (PostgREST doesn't support DDL).
+ * Requires DATABASE_URL in the environment — format:
+ *   postgresql://postgres.[project-ref]:[db-password]@aws-*.pooler.supabase.com:6543/postgres
+ * If DATABASE_URL is absent, migrations are skipped and a warning is logged.
+ */
+async function runStartupMigrations() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.warn("[startup-migrations] DATABASE_URL not set — skipping DDL migrations.");
+    console.warn("[startup-migrations] To enable: add DATABASE_URL to your Render env vars.");
+    console.warn("[startup-migrations] Alternatively run this SQL in the Supabase SQL editor:");
+    console.warn("  ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS owner_pin text NULL;");
+    return;
+  }
+  const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+  try {
+    await client.connect();
+    await client.query("ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS owner_pin text NULL");
+    console.log("[startup-migrations] ✓ owner_pin column ensured.");
+  } catch (err: any) {
+    console.error("[startup-migrations] DDL error:", err.message);
+  } finally {
+    await client.end();
+  }
+}
 
 // Mount admin routes
 app.use("/api/admin", adminRouter);
@@ -72,6 +100,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
+  runStartupMigrations().catch((e) => console.error("[startup-migrations] unexpected error:", e.message));
   console.log(`\n╔════════════════════════════════════════╗`);
   console.log(`║ Stery Shop Earn - Admin API Server     ║`);
   console.log(`╚════════════════════════════════════════╝\n`);
