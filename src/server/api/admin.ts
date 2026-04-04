@@ -743,15 +743,16 @@ router.post("/products/bulk-images", async (req: Request, res: Response) => {
 
         matched++;
 
-        // Track who updated this product's image (non-blocking)
-        logActivity({
-          entity_type: "product",
-          entity_id: product.id,
-          action: "image_updated",
-          field_changed: "image_url",
-          changed_by: req.adminId!,
-          source: "bulk_image_upload",
-        }).catch(() => {});
+        // Track who updated this product's image (non-blocking, writes to audit_logs)
+        logAdminAction(
+          "IMAGE_UPDATED",
+          "product",
+          product.id,
+          null,
+          { image_url: urlData.publicUrl, product_name: product.name },
+          req.adminId!,
+          "bulk_image_upload"
+        ).catch(() => {});
       } catch (err: any) {
         console.error(`[bulk-images] Failed for ${file.originalname}:`, err.message);
         failed++;
@@ -866,39 +867,29 @@ router.get("/image-activity/today", async (req: Request, res: Response) => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
+    // audit_logs exists in production; activity_logs does not (migration never applied)
     const { data, error } = await supabaseAdmin
-      .from("activity_logs")
-      .select("changed_by, changed_at")
-      .eq("action", "image_updated")
-      .gte("changed_at", todayStart.toISOString())
-      .order("changed_at", { ascending: false });
+      .from("audit_logs")
+      .select("actor_user_id, actor_name, created_at")
+      .eq("action", "IMAGE_UPDATED")
+      .gte("created_at", todayStart.toISOString())
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
 
     // Group by staff ID — rows are DESC so first hit per ID is the latest
-    const staffMap = new Map<string, { count: number; lastAt: string }>();
+    const staffMap = new Map<string, { count: number; lastAt: string; name: string }>();
     for (const row of data ?? []) {
-      const id = row.changed_by ?? "unknown";
+      const id = row.actor_user_id ?? "unknown";
       if (!staffMap.has(id)) {
-        staffMap.set(id, { count: 1, lastAt: row.changed_at });
+        staffMap.set(id, { count: 1, lastAt: row.created_at, name: row.actor_name ?? id });
       } else {
         staffMap.get(id)!.count++;
       }
     }
 
-    if (staffMap.size === 0) return res.json([]);
-
-    // Batch-fetch names for all staff IDs
-    const ids = [...staffMap.keys()].filter((id) => id !== "unknown");
-    const { data: customers } = await supabaseAdmin
-      .from("customers")
-      .select("id, name")
-      .in("id", ids);
-
-    const nameMap = new Map((customers ?? []).map((c: any) => [c.id, c.name]));
-
-    const result = [...staffMap.entries()].map(([id, { count, lastAt }]) => ({
-      staff_name: nameMap.get(id) ?? id,
+    const result = [...staffMap.entries()].map(([, { count, lastAt, name }]) => ({
+      staff_name: name,
       products_updated: count,
       last_activity: lastAt,
     }));
