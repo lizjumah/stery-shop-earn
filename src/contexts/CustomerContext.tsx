@@ -19,7 +19,7 @@ interface Customer {
   referral_code: string | null;
   /** V1 role system. Falls back to is_admin if column not yet present. */
   role?: CustomerRole;
-  /** 4-digit PIN required for staff/owner login. Null for regular customers. */
+  /** 6-digit PIN required for staff/owner login. Null for regular customers. */
   staff_pin?: string | null;
 }
 

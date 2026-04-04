@@ -116,22 +116,22 @@ const Profile = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <Lock className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-medium text-foreground">Enter your 4-digit PIN</p>
+                  <p className="text-sm font-medium text-foreground">Enter your 6-digit PIN</p>
                 </div>
                 <p className="text-xs text-muted-foreground">Hi {pendingStaff.name}, please enter your PIN to continue.</p>
                 <input
                   value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   type="password"
                   inputMode="numeric"
-                  maxLength={4}
-                  placeholder="••••"
+                  maxLength={6}
+                  placeholder="••••••"
                   autoFocus
                   className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                 />
                 <div className="flex gap-2">
                   <Button onClick={() => { setPendingStaff(null); setPinInput(""); setShowPhoneInput(false); }} variant="outline" className="flex-1">Cancel</Button>
-                  <Button onClick={handlePinSubmit} className="flex-1 bg-primary hover:bg-primary/90" disabled={pinInput.length !== 4}>Confirm</Button>
+                  <Button onClick={handlePinSubmit} className="flex-1 bg-primary hover:bg-primary/90" disabled={pinInput.length !== 6}>Confirm</Button>
                 </div>
               </div>
             ) : (

@@ -99,15 +99,15 @@ const ManageStaff = () => {
 
               <div>
                 <label className="text-xs text-muted-foreground font-medium">
-                  4-Digit PIN {editingId ? "(leave blank to keep existing)" : "(required for login)"}
+                  6-Digit PIN {editingId ? "(leave blank to keep existing)" : "(required for login)"}
                 </label>
                 <input
                   type="password"
                   inputMode="numeric"
-                  maxLength={4}
+                  maxLength={6}
                   value={formData.pin}
-                  onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                  placeholder="e.g. 1234"
+                  onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                  placeholder="e.g. 123456"
                   className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary tracking-widest"
                 />
               </div>
