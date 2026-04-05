@@ -480,9 +480,15 @@ const Checkout = () => {
               </span>
             </div>
 
-            <p className="text-xs text-primary font-medium">
-              +{earnedPoints} loyalty points from this order
-            </p>
+            {customer ? (
+              <p className="text-xs text-primary font-medium">
+                +{earnedPoints} loyalty points from this order
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Login to earn loyalty points from this order
+              </p>
+            )}
           </div>
         </div>
 

@@ -103,10 +103,12 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
     return;
   }
 
-  // Parameters aligned to new_order_alert template (en_US):
+  // Parameters aligned to new_order_alert template (en):
   // {{1}} order_number  {{2}} customer_name  {{3}} total  {{4}} fulfillment
   const [, , , var4] = buildStoreTemplateVars(order); // reuse fulfillment string only
-  const templateName = process.env.WHATSAPP_TEMPLATE_NAME?.trim() || "new_order_alert";
+  const rawTemplateName = process.env.WHATSAPP_TEMPLATE_NAME ?? "";
+  const templateName = rawTemplateName.trim() || "new_order_alert";
+  console.log(`[whatsapp] Using staff template: "${templateName}" (env raw: "${rawTemplateName}")`);
   const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
   for (const to of recipients) {
