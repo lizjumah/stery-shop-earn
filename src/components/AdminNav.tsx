@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { label: "Inv. Overview", path: "/admin/inventory",         ownerOnly: false, exact: true  },
   { label: "Master List", path: "/admin/inventory/master",    ownerOnly: false, exact: false },
   { label: "Stock Upload", path: "/admin/inventory/upload",   ownerOnly: false, exact: false },
+  { label: "POS Upload",   path: "/admin/pos-upload",         ownerOnly: false, exact: false },
   { label: "Staff",       path: "/admin/staff",               ownerOnly: true,  exact: false },
   { label: "Commissions", path: "/admin/commissions",         ownerOnly: true,  exact: false },
   { label: "Reports",     path: "/admin/reports",             ownerOnly: true,  exact: false },
