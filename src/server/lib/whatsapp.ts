@@ -104,7 +104,7 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
   }
 
   const [var1, var2, var3, var4] = buildStoreTemplateVars(order);
-  const templateName = process.env.WHATSAPP_STORE_TEMPLATE_NAME?.trim() || "new_order_alert";
+  const templateName = process.env.WHATSAPP_TEMPLATE_NAME?.trim() || "new_order_alert";
   const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
   for (const to of recipients) {
