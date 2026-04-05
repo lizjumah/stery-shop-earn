@@ -143,16 +143,7 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
       console.error(`[whatsapp] Store alert ABORTED — template name is empty (check WHATSAPP_TEMPLATE_NAME env var)`);
       continue;
     }
-    const componentCount = payload.template.components?.[0]?.parameters?.length ?? 0;
-    console.log(
-      `[whatsapp] Store alert dispatch` +
-      ` | phoneId: ...${phoneId.slice(-4)}` +
-      ` | template: "${payload.template.name}"` +
-      ` | lang: "${payload.template.language.code}"` +
-      ` | components: ${payload.template.components?.length ?? 0}` +
-      ` | body params: ${componentCount}` +
-      ` | payload keys: ${Object.keys(payload).join(", ")}`
-    );
+    console.log("[whatsapp] template object preview:", JSON.stringify(payload.template, null, 2));
 
     try {
       const response = await fetch(url, {
