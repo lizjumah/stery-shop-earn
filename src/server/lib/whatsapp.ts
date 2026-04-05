@@ -139,6 +139,12 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
       },
     };
 
+    if (!payload.template.name) {
+      console.error(`[whatsapp] Store alert ABORTED — template name is empty (check WHATSAPP_TEMPLATE_NAME env var)`);
+      continue;
+    }
+    console.log(`[whatsapp] Sending store alert — payload keys: ${Object.keys(payload).join(", ")} — template.name: "${payload.template.name}"`);
+
     try {
       const response = await fetch(url, {
         method: "POST",
