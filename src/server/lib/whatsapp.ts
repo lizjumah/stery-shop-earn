@@ -103,7 +103,9 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
     return;
   }
 
-  const [var1, var2, var3, var4] = buildStoreTemplateVars(order);
+  // Parameters aligned to new_order_alert template (en_US):
+  // {{1}} order_number  {{2}} customer_name  {{3}} total  {{4}} fulfillment
+  const [, , , var4] = buildStoreTemplateVars(order); // reuse fulfillment string only
   const templateName = process.env.WHATSAPP_TEMPLATE_NAME?.trim() || "new_order_alert";
   const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
@@ -120,14 +122,14 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
       type: "template",
       template: {
         name: templateName,
-        language: { code: "en" },
+        language: { code: "en_US" },
         components: [
           {
             type: "body",
             parameters: [
-              { type: "text", text: var1 },
-              { type: "text", text: var2 },
-              { type: "text", text: var3 },
+              { type: "text", text: order.order_number },
+              { type: "text", text: order.customer_name },
+              { type: "text", text: `KES ${order.total.toLocaleString()}` },
               { type: "text", text: var4 },
             ],
           },
