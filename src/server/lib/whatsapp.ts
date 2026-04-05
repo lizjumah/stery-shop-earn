@@ -122,7 +122,7 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
       type: "template",
       template: {
         name: templateName,
-        language: { code: "en_US" },
+        language: { code: "en" },
         components: [
           {
             type: "body",
