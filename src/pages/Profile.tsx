@@ -31,7 +31,6 @@ const Profile = () => {
   const [pinInput, setPinInput] = useState("");
 
   const role = getCustomerRole(customer);
-  const loyaltyPoints = customer?.loyalty_points || 0;
   const { fetchPinStatus, loginVerify, getLockoutState } = useOwnerPin();
   const [ownerHasPin, setOwnerHasPin] = useState(false);
   // true when pendingStaff is an owner (PIN verified via backend, not plain text)
@@ -315,29 +314,6 @@ const Profile = () => {
       </div>
 
       <div className="px-4 mt-5 space-y-4">
-
-        {/* ── Rewards Wallet ─────────────────────────────────────────────── */}
-        <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-primary fill-primary" />
-              <h3 className="font-bold text-foreground text-sm">Rewards Wallet</h3>
-            </div>
-            <Link to="/shop/rewards" className="text-xs text-primary font-medium">
-              View Rewards →
-            </Link>
-          </div>
-          <div className="flex items-end gap-1.5">
-            <span className="text-3xl font-black text-foreground">{loyaltyPoints}</span>
-            <span className="text-sm text-muted-foreground mb-0.5">points</span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            ≈ KSh {loyaltyPoints} discount value · Redeemable at checkout
-          </p>
-          <p className="text-[10px] text-amber-600 font-medium mt-0.5">
-            Loyalty points only — cannot be withdrawn as cash
-          </p>
-        </div>
 
         {/* ── Stery Earn Wallet ──────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated border border-accent/20">

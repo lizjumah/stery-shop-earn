@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ShopHeader } from "@/components/ShopHeader";
 import { Button } from "@/components/ui/button";
-import { Package, Phone, MapPin, CreditCard, ChefHat, Truck, CheckCircle, Loader2, RefreshCw, MessageCircle, Banknote } from "lucide-react";
+import { Package, Phone, MapPin, CreditCard, ChefHat, Truck, CheckCircle, Loader2, RefreshCw, MessageCircle, Banknote, ReceiptText, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -77,14 +77,17 @@ const PAYMENT_STATUS_BADGE: Record<string, { label: string; className: string }>
   delivery_fee_paid: { label: "Delivery Fee Paid",  className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
 };
 
-// Statuses that are "post-processing" and require owner PIN to set
-const OWNER_GATED_STATUSES: OrderStatus[] = ["out_for_delivery", "delivered", "cancelled"];
+// Only high-risk final statuses require owner PIN
+const OWNER_GATED_STATUSES: OrderStatus[] = ["delivered", "cancelled"];
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
   const { requireOwnerPin } = useOwnerPinContext();
+  // orderId → receipt number being entered before confirming processed_at_pos
+  const [posReceiptPending, setPosReceiptPending] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -109,7 +112,19 @@ const AdminOrders = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = orders
+    .filter((o) => filter === "all" || o.status === filter)
+    .filter((o) => {
+      if (!q) return true;
+      return (
+        o.order_number?.toLowerCase().includes(q) ||
+        o.customer_name?.toLowerCase().includes(q) ||
+        o.customer_phone?.toLowerCase().includes(q) ||
+        (o as any).loyalty_card_number?.toLowerCase().includes(q) ||
+        (o as any).pos_receipt_number?.toLowerCase().includes(q)
+      );
+    });
 
   const handlePaymentStatus = async (orderId: string, newPaymentStatus: string) => {
     const customerId = localStorage.getItem("stery_customer_id") || "";
@@ -168,6 +183,35 @@ const AdminOrders = () => {
     );
     toast.success(PAYMENT_STATUS_BADGE[newPaymentStatus]?.label ?? newPaymentStatus);
     fetchOrders();
+  };
+
+  const handlePosProcessed = async (orderId: string) => {
+    const receipt = (posReceiptPending[orderId] ?? "").trim();
+    if (!receipt) {
+      toast.error("Please enter the POS receipt number.");
+      return;
+    }
+
+    // Save receipt number to the order record first
+    const { error: receiptError } = await supabase
+      .from("orders")
+      .update({ pos_receipt_number: receipt } as any)
+      .eq("id", orderId);
+
+    if (receiptError) {
+      toast.error("Failed to save receipt number.");
+      return;
+    }
+
+    // Update local state so receipt shows immediately
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, pos_receipt_number: receipt } as any : o))
+    );
+    // Clear the pending input
+    setPosReceiptPending((prev) => { const next = { ...prev }; delete next[orderId]; return next; });
+
+    // Proceed with status change
+    await handleStatus(orderId, "processed_at_pos");
   };
 
   const handleStatus = async (orderId: string, newStatus: OrderStatus) => {
@@ -264,6 +308,19 @@ const AdminOrders = () => {
     <div className="min-h-screen bg-background pb-6">
       <ShopHeader title="Admin — Orders" showBack />
 
+      {/* Search */}
+      <div className="px-4 pb-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by order #, name, phone, loyalty card, receipt…"
+            className="w-full bg-secondary rounded-lg py-2 pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+          />
+        </div>
+      </div>
+
       {/* Filters + Refresh */}
       <div className="px-4 pb-3 flex items-center gap-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar flex-1">
@@ -308,11 +365,17 @@ const AdminOrders = () => {
               <div key={order.id} className="bg-card rounded-xl p-4 card-elevated space-y-3">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span className="font-bold text-foreground">{order.order_number}</span>
+                    {(order as any).pos_receipt_number && (
+                      <span className="flex items-center gap-1 text-xs text-purple-600 bg-purple-500/10 border border-purple-500/20 rounded-full px-2 py-0.5 shrink-0">
+                        <ReceiptText className="w-3 h-3" />
+                        {(order as any).pos_receipt_number}
+                      </span>
+                    )}
                   </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${badge.className}`}>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 ml-2 ${badge.className}`}>
                     {badge.label}
                   </span>
                 </div>
@@ -336,6 +399,18 @@ const AdminOrders = () => {
                   {order.payment_method && (
                     <p className="text-muted-foreground flex items-center gap-1.5">
                       <CreditCard className="w-3 h-3" /> {order.payment_method === "mpesa" ? "M-Pesa" : "Cash on Delivery"}
+                    </p>
+                  )}
+                  {(order as any).loyalty_card_number && (
+                    <p className="text-muted-foreground flex items-center gap-1.5">
+                      <CreditCard className="w-3 h-3 text-primary" />
+                      <span>Loyalty card: <span className="font-medium text-foreground">{(order as any).loyalty_card_number}</span></span>
+                    </p>
+                  )}
+                  {(order as any).pos_receipt_number && (
+                    <p className="text-muted-foreground flex items-center gap-1.5">
+                      <ReceiptText className="w-3 h-3 text-purple-600" />
+                      <span>POS receipt: <span className="font-medium text-foreground">{(order as any).pos_receipt_number}</span></span>
                     </p>
                   )}
                 </div>
@@ -422,9 +497,28 @@ const AdminOrders = () => {
                       </Button>
                     )}
                     {order.status === "preparing" && (
-                      <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "processed_at_pos")}>
-                        <CreditCard className="w-3 h-3" /> POS Processed
-                      </Button>
+                      posReceiptPending[order.id] !== undefined ? (
+                        <div className="flex items-center gap-2 w-full flex-wrap">
+                          <input
+                            autoFocus
+                            value={posReceiptPending[order.id]}
+                            onChange={(e) => setPosReceiptPending((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                            onKeyDown={(e) => e.key === "Enter" && handlePosProcessed(order.id)}
+                            placeholder="POS receipt number"
+                            className="flex-1 min-w-0 bg-secondary rounded-lg py-1.5 px-2.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-muted-foreground"
+                          />
+                          <Button size="sm" className="text-xs gap-1 bg-purple-600 hover:bg-purple-700 text-white shrink-0" onClick={() => handlePosProcessed(order.id)}>
+                            <ReceiptText className="w-3 h-3" /> Confirm POS
+                          </Button>
+                          <button className="text-xs text-muted-foreground hover:text-foreground shrink-0" onClick={() => setPosReceiptPending((prev) => { const next = { ...prev }; delete next[order.id]; return next; })}>
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => setPosReceiptPending((prev) => ({ ...prev, [order.id]: "" }))}>
+                          <CreditCard className="w-3 h-3" /> POS Processed
+                        </Button>
+                      )
                     )}
                     {order.status === "processed_at_pos" && (
                       <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => handleStatus(order.id, "out_for_delivery")}>

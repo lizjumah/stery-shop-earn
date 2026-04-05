@@ -43,6 +43,7 @@ import Referrals from "./pages/earn/Referrals";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { FloatingCart } from "./components/FloatingCart";
+import { FloatingHelpButton } from "./components/FloatingHelpButton";
 import { Layout } from "./components/Layout";
 import { OwnerPinProvider } from "./contexts/OwnerPinContext";
 
@@ -146,6 +147,7 @@ const App = () => (
             <BrowserRouter>
               <div id="app-shell">
                 <FloatingCart />
+                <FloatingHelpButton />
                 <AppRoutes />
               </div>
             </BrowserRouter>

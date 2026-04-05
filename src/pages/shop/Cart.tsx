@@ -117,9 +117,17 @@ const Cart = () => {
           <span>Subtotal</span><span>KSh {subtotal}</span>
         </div>
         <p className="text-xs text-muted-foreground mb-3">Delivery fee calculated at checkout</p>
-        <Button onClick={() => navigate("/shop/checkout")} className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
-          Proceed to Checkout
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => navigate("/shop")}
+            className="sm:flex-1 rounded-md px-4 py-3 text-sm font-semibold text-center leading-snug bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors"
+          >
+            Forgot something?{" "}<br className="hidden sm:inline" />Add more items
+          </button>
+          <Button onClick={() => navigate("/shop/checkout")} className="sm:flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90">
+            Proceed to Checkout
+          </Button>
+        </div>
       </div>
     </div>
   );

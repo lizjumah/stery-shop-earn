@@ -1,24 +1,24 @@
+import { useState } from "react";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Star, Gift, TrendingUp, Ticket, Clock } from "lucide-react";
+import { ArrowLeft, Star, Gift, TrendingUp, Ticket, Clock, CreditCard, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const NEXT_REWARD_AT = 100;
 
-// Reward tiers available at specific point thresholds
 const VOUCHER_TIERS = [
-  { id: "v1", title: "KSh 50 Voucher",      description: "KSh 50 off any purchase",                     pointsCost: 50,  discount: 50,  expiresAt: "Ongoing" },
-  { id: "v2", title: "Free Delivery",        description: "Free delivery on your next order",             pointsCost: 50,  discount: 0,   expiresAt: "Ongoing" },
-  { id: "v3", title: "KSh 100 Off",          description: "KSh 100 off on orders above KSh 500",         pointsCost: 100, discount: 100, expiresAt: "Ongoing" },
-  { id: "v4", title: "KSh 200 Voucher",      description: "KSh 200 off on orders above KSh 1,000",       pointsCost: 200, discount: 200, expiresAt: "Ongoing" },
-  { id: "v5", title: "KSh 500 Super Reward", description: "KSh 500 off on orders above KSh 2,000",       pointsCost: 500, discount: 500, expiresAt: "Ongoing" },
+  { id: "v1", title: "KSh 50 Voucher",      description: "KSh 50 off any purchase",                     pointsCost: 50,  expiresAt: "Ongoing" },
+  { id: "v2", title: "Free Delivery",        description: "Free delivery on your next order",             pointsCost: 50,  expiresAt: "Ongoing" },
+  { id: "v3", title: "KSh 100 Off",          description: "KSh 100 off on orders above KSh 500",         pointsCost: 100, expiresAt: "Ongoing" },
+  { id: "v4", title: "KSh 200 Voucher",      description: "KSh 200 off on orders above KSh 1,000",       pointsCost: 200, expiresAt: "Ongoing" },
+  { id: "v5", title: "KSh 500 Super Reward", description: "KSh 500 off on orders above KSh 2,000",       pointsCost: 500, expiresAt: "Ongoing" },
 ];
 
 const Rewards = () => {
   const navigate = useNavigate();
-  const { customer, pointsHistory, redeemPoints } = useCustomer();
+  const { customer, updateCustomer, pointsHistory } = useCustomer();
 
   const loyaltyPoints = customer?.loyalty_points || 0;
   const pointsToNext = Math.max(0, NEXT_REWARD_AT - (loyaltyPoints % NEXT_REWARD_AT));
@@ -27,13 +27,21 @@ const Rewards = () => {
   const availableVouchers = VOUCHER_TIERS.filter((v) => loyaltyPoints >= v.pointsCost);
   const lockedVouchers = VOUCHER_TIERS.filter((v) => loyaltyPoints < v.pointsCost);
 
-  const handleRedeem = async (pointsCost: number, title: string) => {
-    const success = await redeemPoints(pointsCost, `Redeemed: ${title}`);
-    if (success) {
-      toast.success(`🎁 ${title} redeemed! Apply it at checkout.`);
-    } else {
-      toast.error("Not enough points to redeem.");
+  const linkedCardNumber = customer?.loyalty_card_number ?? null;
+  const [cardInput, setCardInput] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleLinkCard = async () => {
+    const trimmed = cardInput.trim();
+    if (!trimmed) {
+      toast.error("Please enter your loyalty card number.");
+      return;
     }
+    setIsSaving(true);
+    await updateCustomer({ loyalty_card_number: trimmed });
+    toast.success("Loyalty card linked successfully!");
+    setIsSaving(false);
+    setCardInput("");
   };
 
   return (
@@ -78,6 +86,84 @@ const Rewards = () => {
       </div>
 
       <div className="px-4 mt-6 space-y-6">
+
+        {/* Loyalty Card Registration */}
+        <div className="bg-card rounded-xl p-4 card-elevated border border-primary/20">
+          <div className="flex items-center gap-2 mb-3">
+            <CreditCard className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-bold text-foreground">Loyalty Card</h2>
+          </div>
+
+          {linkedCardNumber ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2.5">
+                <CheckCircle className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Linked card number</p>
+                  <p className="font-bold text-foreground tracking-wider">{linkedCardNumber}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Points are automatically added to this card when you shop with Stery.
+              </p>
+              <button
+                className="text-xs text-primary underline-offset-2 hover:underline"
+                onClick={() => setCardInput(linkedCardNumber)}
+              >
+                Update card number
+              </button>
+              {cardInput && (
+                <div className="space-y-2 pt-1">
+                  <input
+                    value={cardInput}
+                    onChange={(e) => setCardInput(e.target.value)}
+                    placeholder="New card number"
+                    className="w-full bg-secondary rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground text-sm"
+                  />
+                  <Button
+                    onClick={handleLinkCard}
+                    disabled={isSaving}
+                    className="w-full bg-primary hover:bg-primary/90"
+                  >
+                    {isSaving ? "Saving…" : "Save New Card Number"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-foreground">
+                Link your Stery loyalty card to earn points automatically on every purchase.
+              </p>
+              <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+                <p className="text-xs text-primary font-medium">
+                  Use the same phone number you used when registering your loyalty card.
+                </p>
+              </div>
+              <div>
+                <input
+                  value={cardInput}
+                  onChange={(e) => setCardInput(e.target.value)}
+                  placeholder="Enter your loyalty card number"
+                  className="w-full bg-background border border-border rounded-lg py-2.5 px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground text-sm"
+                />
+                {!cardInput.trim() && (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Your card number is printed on your physical Stery loyalty card.
+                  </p>
+                )}
+              </div>
+              <Button
+                onClick={handleLinkCard}
+                disabled={isSaving || !cardInput.trim()}
+                className={`w-full ${cardInput.trim() ? "bg-primary hover:bg-primary/90" : "bg-secondary text-muted-foreground cursor-not-allowed"}`}
+              >
+                {isSaving ? "Linking…" : cardInput.trim() ? "Link Loyalty Card" : "Enter card number above"}
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* Available Vouchers */}
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -184,7 +270,6 @@ const Rewards = () => {
           </div>
         </div>
       </div>
-
     </div>
   );
 };

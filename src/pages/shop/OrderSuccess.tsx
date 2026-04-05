@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Package, MapPin, ShoppingBag, ArrowRight } from "lucide-react";
+import { useCustomer } from "@/contexts/CustomerContext";
 import { cn } from "@/lib/utils";
 
 interface OrderItem {
@@ -12,12 +13,13 @@ interface OrderItem {
 }
 
 interface SuccessState {
+  orderId?: string;
   orderNumber: string;
   customerName: string;
   phone: string;
-  deliveryOption: "delivery" | "pickup";
-  deliveryArea: string;
-  location: string;
+  deliveryOption: "delivery" | "pickup" | "countrywide";
+  deliveryArea: string | null;
+  location: string | null;
   paymentMethod: "mpesa" | "cash";
   total: number;
   earnedPoints: number;
@@ -33,6 +35,8 @@ const STORE_CALL = "+254794560657";
 const OrderSuccess = () => {
   const navigate = useNavigate();
   const { state } = useLocation() as { state: SuccessState | null };
+  const { customer } = useCustomer();
+  const hasLoyaltyCard = !!customer?.loyalty_card_number;
 
   if (!state?.orderNumber) {
     return (
@@ -48,6 +52,7 @@ const OrderSuccess = () => {
   }
 
   const {
+    orderId,
     orderNumber,
     customerName,
     phone,
@@ -159,19 +164,27 @@ const OrderSuccess = () => {
               <span>Total paid</span>
               <span>KSh {total.toLocaleString()}</span>
             </div>
+            {paymentMethod && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Payment method</span>
+                <span className="uppercase">{paymentMethod}</span>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-border pt-2 mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="w-3.5 h-3.5 shrink-0" />
-            {deliveryOption === "delivery" ? (
-              <span>{deliveryArea}{location ? ` — ${location}` : ""}</span>
-            ) : (
+            {deliveryOption === "pickup" ? (
               <span>Pickup at store</span>
+            ) : deliveryOption === "countrywide" ? (
+              <span>{location || deliveryArea || "Countrywide delivery"}</span>
+            ) : (
+              <span>{deliveryArea}{location ? ` — ${location}` : ""}</span>
             )}
           </div>
         </div>
 
-        {earnedPoints > 0 && (
+        {earnedPoints > 0 && hasLoyaltyCard && (
           <div className="bg-primary/10 rounded-xl p-3 text-center">
             <p className="text-primary font-semibold text-sm">
               +{earnedPoints} loyalty points earned! 🎉
@@ -183,11 +196,28 @@ const OrderSuccess = () => {
             )}
           </div>
         )}
+        {earnedPoints > 0 && !hasLoyaltyCard && (
+          <div className="bg-secondary rounded-xl p-3 text-center">
+            <p className="text-sm text-foreground font-medium">
+              Link your loyalty card to earn points from this order
+            </p>
+            <button
+              onClick={() => navigate("/shop/rewards")}
+              className="text-xs text-primary font-medium mt-1 hover:underline underline-offset-2"
+            >
+              Go to Rewards →
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-3 pt-1">
           <Button
             className="flex-1 bg-primary hover:bg-primary/90"
-            onClick={() => navigate("/shop/orders")}
+            onClick={() =>
+              navigate("/shop/orders", {
+                state: { orderId, orderNumber },
+              })
+            }
           >
             Track My Order
           </Button>

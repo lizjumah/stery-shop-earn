@@ -74,26 +74,6 @@ function buildStoreTemplateVars(order: OrderAlertPayload): [string, string, stri
   ];
 }
 
-function formatOrderTime(createdAt?: string | null): string {
-  if (!createdAt) return "-";
-
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return new Intl.DateTimeFormat("en-KE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function formatPaymentStatus(paymentStatus?: string | null): string {
-  const value = (paymentStatus ?? "pending").replace(/_/g, " ").trim();
-  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "Pending";
-}
-
 // ── Store / admin alert ───────────────────────────────────────────────────────
 
 /**
@@ -124,33 +104,52 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
   }
 
   const [var1, var2, var3, var4] = buildStoreTemplateVars(order);
-  const orderTime = formatOrderTime(order.created_at);
-  const itemsBlock = order.items.length > 0
-    ? order.items.map((item) => {
-        const amount = item.subtotal ?? item.price * item.quantity;
-        return `• ${item.name} × ${item.quantity} — KSh ${amount.toLocaleString()}`;
-      }).join("\n")
-    : "• No items listed";
-  const message =
-    `NEW STERY ORDER 🛒\n\n` +
-    `Order: ${var1}\n` +
-    `Time: ${orderTime}\n\n` +
-    `Customer: ${var2}\n` +
-    `Phone: ${order.customer_phone}\n\n` +
-    `Items:\n` +
-    `${itemsBlock}\n\n` +
-    `Total: KSh ${order.total.toLocaleString()}\n` +
-    `Payment: ${formatPaymentStatus(order.payment_status)}\n` +
-    `Fulfilment: ${var4}\n\n` +
-    `Action: Start preparing this order.`;
+  const templateName = process.env.WHATSAPP_STORE_TEMPLATE_NAME?.trim() || "new_order_alert";
+  const url = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
   for (const to of recipients) {
+    const normalized = normalizeKenyanPhone(to);
+    if (!normalized) {
+      console.warn(`[whatsapp] Store alert — unrecognised phone format: ${to} — skipping`);
+      continue;
+    }
+
+    const payload = {
+      messaging_product: "whatsapp",
+      to: normalized,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: "en" },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: var1 },
+              { type: "text", text: var2 },
+              { type: "text", text: var3 },
+              { type: "text", text: var4 },
+            ],
+          },
+        ],
+      },
+    };
+
     try {
-      await sendWhatsAppMessage(to, message);
-      console.log(`[whatsapp] Store alert sent to ${to} for order ${order.order_number}`);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const rawBody = await response.text().catch(() => "(unreadable body)");
+      if (!response.ok) {
+        console.error(`[whatsapp] Store alert FAILED to ${normalized} for order ${order.order_number} — HTTP ${response.status} — ${rawBody}`);
+      } else {
+        console.log(`[whatsapp] Store alert sent to ${normalized} for order ${order.order_number}`);
+      }
     } catch (err: any) {
       console.error(
-        `[whatsapp] Network error (store alert) to ${to} for order ${order.order_number}:`,
+        `[whatsapp] Network error (store alert) to ${normalized} for order ${order.order_number}:`,
         err?.message ?? err
       );
     }

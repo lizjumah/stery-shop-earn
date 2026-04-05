@@ -21,6 +21,8 @@ interface Customer {
   role?: CustomerRole;
   /** 6-digit PIN required for staff/owner login. Null for regular customers. */
   staff_pin?: string | null;
+  /** Physical loyalty card number linked by the customer. */
+  loyalty_card_number?: string | null;
 }
 
 /**
