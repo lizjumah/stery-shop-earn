@@ -129,10 +129,10 @@ export async function sendOrderAlert(order: OrderAlertPayload): Promise<void> {
           {
             type: "body",
             parameters: [
-              { type: "text", text: order.order_number },
-              { type: "text", text: order.customer_name },
-              { type: "text", text: `KES ${order.total.toLocaleString()}` },
-              { type: "text", text: var4 },
+              { type: "text", parameter_name: "order_number", text: order.order_number },
+              { type: "text", parameter_name: "customer_name", text: order.customer_name },
+              { type: "text", parameter_name: "total", text: `KES ${order.total.toLocaleString()}` },
+              { type: "text", parameter_name: "fulfillment", text: var4 },
             ],
           },
         ],
