@@ -992,7 +992,7 @@ router.post(
       const uniqueBarcodes = [...new Set(validRows.map((r) => r.barcode))];
 
       const FETCH_BATCH = 500;
-      const productMap = new Map<string, { id: string; name: string; stock_quantity: number | null }>();
+      const productMap = new Map<string, { id: string; name: string; stock_quantity: number | null; price: number | null }>();
 
       for (let i = 0; i < uniqueBarcodes.length; i += FETCH_BATCH) {
         const batch = uniqueBarcodes.slice(i, i + FETCH_BATCH);
