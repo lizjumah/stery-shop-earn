@@ -71,6 +71,8 @@ export default function POSStockUpload() {
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [appliedCount, setAppliedCount] = useState(0);
+  const [appliedPriceCount, setAppliedPriceCount] = useState(0);
+  const [applyPrice, setApplyPrice] = useState(false);
 
   const [matchedItems, setMatchedItems] = useState<PreviewItem[]>([]);
   const [matchedTotal, setMatchedTotal] = useState(0);
@@ -174,12 +176,17 @@ export default function POSStockUpload() {
     try {
       const res = await fetch(
         `${API_BASE}/api/admin/inventory/pos-upload/${uploadId}/apply`,
-        { method: "POST", headers: getAdminHeaders() }
+        {
+          method: "POST",
+          headers: getAdminHeaders(),
+          body: JSON.stringify({ apply_price: applyPrice }),
+        }
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Apply failed");
 
       setAppliedCount(json.updated);
+      setAppliedPriceCount(json.price_updated ?? 0);
       setPhase("applied");
       setHistoryLoaded(false);
       toast.success(`Stock updated for ${json.updated} products`);
@@ -407,8 +414,24 @@ export default function POSStockUpload() {
             </Card>
           )}
 
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-3 items-center">
+          {/* Apply options + action buttons */}
+          <div className="space-y-3">
+            {summary.matched_rows > 0 && (
+              <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+                <input
+                  type="checkbox"
+                  checked={applyPrice}
+                  onChange={(e) => setApplyPrice(e.target.checked)}
+                  disabled={phase === "applying"}
+                  className="w-4 h-4 rounded border-border accent-primary"
+                />
+                <span className="text-foreground">
+                  Also update selling price from POS file
+                </span>
+                <span className="text-xs text-muted-foreground">(only where POS price is present)</span>
+              </label>
+            )}
+            <div className="flex flex-wrap gap-3 items-center">
             {summary.matched_rows > 0 && (
               <Button
                 onClick={handleApply}
@@ -446,6 +469,7 @@ export default function POSStockUpload() {
               Upload Another File
             </Button>
           </div>
+          </div>
         </>
       )}
 
@@ -457,8 +481,13 @@ export default function POSStockUpload() {
             <div>
               <p className="text-lg font-semibold text-green-800">Stock Updated</p>
               <p className="text-sm text-green-700 mt-1">
-                {appliedCount} product{appliedCount !== 1 ? "s" : ""} updated successfully.
+                {appliedCount} product{appliedCount !== 1 ? "s" : ""} stock updated.
               </p>
+              {appliedPriceCount > 0 && (
+                <p className="text-sm text-green-700">
+                  {appliedPriceCount} product{appliedPriceCount !== 1 ? "s" : ""} price updated.
+                </p>
+              )}
             </div>
             <div className="flex justify-center gap-3 pt-1">
               {uploadId && (

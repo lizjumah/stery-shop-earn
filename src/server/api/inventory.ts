@@ -1144,9 +1144,11 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
     if (logErr || !uploadLog) return res.status(404).json({ error: "Upload not found" });
     if (uploadLog.status === "applied") return res.status(400).json({ error: "Already applied" });
 
+    const applyPrice = req.body?.apply_price === true;
+
     const { data: matchedItems, error: itemsErr } = await supabaseAdmin
       .from("pos_upload_items")
-      .select("product_id, pos_stock, current_stock")
+      .select("product_id, pos_stock, current_stock, pos_price")
       .eq("upload_id", id)
       .eq("status", "matched");
 
@@ -1162,6 +1164,7 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
 
     const CONCURRENCY = 20;
     let updated = 0;
+    let priceUpdated = 0;
     const errors: string[] = [];
 
     for (let i = 0; i < matchedItems.length; i += CONCURRENCY) {
@@ -1170,9 +1173,18 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
         batch.map((item) => {
           const qty = Number(item.pos_stock ?? 0);
           const stockStatus = qty === 0 ? "out_of_stock" : qty <= 5 ? "low_stock" : "in_stock";
+          const fields: Record<string, any> = {
+            stock_quantity: qty,
+            stock_status: stockStatus,
+            in_stock: qty > 0,
+          };
+          const posPrice = Number(item.pos_price);
+          if (applyPrice && item.pos_price != null && !isNaN(posPrice) && posPrice >= 0) {
+            fields.price = posPrice;
+          }
           return supabaseAdmin
             .from("products")
-            .update({ stock_quantity: qty, stock_status: stockStatus, in_stock: qty > 0 })
+            .update(fields)
             .eq("id", item.product_id);
         })
       );
@@ -1185,6 +1197,10 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
           } else {
             updated++;
             const item = batch[j];
+            const posPrice = Number(item.pos_price);
+            if (applyPrice && item.pos_price != null && !isNaN(posPrice) && posPrice >= 0) {
+              priceUpdated++;
+            }
             logActivity({
               entity_type: "product",
               entity_id: item.product_id!,
@@ -1221,7 +1237,7 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
       (req as any).adminId!
     );
 
-    return res.json({ success: true, updated, ...(errors.length > 0 && { errors }) });
+    return res.json({ success: true, updated, price_updated: priceUpdated, ...(errors.length > 0 && { errors }) });
   } catch (err: any) {
     console.error("POS upload apply error:", err);
     return res.status(500).json({ error: "Apply failed", message: err.message });
