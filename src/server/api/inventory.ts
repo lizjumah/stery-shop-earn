@@ -833,7 +833,16 @@ function parsePosFile(buffer: Buffer): ParsedPosRow[] {
     defval: null,
   }) as any[][];
 
-  // Find the header row by looking for a cell whose text is "item_number"
+  // Find the header row by looking for a cell whose normalized text matches
+  // any known barcode column name. Normalization: lowercase + trim + spaces→underscore.
+  const BARCODE_HEADER_ALIASES = new Set([
+    "item_number",
+    "item_no",
+    "barcode",
+  ]);
+  const normalizeHeader = (v: any): string =>
+    String(v).toLowerCase().trim().replace(/\s+/g, "_");
+
   let headerRowIdx = -1;
   const colMap: Record<string, number> = {};
 
@@ -843,15 +852,11 @@ function parsePosFile(buffer: Buffer): ParsedPosRow[] {
     for (let j = 0; j < row.length; j++) {
       if (
         row[j] != null &&
-        String(row[j]).toLowerCase().trim() === "item_number"
+        BARCODE_HEADER_ALIASES.has(normalizeHeader(row[j]))
       ) {
         headerRowIdx = i;
         row.forEach((h: any, idx: number) => {
-          if (h != null) {
-            // Normalize: lowercase + collapse spaces to underscore
-            const key = String(h).toLowerCase().replace(/\s+/g, "_").trim();
-            colMap[key] = idx;
-          }
+          if (h != null) colMap[normalizeHeader(h)] = idx;
         });
         break;
       }
@@ -861,12 +866,17 @@ function parsePosFile(buffer: Buffer): ParsedPosRow[] {
 
   if (headerRowIdx < 0) {
     throw new Error(
-      'Could not find the header row. Expected a row containing "item_number". ' +
+      'Could not find the header row. Expected a row containing one of: ' +
+      '"item_number", "item_no", "barcode" (case-insensitive). ' +
       "Check that the file is an unmodified POS export."
     );
   }
 
-  const itemNumCol = colMap["item_number"];
+  // Resolve barcode column — check all normalized alias keys in priority order
+  const itemNumCol =
+    colMap["item_number"] ??
+    colMap["item_no"] ??
+    colMap["barcode"];
   const descCol    = colMap["description"];
   const onHandCol  = colMap["on_hand"];
   const priceCol   = colMap["price"];
