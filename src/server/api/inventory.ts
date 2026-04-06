@@ -214,7 +214,7 @@ router.post(
             barcode: barcode || "",
             product_id: null,
             product_name: row["product_name"] || null,
-            stock_in_file: isNaN(stockNum) ? 0 : stockNum,
+            stock_in_file: isNaN(stockNum) ? 0 : Math.round(stockNum),
             stock_in_db: null,
             status: "invalid",
             row_number: i + 2, // +1 for 1-based, +1 for header row
