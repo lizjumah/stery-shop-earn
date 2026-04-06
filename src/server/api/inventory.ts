@@ -878,7 +878,12 @@ function parsePosFile(buffer: Buffer): ParsedPosRow[] {
     colMap["item_no"] ??
     colMap["barcode"];
   const descCol    = colMap["description"];
-  const onHandCol  = colMap["on_hand"];
+  // Resolve stock column — check aliases in priority order
+  const onHandCol  =
+    colMap["on_hand"] ??
+    colMap["stock"] ??
+    colMap["qty"] ??
+    colMap["quantity"];
   const priceCol   = colMap["price"];
 
   if (itemNumCol === undefined || descCol === undefined) {
