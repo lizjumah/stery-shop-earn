@@ -21,5 +21,6 @@ export const SHOP_CATEGORIES = [
   { db: "Stationery & School",    label: "Stationery",             emoji: "📚", isHomepage: false },
   { db: "Fashion & Accessories",  label: "Fashion",                emoji: "👗", isHomepage: false },
   { db: "Footwear",               label: "Footwear",               emoji: "👟", isHomepage: false },
+  { db: "Shoes",                  label: "Shoes",                  emoji: "👞", isHomepage: false },
   { db: "Electronics",            label: "Electronics",            emoji: "⚡", isHomepage: false },
 ];

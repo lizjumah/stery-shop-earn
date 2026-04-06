@@ -47,6 +47,7 @@ export const categories = [
   "Stationery & School",
   "Fashion & Accessories",
   "Footwear",
+  "Shoes",
   "Electronics",
   // legacy — kept so existing products still filter correctly
   "Groceries",
@@ -76,6 +77,7 @@ export const subcategoryConfig: Record<string, string[]> = {
   "Stationery & School":    ["Exercise Books", "Pens & Pencils", "School Bags", "General"],
   "Fashion & Accessories":  ["Clothing", "Jewelry", "Watches", "Bags", "Belts/hats", "Baby Wear", "General"],
   Footwear:                 ["Shoes", "Slippers", "Sandals", "General"],
+  Shoes:                    ["Men", "Women", "Children", "School Shoes", "Slippers", "Sports", "Gumboots"],
   Electronics:              ["Phones", "Chargers", "Earphones", "Phone Accessories", "Small Electronics", "General"],
   "Wines & Spirits":        ["Wine", "Spirits", "Beer", "General"],
 };
@@ -101,6 +103,7 @@ export const categoryConfig: Record<string, { emoji: string; label: string; desc
   "Stationery & School":    { emoji: "📚", label: "Stationery & School",     description: "Books, pens and school supplies" },
   "Fashion & Accessories":  { emoji: "👗", label: "Fashion & Accessories",   description: "Clothing, jewelry, bags and baby wear" },
   Footwear:                 { emoji: "👟", label: "Footwear",                description: "Shoes, slippers and sandals" },
+  Shoes:                    { emoji: "👞", label: "Shoes",                   description: "Men, women, children and sports shoes" },
   Electronics:              { emoji: "⚡", label: "Electronics",             description: "Phones, chargers and accessories" },
   "Wines & Spirits":        { emoji: "🍷", label: "Wines & Spirits",         description: "Wine, spirits, beer and alcoholic drinks" },
 };
