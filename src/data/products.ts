@@ -71,7 +71,7 @@ export const subcategoryConfig: Record<string, string[]> = {
   "Food & Grocery":         ["Sugar", "Flour", "Cooking Oil", "Spices", "Cereals", "General Grocery", "General"],
   "Snacks & Confectionery": ["Sweet snacks", "Salted snacks", "General"],
   Bakery:                   ["Bread", "Cakes", "Buns", "Birthday items", "General"],
-  "Household & Cleaning":   ["Detergents", "Cleaning Supplies", "Sanitary items", "Air Fresheners", "General"],
+  "Household & Cleaning":   ["Detergents", "Cleaning Supplies", "Sanitary items", "Air Fresheners", "Tissue", "General"],
   "Personal Care":          ["Soap", "Toothpaste", "Lotion", "Hair Products", "Sanitary Pads", "Cosmetics", "Deodorants", "General"],
   "Kitchen & Utensils":     ["Cooking Utensils", "Storage Containers", "Cups & Plates", "Kitchen Tools", "Water Bottles", "General"],
   "Stationery & School":    ["Exercise Books", "Pens & Pencils", "School Bags", "General"],
