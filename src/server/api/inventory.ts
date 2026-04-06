@@ -65,9 +65,10 @@ function parseCSV(
   const lines = text.split("\n").filter((l) => l.trim().length > 0);
   if (lines.length < 2) return { header: [], rows: [] };
 
-  const header = parseCSVLine(lines[0]).map((h) =>
-    h.toLowerCase().replace(/"/g, "").trim()
-  );
+  // Normalize: lowercase + strip quotes + trim + spaces→underscore
+  const normalizeCsvHeader = (h: string) =>
+    h.toLowerCase().replace(/"/g, "").trim().replace(/\s+/g, "_");
+  const header = parseCSVLine(lines[0]).map(normalizeCsvHeader);
 
   const rows: Array<Record<string, string>> = [];
   for (let i = 1; i < lines.length; i++) {
@@ -110,9 +111,18 @@ router.post(
       // 1. Parse CSV
       const { header, rows } = parseCSV(file.buffer);
 
-      if (!header.includes("barcode") || !header.includes("stock")) {
+      // Resolve barcode and stock columns from common aliases
+      const BARCODE_ALIASES = ["barcode", "item_number", "item_no"];
+      const STOCK_ALIASES   = ["stock", "quantity", "qty", "on_hand"];
+      const barcodeKey = BARCODE_ALIASES.find((k) => header.includes(k));
+      const stockKey   = STOCK_ALIASES.find((k) => header.includes(k));
+
+      if (!barcodeKey || !stockKey) {
         return res.status(400).json({
-          error: "CSV must contain 'barcode' and 'stock' columns",
+          error: `CSV is missing required columns. ` +
+            `Barcode column not found (tried: ${BARCODE_ALIASES.join(", ")}). ` +
+            `Stock column not found (tried: ${STOCK_ALIASES.join(", ")}). ` +
+            `Detected headers: ${header.join(", ")}`,
         });
       }
 
@@ -121,7 +131,7 @@ router.post(
       const duplicateBarcodeSet = new Set<string>();
 
       for (let i = 0; i < rows.length; i++) {
-        const bc = rows[i]["barcode"]?.trim();
+        const bc = rows[i][barcodeKey]?.trim();
         if (!bc) continue;
         if (seenBarcodes.has(bc)) {
           duplicateBarcodeSet.add(bc);
@@ -177,8 +187,8 @@ router.post(
       for (let i = 0; i < rows.length; i++) {
         totalRows++;
         const row = rows[i];
-        const barcode = row["barcode"]?.trim();
-        const stockRaw = row["stock"]?.trim();
+        const barcode = row[barcodeKey]?.trim();
+        const stockRaw = row[stockKey]?.trim();
 
         // Skip duplicate occurrences — only process first occurrence, count rest as invalid
         if (

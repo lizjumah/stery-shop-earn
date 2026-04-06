@@ -125,7 +125,7 @@ export default function DailyStockUpload() {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Analysis failed");
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Analysis failed");
 
       setUploadId(json.upload_id);
       setSummary(json.summary);
