@@ -34,15 +34,19 @@ interface Summary {
   matched_rows: number;
   unmatched_rows: number;
   invalid_rows: number;
+  price_changes: number;
+  unchanged_rows: number;
 }
 
 interface PreviewItem {
   barcode: string;
   pos_description: string;
   pos_stock: number | null;
+  pos_price: number | null;
   pos_category: string | null;
   product_name: string | null;
   current_stock: number | null;
+  current_price: number | null;
   status: string;
   invalid_reason: string | null;
   row_number: number;
@@ -72,7 +76,6 @@ export default function POSStockUpload() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [appliedCount, setAppliedCount] = useState(0);
   const [appliedPriceCount, setAppliedPriceCount] = useState(0);
-  const [applyPrice, setApplyPrice] = useState(false);
 
   const [matchedItems, setMatchedItems] = useState<PreviewItem[]>([]);
   const [matchedTotal, setMatchedTotal] = useState(0);
@@ -176,11 +179,7 @@ export default function POSStockUpload() {
     try {
       const res = await fetch(
         `${API_BASE}/api/admin/inventory/pos-upload/${uploadId}/apply`,
-        {
-          method: "POST",
-          headers: getAdminHeaders(),
-          body: JSON.stringify({ apply_price: applyPrice }),
-        }
+        { method: "POST", headers: getAdminHeaders() }
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Apply failed");
@@ -339,23 +338,13 @@ export default function POSStockUpload() {
               <CardTitle className="text-base">File Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <SummaryTile label="Total Rows" value={summary.total_rows} />
-                <SummaryTile
-                  label="Matched"
-                  value={summary.matched_rows}
-                  color={summary.matched_rows > 0 ? "green" : undefined}
-                />
-                <SummaryTile
-                  label="Unmatched"
-                  value={summary.unmatched_rows}
-                  color={summary.unmatched_rows > 0 ? "amber" : undefined}
-                />
-                <SummaryTile
-                  label="Invalid"
-                  value={summary.invalid_rows}
-                  color={summary.invalid_rows > 0 ? "red" : undefined}
-                />
+                <SummaryTile label="Stock Updates" value={summary.matched_rows} color={summary.matched_rows > 0 ? "green" : undefined} />
+                <SummaryTile label="Price Changes" value={summary.price_changes ?? 0} color={(summary.price_changes ?? 0) > 0 ? "amber" : undefined} />
+                <SummaryTile label="Unchanged" value={summary.unchanged_rows ?? 0} />
+                <SummaryTile label="Unmatched" value={summary.unmatched_rows} color={summary.unmatched_rows > 0 ? "amber" : undefined} />
+                <SummaryTile label="Invalid" value={summary.invalid_rows} color={summary.invalid_rows > 0 ? "red" : undefined} />
               </div>
             </CardContent>
           </Card>
@@ -366,7 +355,7 @@ export default function POSStockUpload() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  Matched Products — {summary.matched_rows} will be updated
+                  Matched — {summary.matched_rows} stock updates, {summary.price_changes ?? 0} price changes
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -414,23 +403,8 @@ export default function POSStockUpload() {
             </Card>
           )}
 
-          {/* Apply options + action buttons */}
+          {/* Action buttons */}
           <div className="space-y-3">
-            {summary.matched_rows > 0 && (
-              <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
-                <input
-                  type="checkbox"
-                  checked={applyPrice}
-                  onChange={(e) => setApplyPrice(e.target.checked)}
-                  disabled={phase === "applying"}
-                  className="w-4 h-4 rounded border-border accent-primary"
-                />
-                <span className="text-foreground">
-                  Also update selling price from POS file
-                </span>
-                <span className="text-xs text-muted-foreground">(only where POS price is present)</span>
-              </label>
-            )}
             <div className="flex flex-wrap gap-3 items-center">
             {summary.matched_rows > 0 && (
               <Button
@@ -479,13 +453,13 @@ export default function POSStockUpload() {
           <CardContent className="pt-8 pb-8 text-center space-y-3">
             <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
             <div>
-              <p className="text-lg font-semibold text-green-800">Stock Updated</p>
+              <p className="text-lg font-semibold text-green-800">Upload Applied</p>
               <p className="text-sm text-green-700 mt-1">
-                {appliedCount} product{appliedCount !== 1 ? "s" : ""} stock updated.
+                {appliedCount} stock update{appliedCount !== 1 ? "s" : ""} applied.
               </p>
               {appliedPriceCount > 0 && (
                 <p className="text-sm text-green-700">
-                  {appliedPriceCount} product{appliedPriceCount !== 1 ? "s" : ""} price updated.
+                  {appliedPriceCount} price update{appliedPriceCount !== 1 ? "s" : ""} applied.
                 </p>
               )}
             </div>
@@ -620,6 +594,11 @@ function MatchedTable({
 }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  function largePriceChange(item: PreviewItem): boolean {
+    if (item.pos_price == null || item.current_price == null || item.current_price === 0) return false;
+    return Math.abs(Number(item.pos_price) - Number(item.current_price)) / Number(item.current_price) > 0.4;
+  }
+
   return (
     <div>
       <div className="overflow-x-auto">
@@ -629,21 +608,23 @@ function MatchedTable({
               <TableHead className="w-14">Row</TableHead>
               <TableHead>Barcode</TableHead>
               <TableHead>POS Description</TableHead>
-              <TableHead>Category</TableHead>
               <TableHead className="text-right">POS Stock</TableHead>
-              <TableHead className="text-right">Current Stock</TableHead>
+              <TableHead className="text-right">Curr. Stock</TableHead>
+              <TableHead className="text-right">POS Price</TableHead>
+              <TableHead className="text-right">Curr. Price</TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">
+                <TableCell colSpan={8} className="text-center py-6 text-muted-foreground text-sm">
                   No rows
                 </TableCell>
               </TableRow>
@@ -653,14 +634,18 @@ function MatchedTable({
                   <TableCell className="text-muted-foreground text-xs">{item.row_number}</TableCell>
                   <TableCell className="font-mono text-xs">{item.barcode}</TableCell>
                   <TableCell className="text-sm">{item.pos_description}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {item.pos_category ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold text-sm">
-                    {item.pos_stock ?? "—"}
+                  <TableCell className="text-right font-semibold text-sm">{item.pos_stock ?? "—"}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">{item.current_stock ?? "—"}</TableCell>
+                  <TableCell className="text-right text-sm font-medium">
+                    {item.pos_price != null ? `KSh ${Number(item.pos_price).toLocaleString()}` : "—"}
                   </TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">
-                    {item.current_stock ?? "—"}
+                    {item.current_price != null ? `KSh ${Number(item.current_price).toLocaleString()}` : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {largePriceChange(item) && (
+                      <span className="text-xs text-amber-600 font-medium whitespace-nowrap">⚠ Large price change</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

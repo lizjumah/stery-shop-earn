@@ -998,7 +998,7 @@ router.post(
         const batch = uniqueBarcodes.slice(i, i + FETCH_BATCH);
         const { data, error } = await supabaseAdmin
           .from("products")
-          .select("id, barcode, name, stock_quantity")
+          .select("id, barcode, name, stock_quantity, price")
           .in("barcode", batch);
         if (error) throw error;
         for (const p of data || []) {
@@ -1016,6 +1016,7 @@ router.post(
         product_id: string | null;
         product_name: string | null;
         current_stock: number | null;
+        current_price: number | null;
         status: string;
         invalid_reason: string | null;
         row_number: number;
@@ -1025,6 +1026,8 @@ router.post(
       let matchedRows = 0;
       let unmatchedRows = 0;
       let invalidRows = 0;
+      let priceChanges = 0;
+      let unchangedRows = 0;
       const itemsToStore: ItemToStore[] = [];
 
       for (const row of parsedRows) {
@@ -1041,6 +1044,7 @@ router.post(
             product_id: null,
             product_name: null,
             current_stock: null,
+            current_price: null,
             status: "invalid",
             invalid_reason: row.invalidReason ?? null,
             row_number: row.rowIndex,
@@ -1060,6 +1064,7 @@ router.post(
             product_id: null,
             product_name: null,
             current_stock: null,
+            current_price: null,
             status: "unmatched",
             invalid_reason: null,
             row_number: row.rowIndex,
@@ -1068,6 +1073,14 @@ router.post(
         }
 
         matchedRows++;
+        const currentPrice = product.price ?? null;
+        const posPrice = row.price;
+        const validPosPrice = posPrice != null && !isNaN(Number(posPrice)) && Number(posPrice) > 0;
+        const priceWillChange = validPosPrice && Number(posPrice) !== Number(currentPrice);
+        const stockWillChange = row.onHand !== (product.stock_quantity ?? 0);
+        if (!stockWillChange && !priceWillChange) unchangedRows++;
+        if (priceWillChange) priceChanges++;
+
         itemsToStore.push({
           barcode: row.barcode,
           pos_description: row.description,
@@ -1077,6 +1090,7 @@ router.post(
           product_id: product.id,
           product_name: product.name,
           current_stock: product.stock_quantity ?? 0,
+          current_price: currentPrice,
           status: "matched",
           invalid_reason: null,
           row_number: row.rowIndex,
@@ -1119,7 +1133,14 @@ router.post(
       return res.json({
         success: true,
         upload_id: uploadLog.id,
-        summary: { total_rows: totalRows, matched_rows: matchedRows, unmatched_rows: unmatchedRows, invalid_rows: invalidRows },
+        summary: {
+          total_rows: totalRows,
+          matched_rows: matchedRows,
+          unmatched_rows: unmatchedRows,
+          invalid_rows: invalidRows,
+          price_changes: priceChanges,
+          unchanged_rows: unchangedRows,
+        },
         matched_preview: matchedPreview,
         unmatched_preview: unmatchedPreview,
       });
@@ -1144,11 +1165,9 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
     if (logErr || !uploadLog) return res.status(404).json({ error: "Upload not found" });
     if (uploadLog.status === "applied") return res.status(400).json({ error: "Already applied" });
 
-    const applyPrice = req.body?.apply_price === true;
-
     const { data: matchedItems, error: itemsErr } = await supabaseAdmin
       .from("pos_upload_items")
-      .select("product_id, pos_stock, current_stock, pos_price")
+      .select("product_id, pos_stock, current_stock, pos_price, current_price")
       .eq("upload_id", id)
       .eq("status", "matched");
 
@@ -1178,8 +1197,9 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
             stock_status: stockStatus,
             in_stock: qty > 0,
           };
+          // Always update price when POS provides a valid non-zero value
           const posPrice = Number(item.pos_price);
-          if (applyPrice && item.pos_price != null && !isNaN(posPrice) && posPrice >= 0) {
+          if (item.pos_price != null && !isNaN(posPrice) && posPrice > 0) {
             fields.price = posPrice;
           }
           return supabaseAdmin
@@ -1198,9 +1218,10 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
             updated++;
             const item = batch[j];
             const posPrice = Number(item.pos_price);
-            if (applyPrice && item.pos_price != null && !isNaN(posPrice) && posPrice >= 0) {
-              priceUpdated++;
-            }
+            const priceApplied = item.pos_price != null && !isNaN(posPrice) && posPrice > 0;
+            if (priceApplied) priceUpdated++;
+
+            // Log stock change
             logActivity({
               entity_type: "product",
               entity_id: item.product_id!,
@@ -1211,6 +1232,20 @@ router.post("/pos-upload/:id/apply", async (req: Request, res: Response) => {
               changed_by: (req as any).adminId ?? "unknown",
               source: "admin_dashboard",
             }).catch(console.error);
+
+            // Log price change separately when it actually changed
+            if (priceApplied && posPrice !== Number(item.current_price ?? 0)) {
+              logActivity({
+                entity_type: "product",
+                entity_id: item.product_id!,
+                action: "updated",
+                field_changed: "price",
+                old_value: String(item.current_price ?? ""),
+                new_value: String(posPrice),
+                changed_by: (req as any).adminId ?? "unknown",
+                source: "admin_dashboard",
+              }).catch(console.error);
+            }
           }
         } else {
           errors.push(String(result.reason));
