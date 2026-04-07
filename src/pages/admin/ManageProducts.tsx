@@ -44,6 +44,9 @@ const ManageProducts = () => {
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
   const [imageFilter, setImageFilter] = useState<"all" | "missing" | "has_image">("all");
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [galleryImages, setGalleryImages] = useState<{ id: string; image_url: string }[]>([]);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showBulkImageUpload, setShowBulkImageUpload] = useState(false);
 
@@ -281,14 +284,17 @@ const ManageProducts = () => {
       setCustomSubcategory("");
     }
     setImagePreview(p.image_url || "");
+    setGalleryImages([]);
     setEditingId(p.id);
     setShowForm(true);
+    loadGalleryImages(p.id);
   };
 
   const handleCancel = () => {
     setShowForm(false);
     setEditingId(null);
     setImagePreview("");
+    setGalleryImages([]);
     setCustomSubcategory("");
     setCustomCategory("");
     setFormData({
@@ -324,6 +330,60 @@ const ManageProducts = () => {
   const clearImage = () => {
     setFormData({ ...formData, image_url: "" });
     setImagePreview("");
+  };
+
+  const loadGalleryImages = async (productId: string) => {
+    try {
+      const customerId = localStorage.getItem("stery_customer_id") || "";
+      const res = await fetch(`${API_BASE}/api/admin/products/${productId}/images`, {
+        headers: { "X-Customer-ID": customerId },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setGalleryImages(json.images ?? []);
+      }
+    } catch {
+      // non-fatal — gallery just shows empty
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingId) return;
+    setGalleryUploading(true);
+    try {
+      const customerId = localStorage.getItem("stery_customer_id") || "";
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch(`${API_BASE}/api/admin/products/${editingId}/images`, {
+        method: "POST",
+        headers: { "X-Customer-ID": customerId },
+        body,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      await loadGalleryImages(editingId);
+      toast.success("Gallery image added.");
+    } catch {
+      toast.error("Failed to upload gallery image.");
+    } finally {
+      setGalleryUploading(false);
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
+    }
+  };
+
+  const handleGalleryDelete = async (imageId: string) => {
+    if (!editingId) return;
+    try {
+      const customerId = localStorage.getItem("stery_customer_id") || "";
+      const res = await fetch(`${API_BASE}/api/admin/products/images/${imageId}`, {
+        method: "DELETE",
+        headers: { "X-Customer-ID": customerId },
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setGalleryImages((prev) => prev.filter((img) => img.id !== imageId));
+    } catch {
+      toast.error("Failed to remove gallery image.");
+    }
   };
 
   const getStockStatus = (qty: number) => {
@@ -706,6 +766,65 @@ const ManageProducts = () => {
                   />
                 </div>
               </div>
+
+              {/* Gallery Images — only available when editing an existing product */}
+              {editingId && (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground font-medium block">
+                    Gallery Images
+                    {["Shoes", "Fashion & Accessories", "Footwear"].includes(formData.category) && (
+                      <span className="ml-1 text-primary">(recommended for this category)</span>
+                    )}
+                  </label>
+
+                  {/* Existing gallery thumbnails */}
+                  {galleryImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {galleryImages.map((img) => (
+                        <div key={img.id} className="relative w-20 h-20 rounded-lg border border-border overflow-hidden">
+                          <img src={img.image_url} alt="Gallery" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleGalleryDelete(img.id)}
+                            className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none hover:bg-destructive/80"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add gallery image button */}
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleGalleryUpload}
+                    disabled={galleryUploading}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => galleryInputRef.current?.click()}
+                    disabled={galleryUploading}
+                    className="w-full gap-2 border-dashed"
+                  >
+                    {galleryUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading…
+                      </>
+                    ) : (
+                      <>
+                        <Images className="w-4 h-4" />
+                        Add Gallery Image
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <Button

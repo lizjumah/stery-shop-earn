@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useProduct } from "@/hooks/useProducts";
+import { useProductImages } from "@/hooks/useProductImages";
 import { FrequentlyBoughtTogether } from "@/components/shop/FrequentlyBoughtTogether";
 import { CustomersAlsoBuy } from "@/components/shop/CustomersAlsoBuy";
 import { useApp } from "@/contexts/AppContext";
@@ -15,6 +16,8 @@ const ProductDetails = () => {
   const { addToCart, cartItemCount, cart } = useApp();
   const [quantity, setQuantity] = useState(1);
   const { product, isLoading } = useProduct(id);
+  const { data: galleryImages = [] } = useProductImages(id);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -94,9 +97,9 @@ const ProductDetails = () => {
             )}
           </Link>
         </div>
-        {/* Image: contain so nothing is cropped, max-h prevents it dominating the screen */}
+        {/* Main image — shows selected thumbnail or the product cover */}
         <img
-          src={product.image}
+          src={activeImage ?? product.image}
           alt={product.name}
           className="w-full max-h-56 object-contain"
         />
@@ -106,6 +109,33 @@ const ProductDetails = () => {
           </Badge>
         )}
       </div>
+
+      {/* Gallery thumbnails — only rendered when extra images exist */}
+      {galleryImages.length > 0 && (
+        <div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto scrollbar-hide">
+          {/* Cover image thumb */}
+          <button
+            onClick={() => setActiveImage(null)}
+            className={`shrink-0 w-16 h-16 rounded-lg border-2 overflow-hidden transition-colors ${
+              activeImage === null ? "border-primary" : "border-border"
+            }`}
+          >
+            <img src={product.image} alt="Cover" className="w-full h-full object-cover" />
+          </button>
+          {/* Extra gallery thumbs */}
+          {galleryImages.map((img) => (
+            <button
+              key={img.id}
+              onClick={() => setActiveImage(img.image_url)}
+              className={`shrink-0 w-16 h-16 rounded-lg border-2 overflow-hidden transition-colors ${
+                activeImage === img.image_url ? "border-primary" : "border-border"
+              }`}
+            >
+              <img src={img.image_url} alt="Gallery" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="px-4 pt-5 pb-4">
         {/* Name + rating */}

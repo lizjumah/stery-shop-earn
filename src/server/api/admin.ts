@@ -1040,4 +1040,96 @@ router.get("/image-activity/today", async (req: Request, res: Response) => {
   }
 });
 
+// ── Product Gallery Images ────────────────────────────────────────────────────
+//
+// GET    /api/admin/products/:id/images        — list gallery images
+// POST   /api/admin/products/:id/images        — upload one gallery image
+// DELETE /api/admin/products/images/:imageId   — remove one gallery image
+//
+// products.image_url is NEVER touched by these routes.
+
+// Multer instance for gallery image uploads — reuses same constraints as main upload
+const galleryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const valid = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (valid.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only JPEG, PNG, WebP, and GIF are allowed"));
+  },
+});
+
+router.get("/products/:id/images", async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("product_images")
+      .select("id, image_url, sort_order, created_at")
+      .eq("product_id", req.params.id)
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return res.json({ success: true, images: data ?? [] });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to fetch images", message: err.message });
+  }
+});
+
+router.post(
+  "/products/:id/images",
+  galleryUpload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      const file = (req as any).file;
+      if (!file) return res.status(400).json({ error: "No file provided" });
+
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).slice(2, 8);
+      const ext = file.originalname.split(".").pop() || "jpg";
+      const storagePath = `gallery/${req.params.id}/${timestamp}-${random}.${ext}`;
+
+      const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+        .from("product-images")
+        .upload(storagePath, file.buffer, { contentType: file.mimetype, upsert: false });
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabaseAdmin.storage
+        .from("product-images")
+        .getPublicUrl(uploadData.path);
+
+      // sort_order = current max + 1 so new images append to the end
+      const { count } = await supabaseAdmin
+        .from("product_images")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", req.params.id);
+
+      const { data: inserted, error: insertErr } = await supabaseAdmin
+        .from("product_images")
+        .insert({
+          product_id: req.params.id,
+          image_url: urlData.publicUrl,
+          sort_order: (count ?? 0),
+        })
+        .select()
+        .single();
+      if (insertErr) throw insertErr;
+
+      return res.json({ success: true, image: inserted });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Upload failed", message: err.message });
+    }
+  }
+);
+
+router.delete("/products/images/:imageId", async (req: Request, res: Response) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from("product_images")
+      .delete()
+      .eq("id", req.params.imageId);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Delete failed", message: err.message });
+  }
+});
+
 export default router;
