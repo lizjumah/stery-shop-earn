@@ -6,7 +6,7 @@ import { CustomersAlsoBuy } from "@/components/shop/CustomersAlsoBuy";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, ShoppingCart, Minus, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Star, ShoppingCart, Minus, Plus, Share2, ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,7 +17,8 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const { product, isLoading } = useProduct(id);
   const { data: galleryImages = [] } = useProductImages(id);
-  const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -34,6 +35,13 @@ const ProductDetails = () => {
       </div>
     );
   }
+
+  // Gallery — cover image is always index 0; extra images follow in sort order
+  const allImages = [product.image, ...galleryImages.map((g) => g.image_url)];
+  const totalImages = allImages.length;
+  const currentImage = allImages[activeIndex] ?? product.image;
+  const goPrev = () => setActiveIndex((i) => (i - 1 + totalImages) % totalImages);
+  const goNext = () => setActiveIndex((i) => (i + 1) % totalImages);
 
   // How many of this product are already in the cart
   const cartQty = cart.find((i) => i.productId === product.id)?.quantity ?? 0;
@@ -97,12 +105,47 @@ const ProductDetails = () => {
             )}
           </Link>
         </div>
-        {/* Main image — shows selected thumbnail or the product cover */}
-        <img
-          src={activeImage ?? product.image}
-          alt={product.name}
-          className="w-full max-h-56 object-contain"
-        />
+        {/* Main image — tap to zoom; prev/next shown when gallery exists */}
+        <button
+          onClick={() => setLightboxOpen(true)}
+          className="relative w-full block group"
+          aria-label="View full image"
+        >
+          <img
+            src={currentImage}
+            alt={product.name}
+            className="w-full max-h-56 object-contain"
+          />
+          {/* Zoom hint */}
+          <span className="absolute bottom-2 right-2 bg-black/40 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ZoomIn className="w-4 h-4" />
+          </span>
+        </button>
+
+        {/* Prev / Next arrows — only when more than one image */}
+        {totalImages > 1 && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-1.5 z-10"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-1.5 z-10"
+              aria-label="Next image"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            {/* Image counter */}
+            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+              {activeIndex + 1} / {totalImages}
+            </span>
+          </>
+        )}
+
         {product.isOffer && (
           <Badge className="absolute top-4 right-24 bg-destructive text-destructive-foreground text-lg px-3 py-1">
             SALE
@@ -110,28 +153,19 @@ const ProductDetails = () => {
         )}
       </div>
 
-      {/* Gallery thumbnails — only rendered when extra images exist */}
-      {galleryImages.length > 0 && (
+      {/* Gallery thumbnails — only rendered when there are multiple images */}
+      {totalImages > 1 && (
         <div className="flex gap-2 px-4 pt-3 pb-1 overflow-x-auto scrollbar-hide">
-          {/* Cover image thumb */}
-          <button
-            onClick={() => setActiveImage(null)}
-            className={`shrink-0 w-16 h-16 rounded-lg border-2 overflow-hidden transition-colors ${
-              activeImage === null ? "border-primary" : "border-border"
-            }`}
-          >
-            <img src={product.image} alt="Cover" className="w-full h-full object-cover" />
-          </button>
-          {/* Extra gallery thumbs */}
-          {galleryImages.map((img) => (
+          {allImages.map((src, idx) => (
             <button
-              key={img.id}
-              onClick={() => setActiveImage(img.image_url)}
+              key={idx}
+              onClick={() => setActiveIndex(idx)}
               className={`shrink-0 w-16 h-16 rounded-lg border-2 overflow-hidden transition-colors ${
-                activeImage === img.image_url ? "border-primary" : "border-border"
+                activeIndex === idx ? "border-primary" : "border-border"
               }`}
+              aria-label={`View image ${idx + 1}`}
             >
-              <img src={img.image_url} alt="Gallery" className="w-full h-full object-cover" />
+              <img src={src} alt={`Image ${idx + 1}`} className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
@@ -218,6 +252,77 @@ const ProductDetails = () => {
         {/* Customers Also Buy */}
         <CustomersAlsoBuy productId={product.id} />
       </div>
+
+      {/* Lightbox — full-screen image viewer */}
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col"
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-4 py-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+            {totalImages > 1 ? (
+              <span className="text-white/70 text-sm">{activeIndex + 1} / {totalImages}</span>
+            ) : (
+              <span />
+            )}
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="text-white/80 hover:text-white p-1"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Image */}
+          <div
+            className="flex-1 flex items-center justify-center px-2 min-h-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={currentImage}
+              alt={product.name}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+
+          {/* Prev / Next */}
+          {totalImages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={goPrev}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full p-3"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+
+              {/* Dot indicators */}
+              <div className="flex gap-1.5">
+                {allImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveIndex(idx)}
+                    className={`rounded-full transition-all ${
+                      idx === activeIndex ? "w-4 h-2 bg-white" : "w-2 h-2 bg-white/40"
+                    }`}
+                    aria-label={`Go to image ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={goNext}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full p-3"
+                aria-label="Next image"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Fixed Add to Cart bar — shadow above to separate from content */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-card border-t border-border shadow-[0_-4px_16px_rgba(0,0,0,0.08)] p-4">
