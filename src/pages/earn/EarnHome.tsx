@@ -1,7 +1,6 @@
 import { useProducts } from "@/hooks/useProducts";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useReferrals } from "@/hooks/useReferrals";
-import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2, MessageCircle, Smartphone, Facebook, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -19,11 +18,27 @@ const EarnHome = () => {
   const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${referralLink}`;
 
   const { data: allProducts = [] } = useProducts();
-  const { data: commissions = [] } = useCommissions();
+  const { data: commissions = [], isLoading: commissionsLoading } = useCommissions();
   const { data: referrals = [] } = useReferrals();
 
   const topProducts = allProducts.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const isNewReseller = !commissionsLoading && commissions.length === 0;
+
+  const HOW_IT_WORKS = [
+    { step: "1", emoji: "🛍️", title: "Pick a product", desc: "Browse our catalogue and choose products with the best commissions for your audience." },
+    { step: "2", emoji: "📲", title: "Share your link", desc: "Send your personalised link via WhatsApp, SMS, or Facebook. Every sale is tracked automatically." },
+    { step: "3", emoji: "💰", title: "Get paid to M-Pesa", desc: "Earn commission on every sale. Withdraw to M-Pesa from as low as KSh 500." },
+  ];
+
+  const FAQS = [
+    { q: "Is joining free?", a: "Yes, completely free. Any Stery customer can start earning by sharing products right away." },
+    { q: "When do I get paid?", a: "Commissions are confirmed once the customer's order is delivered. You can withdraw to M-Pesa any time you have KSh 500 or more available." },
+    { q: "How much can I earn?", a: "It depends on how actively you share. Resellers who share regularly earn between KSh 2,000 and KSh 15,000 per month. Top resellers earn more." },
+    { q: "How do I share a product?", a: "Tap 'Browse Products', pick any product, then tap the WhatsApp or Copy button. Your referral code is automatically included in the link." },
+    { q: "What if a customer doesn't use my link?", a: "Only purchases made through your personal referral link or code are credited to you. Always share your unique link." },
+  ];
 
   const paidTotal = commissions
     .filter((c) => c.status === "paid" || c.status === "confirmed")
@@ -77,12 +92,20 @@ const EarnHome = () => {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Wallet className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh {paidTotal.toLocaleString()}</p>
+            {isNewReseller ? (
+              <p className="text-white/60 text-[10px] mt-1">Start sharing</p>
+            ) : (
+              <p className="text-white font-bold text-sm">KSh {paidTotal.toLocaleString()}</p>
+            )}
             <p className="text-white/70 text-[10px]">Paid Out</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
             <Clock className="w-4 h-4 text-white mx-auto mb-1" />
-            <p className="text-white font-bold text-sm">KSh {pendingTotal.toLocaleString()}</p>
+            {isNewReseller ? (
+              <p className="text-white/60 text-[10px] mt-1">to earn</p>
+            ) : (
+              <p className="text-white font-bold text-sm">KSh {pendingTotal.toLocaleString()}</p>
+            )}
             <p className="text-white/70 text-[10px]">Pending</p>
           </div>
           <div className="bg-white/20 rounded-xl p-3 text-center">
@@ -91,6 +114,10 @@ const EarnHome = () => {
             <p className="text-white/70 text-[10px]">Referrals</p>
           </div>
         </div>
+        {/* Trust line */}
+        <p className="text-white/60 text-xs text-center mt-3">
+          💼 Join 200+ resellers earning daily with Stery
+        </p>
       </div>
 
       <div className="px-4 mt-6">
@@ -103,6 +130,31 @@ const EarnHome = () => {
             <Button variant="outline" className="w-full h-12 border-accent text-accent hover:bg-accent/10">View Earnings</Button>
           </Link>
         </div>
+
+        {/* How It Works — shown only for new resellers who have no commissions yet */}
+        {isNewReseller && (
+          <div className="bg-card border border-accent/20 rounded-xl p-4 mb-6">
+            <h2 className="text-sm font-bold text-foreground mb-3">✨ How Stery Earn Works</h2>
+            <div className="space-y-3">
+              {HOW_IT_WORKS.map((item) => (
+                <div key={item.step} className="flex items-start gap-3">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-base">
+                    {item.emoji}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center">
+                Free to join · No targets · Withdraw to M-Pesa anytime
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Referral Card */}
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-6">
@@ -146,6 +198,31 @@ const EarnHome = () => {
               ))}
             </div>
           )}
+        </div>
+
+        {/* FAQ */}
+        <div className="mb-6">
+          <h2 className="text-sm font-bold text-foreground mb-3">❓ Common Questions</h2>
+          <div className="space-y-2">
+            {FAQS.map((faq, idx) => (
+              <div key={idx} className="bg-card border border-border rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left"
+                >
+                  <span className="text-sm font-medium text-foreground pr-4">{faq.q}</span>
+                  <span className="text-muted-foreground text-lg shrink-0 leading-none">
+                    {openFaq === idx ? "−" : "+"}
+                  </span>
+                </button>
+                {openFaq === idx && (
+                  <div className="px-4 pb-3">
+                    <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Top Products to Resell */}
