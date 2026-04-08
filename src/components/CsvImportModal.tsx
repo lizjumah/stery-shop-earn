@@ -74,6 +74,7 @@ interface ParseResult {
 
 interface ImportResult {
   imported: number;
+  updatedExisting?: number;
   skippedDuplicates: number;
   skippedErrors: number;
   errors: string[];
@@ -119,6 +120,12 @@ function parseCsv(text: string): ParseResult {
       skipped.push({ row: rowNum, reason: "Name is empty" });
       return;
     }
+    // Reject names that are numeric or scientific notation (e.g. "6.164E+12").
+    // This catches Excel barcode cells that were saved without formatting.
+    if (/^[0-9.]+([Ee][+\-][0-9]+)?$/.test(name)) {
+      skipped.push({ row: rowNum, reason: `Name looks like a number or barcode ("${name}") — check column order` });
+      return;
+    }
 
     const priceStr = fields["price"] ?? "";
     const priceNum = parseFloat(priceStr);
@@ -127,7 +134,7 @@ function parseCsv(text: string): ParseResult {
       return;
     }
 
-    const barcode = fields["barcode"] || undefined;
+    const barcode = fields["barcode"]?.trim() || undefined;
     const costNum = fields["cost_price"] ? parseFloat(fields["cost_price"]) : undefined;
     const stockRaw = fields["stock"];
     const stockNum = stockRaw ? parseInt(stockRaw, 10) : 0;
@@ -252,7 +259,8 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
             <div className="rounded-lg bg-secondary p-3 text-xs text-muted-foreground space-y-1">
               <p className="font-medium text-foreground">Expected CSV format (header row required):</p>
               <p className="font-mono break-all">name,barcode,price,cost_price,stock,category,subcategory</p>
-              <p>barcode, cost_price, stock, category, and subcategory are optional.</p>
+              <p>cost_price, stock, category, and subcategory are optional.</p>
+              <p>barcode is required for every product.</p>
               <p>Columns can be in any order. Headers are matched by name.</p>
             </div>
           )}
@@ -361,14 +369,18 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
           {/* Import result */}
           {importResult && (
             <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="rounded-lg bg-green-500/10 p-2">
                   <p className="text-lg font-bold text-green-600">{importResult.imported}</p>
                   <p className="text-[10px] text-muted-foreground">Imported</p>
                 </div>
+                <div className="rounded-lg bg-blue-500/10 p-2">
+                  <p className="text-lg font-bold text-blue-600">{importResult.updatedExisting ?? 0}</p>
+                  <p className="text-[10px] text-muted-foreground">Updated</p>
+                </div>
                 <div className="rounded-lg bg-secondary p-2">
                   <p className="text-lg font-bold text-foreground">{importResult.skippedDuplicates}</p>
-                  <p className="text-[10px] text-muted-foreground">Duplicates</p>
+                  <p className="text-[10px] text-muted-foreground">Skipped</p>
                 </div>
                 <div className="rounded-lg bg-red-500/10 p-2">
                   <p className="text-lg font-bold text-red-500">{importResult.skippedErrors}</p>

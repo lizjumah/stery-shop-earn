@@ -2,14 +2,26 @@ import React, { useState } from "react";
 import { ShopHeader } from "@/components/ShopHeader";
 import { Button } from "@/components/ui/button";
 import { Upload, CheckCircle, AlertCircle, Loader2, Download } from "lucide-react";
-import { supabase } from "@/integrations";
+import { API_BASE } from "@/lib/api/client";
 
 interface ImportResult {
   total: number;
   imported: number;
+  updatedExisting: number;
   failed: number;
   errors: string[];
 }
+
+const resolveHeader = (raw: string) => {
+  const h = raw.trim().toLowerCase().replace(/[-_ ]+/g, " ");
+  if (h === "name" || h === "product name" || h === "product") return "name";
+  if (h === "barcode" || h === "ean" || h === "sku") return "barcode";
+  if (h === "price" || h === "selling price" || h === "unit price") return "price";
+  if (h === "stock" || h === "quantity" || h === "qty" || h === "stock quantity") return "stock";
+  if (h === "category" || h === "department") return "category";
+  if (h === "subcategory" || h === "sub category" || h === "sub-category") return "subcategory";
+  return h;
+};
 
 const BulkProductImport = () => {
   const [importing, setImporting] = useState(false);
@@ -17,9 +29,9 @@ const BulkProductImport = () => {
   const [csvContent, setCsvContent] = useState("");
 
   const downloadTemplate = () => {
-    const template = `name,price,category,description,commission,stock_quantity,image_url
-Fresh Tomatoes,150,Vegetables,Ripe red tomatoes fresh from farm,10,50,https://example.com/tomato.jpg
-Maize Meal,80,Grains,Quality maize meal 2kg bag,5,100,https://example.com/maize.jpg`;
+    const template = `name,barcode,price,stock,category,subcategory
+Fresh Tomatoes,2123456789012,150,50,Food & Grocery,General
+Canvas Shoes,3123456789012,1800,12,Shoes,General`;
 
     const element = document.createElement("a");
     element.setAttribute(
@@ -47,27 +59,42 @@ Maize Meal,80,Grains,Quality maize meal 2kg bag,5,100,https://example.com/maize.
 
   const parseCSV = (csv: string) => {
     const lines = csv.trim().split("\n");
-    const headers = lines[0].split(",").map((h) => h.trim());
+    const headers = lines[0].split(",").map(resolveHeader);
     const products = [];
     const errors = [];
 
     for (let i = 1; i < lines.length; i++) {
       try {
         const values = lines[i].split(",").map((v) => v.trim());
-        if (values.length < 7 || values.every((v) => !v)) continue;
+        if (values.every((v) => !v)) continue;
+
+        const fields: Record<string, string> = {};
+        headers.forEach((header, idx) => {
+          fields[header] = values[idx] ?? "";
+        });
 
         const product = {
-          name: values[0],
-          price: parseFloat(values[1]),
-          category: values[2],
-          description: values[3],
-          commission: parseFloat(values[4]),
-          stock_quantity: parseInt(values[5]),
-          image_url: values[6],
+          name: fields.name,
+          barcode: fields.barcode?.trim() || undefined,
+          price: parseFloat(fields.price),
+          stock: parseInt(fields.stock || "0", 10),
+          category: fields.category,
+          subcategory: fields.subcategory || undefined,
         };
 
-        if (!product.name || !product.price || !product.category) {
+        if (!product.name || !product.price) {
           errors.push(`Row ${i + 1}: Missing required fields`);
+          continue;
+        }
+
+        // Reject names that are numeric or scientific notation (e.g. "6.164E+12").
+        if (/^[0-9.]+([Ee][+\-][0-9]+)?$/.test(product.name)) {
+          errors.push(`Row ${i + 1}: Name looks like a number or barcode ("${product.name}") — check column order`);
+          continue;
+        }
+
+        if (!product.barcode) {
+          errors.push(`Row ${i + 1}: Barcode is required`);
           continue;
         }
 
@@ -86,41 +113,30 @@ Maize Meal,80,Grains,Quality maize meal 2kg bag,5,100,https://example.com/maize.
     setImporting(true);
     const { products, errors } = parseCSV(csvContent);
 
-    let imported = 0;
     const importErrors = [...errors];
 
     try {
-      for (const product of products) {
-        try {
-          // Insert product
-          const { error } = await supabase.from("products").insert([
-            {
-              name: product.name,
-              price: product.price,
-              category: product.category,
-              description: product.description,
-              commission_percent: product.commission,
-              stock_quantity: product.stock_quantity,
-              image_url: product.image_url,
-              visibility: "visible",
-            },
-          ]);
+      const customerId = localStorage.getItem("stery_customer_id") || "";
+      const res = await fetch(`${API_BASE}/api/admin/products/import`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Customer-ID": customerId,
+        },
+        body: JSON.stringify({ rows: products }),
+      });
 
-          if (error) {
-            importErrors.push(`${product.name}: ${error.message}`);
-          } else {
-            imported++;
-          }
-        } catch (err) {
-          importErrors.push(`${product.name}: Failed to import`);
-        }
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.message || `HTTP ${res.status}`);
       }
 
       setResult({
         total: products.length,
-        imported,
-        failed: products.length - imported + errors.length,
-        errors: importErrors,
+        imported: json.imported ?? 0,
+        updatedExisting: json.updatedExisting ?? 0,
+        failed: (json.skippedErrors ?? 0) + errors.length,
+        errors: [...importErrors, ...(json.errors ?? [])],
       });
 
       // Reset after 2 seconds
@@ -131,8 +147,9 @@ Maize Meal,80,Grains,Quality maize meal 2kg bag,5,100,https://example.com/maize.
       setResult({
         total: products.length,
         imported: 0,
+        updatedExisting: 0,
         failed: products.length,
-        errors: ["Import failed"],
+        errors: [...importErrors, "Import failed"],
       });
     }
 
@@ -148,8 +165,7 @@ Maize Meal,80,Grains,Quality maize meal 2kg bag,5,100,https://example.com/maize.
         <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
           <p className="text-sm text-foreground font-medium">CSV Format Required</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Upload a CSV file with columns: name, price, category, description,
-            commission, stock_quantity, image_url
+            Upload a CSV file with columns like: name, barcode, price, stock, category, subcategory
           </p>
           <Button
             size="sm"
@@ -228,16 +244,21 @@ Maize Meal,80,Grains,Quality maize meal 2kg bag,5,100,https://example.com/maize.
               )}
               <h3 className="font-bold text-lg text-foreground mb-1">Import Complete</h3>
               <p className="text-muted-foreground text-sm">
-                {result.imported} of {result.total} products imported
+                {result.imported} imported, {result.updatedExisting} updated from {result.total} rows
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <MetricBox label="Total" value={result.total.toString()} />
               <MetricBox
                 label="Imported"
                 value={result.imported.toString()}
                 color="text-green-600"
+              />
+              <MetricBox
+                label="Updated"
+                value={result.updatedExisting.toString()}
+                color="text-blue-600"
               />
               <MetricBox
                 label="Failed"
