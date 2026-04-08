@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { API_BASE } from "@/lib/api/client";
@@ -35,6 +36,28 @@ const ManageProducts = () => {
   const { requireOwnerPin } = useOwnerPinContext();
   const { uploading: imageUploading, uploadImage } = useImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Global catalog health — unfiltered, independent of any active filter state
+  const { data: catalogHealth } = useQuery({
+    queryKey: ["catalog_health"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("barcode, image_url");
+      if (error || !data) return null;
+      const total = data.length;
+      const withBarcode = data.filter((p) => p.barcode && String(p.barcode).trim() !== "").length;
+      const withImage = data.filter((p) => p.image_url && String(p.image_url).trim() !== "").length;
+      return {
+        total,
+        withBarcode,
+        withoutBarcode: total - withBarcode,
+        withImage,
+        withoutImage: total - withImage,
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -877,6 +900,17 @@ const ManageProducts = () => {
           </div>
         )}
 
+        {/* Catalog Health Summary */}
+        {!showForm && catalogHealth && (
+          <div className="grid grid-cols-5 gap-1.5">
+            <HealthCard label="Total" value={catalogHealth.total} />
+            <HealthCard label="Has Barcode" value={catalogHealth.withBarcode} color="text-green-600" />
+            <HealthCard label="No Barcode" value={catalogHealth.withoutBarcode} color={catalogHealth.withoutBarcode > 0 ? "text-amber-600" : "text-muted-foreground"} />
+            <HealthCard label="Has Image" value={catalogHealth.withImage} color="text-green-600" />
+            <HealthCard label="No Image" value={catalogHealth.withoutImage} color={catalogHealth.withoutImage > 0 ? "text-amber-600" : "text-muted-foreground"} />
+          </div>
+        )}
+
         {/* Search & Filters */}
         {!showForm && (
           <>
@@ -1164,5 +1198,18 @@ const ManageProducts = () => {
     </div>
   );
 };
+
+interface HealthCardProps {
+  label: string;
+  value: number;
+  color?: string;
+}
+
+const HealthCard: React.FC<HealthCardProps> = ({ label, value, color = "text-foreground" }) => (
+  <div className="bg-card rounded-lg p-2 border border-border text-center">
+    <p className="text-[10px] text-muted-foreground leading-tight mb-0.5">{label}</p>
+    <p className={`font-bold text-base leading-tight ${color}`}>{value}</p>
+  </div>
+);
 
 export default ManageProducts;
