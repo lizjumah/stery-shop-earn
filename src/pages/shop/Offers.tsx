@@ -8,7 +8,7 @@ import { ArrowLeft, ShoppingCart, Clock, Flame, ChevronRight, Zap } from "lucide
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-const DEAL_CATEGORIES = ["All", "Groceries", "Household", "Baby Items", "Bakery", "Flash Deals"];
+const DEAL_CATEGORIES = ["All", "Groceries", "Household & Cleaning", "Baby Items", "Bakery", "Flash Deals"];
 
 const Offers = () => {
   const navigate = useNavigate();

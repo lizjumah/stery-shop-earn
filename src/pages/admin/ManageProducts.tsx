@@ -103,7 +103,6 @@ const ManageProducts = () => {
     "Wines & Spirits",
     // legacy — kept so existing products' categories remain selectable
     "Groceries",
-    "Household",
     "Baby Items",
     "Jewelry",
   ];

@@ -95,7 +95,7 @@ const HomeDashboard = () => {
   // const dealProducts = liveProducts.filter((p) => p.isOffer || p.originalPrice); // disabled with Today's Deals shelf
   const popularProducts   = liveProducts.filter((p) => p.inStock !== false).slice(0, 8);
   const groceryProducts   = liveProducts.filter((p) => p.category === "Groceries" || p.category === "Bakery");
-  const householdProducts = liveProducts.filter((p) => p.category === "Household" || p.category === "Electronics");
+  const householdProducts = liveProducts.filter((p) => p.category === "Household & Cleaning" || p.category === "Electronics");
   const specialtyProducts = liveProducts.filter((p) => p.category === "Baby Items" || p.category === "Jewelry");
   const newProducts       = [...liveProducts].reverse().slice(0, 4);
 
@@ -432,7 +432,7 @@ const HomeDashboard = () => {
       <ProductShelf
         title="🏠 Household & Electronics"
         products={householdProducts}
-        seeAllPath="/shop/categories?cat=Household"
+        seeAllPath="/shop/categories?cat=Household+%26+Cleaning"
       />
 
       <ProductShelf
