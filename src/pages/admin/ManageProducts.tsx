@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const ManageProducts = () => {
-  const { products, isLoading, missingImageCount, fetchProducts, addProduct, updateProduct, deleteProduct, toggleVisibility } =
+  const { products, isLoading, fetchProducts, addProduct, updateProduct, deleteProduct, toggleVisibility } =
     useProductManagement();
   const { customer } = useCustomer();
   const { requireOwnerPin } = useOwnerPinContext();
@@ -43,6 +43,7 @@ const ManageProducts = () => {
   const [subcategoryFilter, setSubcategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
   const [imageFilter, setImageFilter] = useState<"all" | "missing" | "has_image">("all");
+  const [visibilityFilter, setVisibilityFilter] = useState<"visible" | "hidden" | "all">("visible");
   const [imagePreview, setImagePreview] = useState<string>("");
   const [galleryImages, setGalleryImages] = useState<{ id: string; image_url: string }[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
@@ -61,6 +62,7 @@ const ManageProducts = () => {
     image_url: "",
     stock_status: "in_stock" as "in_stock" | "low_stock" | "out_of_stock",
     barcode: "",
+    visibility: "visible" as "visible" | "hidden",
   });
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
@@ -72,8 +74,13 @@ const ManageProducts = () => {
     customer?.is_admin === true;
 
   useEffect(() => {
-    fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined, image_filter: imageFilter });
-  }, [stockFilter, categoryFilter, imageFilter, fetchProducts]);
+    fetchProducts({
+      stock_status: stockFilter,
+      category: categoryFilter || undefined,
+      image_filter: imageFilter,
+      visibility: visibilityFilter,
+    });
+  }, [stockFilter, categoryFilter, imageFilter, visibilityFilter, fetchProducts]);
 
   // Reset subcategory selection whenever category changes
   useEffect(() => {
@@ -123,42 +130,53 @@ const ManageProducts = () => {
       }
     }
 
-    if (!editingId) {
-      const normalized = formData.name.trim().toLowerCase().replace(/\s+/g, " ");
-      const exactMatch = products.find(
-        (p) => p.name.trim().toLowerCase().replace(/\s+/g, " ") === normalized
-      );
-      if (exactMatch) {
-        toast.error("A product with this exact name already exists.");
-        return;
-      }
+    const normalized = formData.name.trim().toLowerCase().replace(/\s+/g, " ");
+    const similarProduct = products.find((p) => {
+      const candidate = p.name.trim().toLowerCase().replace(/\s+/g, " ");
+      if (editingId && p.id === editingId) return false;
+      return candidate === normalized || candidate.includes(normalized) || normalized.includes(candidate);
+    });
+
+    if (similarProduct) {
+      toast(`Warning: similar product already exists: ${similarProduct.name}`);
     }
 
     // Barcode validation:
-    // - CREATE: required + duplicate check (always call backend)
-    // - EDIT:   duplicate check only if barcode is non-blank (never block blank)
+    // - CREATE: required + duplicate check
+    // - EDIT:   only re-check uniqueness when the barcode actually changed
     const barcodeValue = formData.barcode.trim();
     const isCreate = !editingId;
-    if (isCreate || barcodeValue) {
+    const currentProduct = editingId
+      ? products.find((p) => p.id === editingId) ?? null
+      : null;
+    const originalBarcodeValue = currentProduct?.barcode?.trim() ?? "";
+    const barcodeChanged = barcodeValue !== originalBarcodeValue;
+
+    if (isCreate || (barcodeValue && barcodeChanged)) {
       let barcodeError: string | null = null;
       try {
         const customerId = localStorage.getItem("stery_customer_id") || "";
         const res = await fetch(`${API_BASE}/api/admin/products/validate-barcode`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Customer-ID": customerId },
-          body: JSON.stringify({ barcode: barcodeValue, excludeId: editingId ?? undefined, isCreate }),
+          body: JSON.stringify({
+            barcode: barcodeValue,
+            excludeId: editingId ?? undefined,
+            isCreate,
+            category: formData.category,
+          }),
         });
         if (res.ok) {
           const json = await res.json();
-          if (json.required) barcodeError = "Barcode is required for new products.";
-          else if (json.duplicate) barcodeError = "This barcode is already assigned to another product.";
+          if (json.required) barcodeError = "Barcode is required.";
+          else if (json.duplicate) barcodeError = "Product with this barcode already exists.";
         } else {
           throw new Error(`HTTP ${res.status}`);
         }
       } catch {
         // Backend unreachable — enforce rules locally
         if (isCreate && !barcodeValue) {
-          barcodeError = "Barcode is required for new products.";
+          barcodeError = "Barcode is required.";
         } else if (barcodeValue) {
           let query = supabase
             .from("products")
@@ -166,7 +184,7 @@ const ManageProducts = () => {
             .eq("barcode", barcodeValue);
           if (editingId) query = query.neq("id", editingId);
           const { data: barcodeMatch } = await query.maybeSingle();
-          if (barcodeMatch) barcodeError = "This barcode is already assigned to another product.";
+          if (barcodeMatch) barcodeError = "Product with this barcode already exists.";
         }
       }
       if (barcodeError) {
@@ -184,7 +202,10 @@ const ManageProducts = () => {
     if (editingId) {
       // Capture before-state from the currently loaded products list
       const beforeProduct = products.find((p) => p.id === editingId) ?? null;
-      const success = await updateProduct(editingId, formData);
+      const success = await updateProduct(editingId, {
+        ...formData,
+        barcode: barcodeValue,
+      });
       setEditingId(null);
       if (success) {
         // Fire-and-forget — audit failure must never block the UI action
@@ -201,11 +222,12 @@ const ManageProducts = () => {
                   name: beforeProduct.name,
                   barcode: beforeProduct.barcode ?? null,
                   price: beforeProduct.price,
-                  category: beforeProduct.category,
-                  subcategory: beforeProduct.subcategory ?? null,
-                  stock_quantity: beforeProduct.stock_quantity,
-                  stock_status: beforeProduct.stock_status ?? null,
-                }
+                category: beforeProduct.category,
+                subcategory: beforeProduct.subcategory ?? null,
+                stock_quantity: beforeProduct.stock_quantity,
+                stock_status: beforeProduct.stock_status ?? null,
+                visibility: beforeProduct.visibility ?? "visible",
+              }
               : null,
             after_data: {
               name: formData.name,
@@ -215,12 +237,16 @@ const ManageProducts = () => {
               subcategory: formData.subcategory || null,
               stock_quantity: formData.stock_quantity,
               stock_status: formData.stock_status,
+              visibility: formData.visibility,
             },
           }),
         }).catch(() => {});
       }
     } else {
-      const newProduct = await addProduct(formData);
+      const newProduct = await addProduct({
+        ...formData,
+        barcode: barcodeValue,
+      });
       if (newProduct) {
         // Fire-and-forget — audit failure must never block the UI action
         fetch(`${API_BASE}/api/admin/audit`, {
@@ -239,6 +265,7 @@ const ManageProducts = () => {
               subcategory: newProduct.subcategory ?? null,
               stock_quantity: newProduct.stock_quantity,
               stock_status: newProduct.stock_status ?? null,
+              visibility: newProduct.visibility ?? "visible",
             },
           }),
         }).catch(() => {});
@@ -256,6 +283,7 @@ const ManageProducts = () => {
       image_url: "",
       stock_status: "in_stock",
       barcode: "",
+      visibility: "visible",
     });
     setCustomSubcategory("");
     setCustomCategory("");
@@ -276,6 +304,7 @@ const ManageProducts = () => {
       image_url: p.image_url || "",
       stock_status: (p.stock_status as "in_stock" | "low_stock" | "out_of_stock") ?? "in_stock",
       barcode: p.barcode ?? "",
+      visibility: (p.visibility as "visible" | "hidden") ?? "visible",
     });
     // If subcategory not in the config list, pre-fill the custom input
     if (sub && !knownSubs.includes(sub)) {
@@ -308,6 +337,7 @@ const ManageProducts = () => {
       image_url: "",
       stock_status: "in_stock",
       barcode: "",
+      visibility: "visible",
     });
   };
 
@@ -400,6 +430,9 @@ const ManageProducts = () => {
     if (subcategoryFilter && (p.subcategory || "") !== subcategoryFilter) return false;
     return true;
   });
+
+  // All metrics derived from the same filteredProducts array — never from a separate query or raw products
+  const missingImageCount = filteredProducts.filter((p) => !p.image_url || p.image_url.trim() === "").length;
 
   const handleExport = () => {
     if (filteredProducts.length === 0) {
@@ -556,7 +589,7 @@ const ManageProducts = () => {
 
               <div>
                 <label className="text-xs text-muted-foreground font-medium">
-                  Barcode {!editingId ? <span className="text-primary">*</span> : <span className="text-muted-foreground">(optional for existing)</span>}
+                  Barcode <span className="text-primary">*</span>
                 </label>
                 <input
                   type="text"
@@ -566,7 +599,7 @@ const ManageProducts = () => {
                   placeholder="e.g. 6001234567890"
                   className="w-full mt-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <p className="text-[10px] text-muted-foreground mt-0.5">EAN-13, EAN-8, or any barcode format. Leave blank if unknown.</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">EAN-13, EAN-8, or any barcode format. Whitespace is trimmed automatically.</p>
               </div>
 
               <div>
@@ -910,6 +943,39 @@ const ManageProducts = () => {
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <button
+                onClick={() => setVisibilityFilter("visible")}
+                className={cn(
+                  "text-sm rounded-full px-3 py-1.5 font-medium whitespace-nowrap transition-colors",
+                  visibilityFilter === "visible"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:bg-muted"
+                )}
+              >
+                Visible
+              </button>
+              <button
+                onClick={() => setVisibilityFilter("hidden")}
+                className={cn(
+                  "text-sm rounded-full px-3 py-1.5 font-medium whitespace-nowrap transition-colors",
+                  visibilityFilter === "hidden"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:bg-muted"
+                )}
+              >
+                Hidden
+              </button>
+              <button
+                onClick={() => setVisibilityFilter("all")}
+                className={cn(
+                  "text-sm rounded-full px-3 py-1.5 font-medium whitespace-nowrap transition-colors",
+                  visibilityFilter === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:bg-muted"
+                )}
+              >
+                All Products
+              </button>
+              <button
                 onClick={() => setStockFilter("all")}
                 className={cn(
                   "text-sm rounded-full px-3 py-1.5 font-medium whitespace-nowrap transition-colors",
@@ -1019,6 +1085,11 @@ const ManageProducts = () => {
                       ⚠ No Category
                     </span>
                   )}
+                  {(p.visibility ?? "visible") === "hidden" && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                      Hidden
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1032,12 +1103,20 @@ const ManageProducts = () => {
                   <Edit2 className="w-4 h-4" />
                 </Button>
                 <Button
-                  size="icon"
+                  size="sm"
                   variant="ghost"
-                  onClick={() => toggleVisibility(p.id, p.is_offer)}
-                  className={cn("h-8 w-8", p.is_offer && "text-orange-600")}
+                  onClick={() => toggleVisibility(p.id, p.visibility)}
+                  className="h-8 px-2 text-xs"
                 >
-                  <Package className="w-4 h-4" />
+                  {(p.visibility ?? "visible") === "hidden" ? (
+                    <>
+                      <Eye className="w-4 h-4 mr-1" /> Show
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="w-4 h-4 mr-1" /> Hide
+                    </>
+                  )}
                 </Button>
                 {customer?.is_admin && (
                   <Button
@@ -1062,13 +1141,23 @@ const ManageProducts = () => {
         <CsvImportModal
           customerId={customer?.id ?? ""}
           onClose={() => setShowCsvImport(false)}
-          onImported={() => fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined })}
+          onImported={() => fetchProducts({
+            stock_status: stockFilter,
+            category: categoryFilter || undefined,
+            image_filter: imageFilter,
+            visibility: visibilityFilter,
+          })}
         />
       )}
       {showBulkImageUpload && (
         <BulkImageUploadModal
           onClose={() => setShowBulkImageUpload(false)}
-          onComplete={() => fetchProducts({ stock_status: stockFilter, category: categoryFilter || undefined })}
+          onComplete={() => fetchProducts({
+            stock_status: stockFilter,
+            category: categoryFilter || undefined,
+            image_filter: imageFilter,
+            visibility: visibilityFilter,
+          })}
         />
       )}
     </div>
