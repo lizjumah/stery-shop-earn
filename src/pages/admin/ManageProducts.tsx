@@ -427,6 +427,8 @@ const ManageProducts = () => {
     if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (categoryFilter && p.category !== categoryFilter) return false;
     if (subcategoryFilter && (p.subcategory || "") !== subcategoryFilter) return false;
+    if (imageFilter === "missing" && p.image_url && p.image_url.trim() !== "") return false;
+    if (imageFilter === "has_image" && (!p.image_url || p.image_url.trim() === "")) return false;
     return true;
   });
 
