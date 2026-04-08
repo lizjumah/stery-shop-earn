@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,6 +18,7 @@ interface Product {
   is_offer: boolean;
   stock_status?: "in_stock" | "low_stock" | "out_of_stock";
   barcode?: string | null;
+  visibility?: "visible" | "hidden";
   created_at: string;
   updated_at: string;
 }
@@ -28,27 +29,28 @@ type ProductInsertUpdate = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
 export const useProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [missingImageCount, setMissingImageCount] = useState(0);
 
-  // Keep missing image count in sync — runs a lightweight count query whenever products change
-  const refreshMissingCount = useCallback(async () => {
-    const { count } = await supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .or("image_url.is.null,image_url.eq.");
-    setMissingImageCount(count ?? 0);
-  }, []);
+  // Derived from the currently loaded products — always consistent with active filters.
+  // Definition: products where image_url is null or empty string.
+  const missingImageCount = useMemo(
+    () => products.filter((p) => !p.image_url || p.image_url.trim() === "").length,
+    [products]
+  );
 
   const fetchProducts = useCallback(async (filters?: {
     stock_status?: "in_stock" | "low_stock" | "out_of_stock" | "all";
     category?: string;
     image_filter?: "all" | "missing" | "has_image";
+    visibility?: "visible" | "hidden" | "all";
   }) => {
     setIsLoading(true);
     let query: any = supabase.from("products").select("*");
 
     if (filters?.category) {
       query = query.eq("category", filters.category);
+    }
+    if (filters?.visibility && filters.visibility !== "all") {
+      query = query.eq("visibility", filters.visibility);
     }
     if (filters?.stock_status && filters.stock_status !== "all") {
       if (filters.stock_status === "in_stock") {
@@ -75,11 +77,11 @@ export const useProductManagement = () => {
     const typedData = (data || []) as Product[];
     setProducts(typedData);
     setIsLoading(false);
-    refreshMissingCount();
-  }, [refreshMissingCount]);
+  }, []);
 
   const addProduct = useCallback(
     async (product: Partial<ProductInsertUpdate>) => {
+      const normalizedBarcode = product.barcode?.trim() || null;
       const payload = {
         name: product.name,
         price: product.price,
@@ -93,7 +95,8 @@ export const useProductManagement = () => {
         stock_quantity: product.stock_quantity ?? 100,
         is_offer: product.is_offer ?? false,
         stock_status: product.stock_status ?? "in_stock",
-        barcode: product.barcode ?? null,
+        barcode: normalizedBarcode,
+        visibility: product.visibility ?? "visible",
       };
 
       const { data, error } = await supabase
@@ -116,9 +119,13 @@ export const useProductManagement = () => {
 
   const updateProduct = useCallback(
     async (id: string, updates: Partial<ProductInsertUpdate>) => {
+      const normalizedUpdates = {
+        ...updates,
+        ...(updates.barcode !== undefined ? { barcode: updates.barcode?.trim() || null } : {}),
+      };
       const { data, error } = await supabase
         .from("products")
-        .update(updates)
+        .update(normalizedUpdates)
         .eq("id", id)
         .select()
         .single();
@@ -152,9 +159,9 @@ export const useProductManagement = () => {
   }, []);
 
   const toggleVisibility = useCallback(
-    async (id: string, currentIsOffer: boolean) => {
-      const newIsOffer = !currentIsOffer;
-      return updateProduct(id, { is_offer: newIsOffer });
+    async (id: string, currentVisibility?: "visible" | "hidden") => {
+      const newVisibility = currentVisibility === "hidden" ? "visible" : "hidden";
+      return updateProduct(id, { visibility: newVisibility });
     },
     [updateProduct]
   );
