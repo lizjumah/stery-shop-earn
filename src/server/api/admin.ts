@@ -628,24 +628,26 @@ Returns: { required: true } | { duplicate: true, name: string } | { ok: true }
 */
 router.post("/products/validate-barcode", async (req: Request, res: Response) => {
   try {
-    const { barcode, excludeId, isCreate } = req.body;
+    const { barcode, excludeId, isCreate, category } = req.body;
+    const normalizedBarcode = String(barcode ?? "").trim();
+    const normalizedExcludeId = String(excludeId ?? "").trim();
 
     // Enforce required on create
-    if (isCreate && (!barcode || !String(barcode).trim())) {
+    if (isCreate && !normalizedBarcode) {
       return res.json({ required: true, duplicate: false });
     }
 
-    if (!barcode || !String(barcode).trim()) {
+    if (!normalizedBarcode) {
       return res.json({ duplicate: false });
     }
 
     let query = supabaseAdmin
       .from("products")
       .select("id, name")
-      .eq("barcode", String(barcode).trim());
+      .eq("barcode", normalizedBarcode);
 
-    if (excludeId) {
-      query = query.neq("id", excludeId);
+    if (normalizedExcludeId) {
+      query = query.neq("id", normalizedExcludeId);
     }
 
     const { data, error } = await query.maybeSingle();
@@ -664,11 +666,12 @@ router.post("/products/validate-barcode", async (req: Request, res: Response) =>
 
 /*
 POST /api/admin/products/import
-Bulk-inserts products from a pre-validated CSV payload.
+Imports products from a pre-validated CSV payload.
 Body: { rows: Array<{ name, barcode?, price, cost_price?, stock? }> }
-- Fetches all existing barcodes first to skip duplicates server-side.
+- Existing barcodes update stock instead of creating new products.
+- New barcodes create new products.
 - Inserts in batches of 50.
-- Returns { imported, skippedDuplicates, skippedErrors, errors[] }
+- Returns { imported, updatedExisting, skippedDuplicates, skippedErrors, errors[] }
 */
 router.post("/products/import", async (req: Request, res: Response) => {
   try {
@@ -691,35 +694,65 @@ router.post("/products/import", async (req: Request, res: Response) => {
     // Fetch all existing barcodes once to avoid per-row round trips
     const { data: existingProducts, error: fetchError } = await supabaseAdmin
       .from("products")
-      .select("barcode")
+      .select("id, barcode, stock_quantity")
       .not("barcode", "is", null);
 
     if (fetchError) throw fetchError;
 
-    const existingBarcodes = new Set(
-      (existingProducts || []).map((p: any) => String(p.barcode).trim())
+    const existingByBarcode = new Map(
+      (existingProducts || [])
+        .filter((p: any) => p.barcode != null && String(p.barcode).trim() !== "")
+        .map((p: any) => [String(p.barcode).trim(), p])
     );
 
     const toInsert: any[] = [];
+    const insertIndexByBarcode = new Map<string, number>();
+    const updatesByProductId = new Map<string, { stock_quantity: number; stock_status: string; in_stock: boolean }>();
+    let updatedExisting = 0;
     let skippedDuplicates = 0;
     const errors: string[] = [];
 
     for (const row of rows) {
       const barcode = row.barcode ? String(row.barcode).trim() : null;
+      const stockQty = row.stock != null ? Number(row.stock) : 0;
+      const stockStatus =
+        stockQty === 0 ? "out_of_stock" : stockQty <= 10 ? "low_stock" : "in_stock";
 
-      // Server-side duplicate guard
-      if (barcode && existingBarcodes.has(barcode)) {
-        skippedDuplicates++;
+      if (!barcode) {
+        errors.push(`"${String(row.name).trim()}" skipped: barcode is required.`);
         continue;
       }
 
-      const stockQty = row.stock != null ? Number(row.stock) : 0;
+      if (barcode && existingByBarcode.has(barcode)) {
+        const existing = existingByBarcode.get(barcode)!;
+        if (!updatesByProductId.has(existing.id)) {
+          updatedExisting++;
+        }
+        updatesByProductId.set(existing.id, {
+          stock_quantity: stockQty,
+          stock_status: stockStatus,
+          in_stock: stockQty > 0,
+        });
+        continue;
+      }
+
+      if (barcode && insertIndexByBarcode.has(barcode)) {
+        const idx = insertIndexByBarcode.get(barcode)!;
+        toInsert[idx] = {
+          ...toInsert[idx],
+          stock_quantity: stockQty,
+          stock_status: stockStatus,
+          in_stock: stockQty > 0,
+        };
+        continue;
+      }
+
       toInsert.push({
         name: String(row.name).trim(),
         price: Number(row.price),
         stock_quantity: stockQty,
         barcode: barcode || null,
-        category: row.category || null,
+        category: row.category || "Groceries",
         subcategory: row.subcategory || null,
         commission: 0,
         loyalty_points: 0,
@@ -730,13 +763,34 @@ router.post("/products/import", async (req: Request, res: Response) => {
       });
 
       // Track barcodes added in this batch so intra-batch duplicates are caught
-      if (barcode) existingBarcodes.add(barcode);
+      if (barcode) {
+        insertIndexByBarcode.set(barcode, toInsert.length - 1);
+      }
     }
 
     // Insert in batches of 50
     const BATCH = 50;
     let imported = 0;
     let skippedErrors = 0;
+    let updated = 0;
+
+    const updateEntries = Array.from(updatesByProductId.entries());
+    for (let i = 0; i < updateEntries.length; i += BATCH) {
+      const batch = updateEntries.slice(i, i + BATCH);
+      for (const [productId, updates] of batch) {
+        const { error: updateError } = await supabaseAdmin
+          .from("products")
+          .update(updates)
+          .eq("id", productId);
+
+        if (updateError) {
+          skippedErrors++;
+          errors.push(`Stock update failed for product ${productId}: ${updateError.message}`);
+        } else {
+          updated++;
+        }
+      }
+    }
 
     for (let i = 0; i < toInsert.length; i += BATCH) {
       const batch = toInsert.slice(i, i + BATCH);
@@ -758,11 +812,11 @@ router.post("/products/import", async (req: Request, res: Response) => {
       "products",
       null,
       null,
-      { imported, skippedDuplicates, skippedErrors },
+      { imported, updatedExisting: updated, skippedDuplicates, skippedErrors },
       req.adminId!
     );
 
-    res.json({ success: true, imported, skippedDuplicates, skippedErrors, errors });
+    res.json({ success: true, imported, updatedExisting: updated, skippedDuplicates, skippedErrors, errors });
   } catch (err: any) {
     res.status(500).json({ error: "Import failed", message: err.message });
   }
@@ -1114,6 +1168,7 @@ router.post(
 
       return res.json({ success: true, image: inserted });
     } catch (err: any) {
+      console.error("[gallery-upload] error:", err?.message ?? err);
       return res.status(500).json({ error: "Upload failed", message: err.message });
     }
   }
