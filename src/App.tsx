@@ -47,6 +47,35 @@ import { FloatingCart } from "./components/FloatingCart";
 import { FloatingHelpButton } from "./components/FloatingHelpButton";
 import { Layout } from "./components/Layout";
 import { OwnerPinProvider } from "./contexts/OwnerPinContext";
+import { usePWAInstall } from "./hooks/usePWAInstall";
+
+/** DEBUG — remove before release */
+const PWADebugBadge = () => {
+  const { isInstallable } = usePWAInstall();
+  const standalone = window.matchMedia("(display-mode: standalone)").matches;
+  // promptFired is true whenever isInstallable has ever been true, or if it currently is
+  const [promptFired, setPromptFired] = React.useState(false);
+  React.useEffect(() => {
+    const mark = () => setPromptFired(true);
+    window.addEventListener("beforeinstallprompt", mark);
+    return () => window.removeEventListener("beforeinstallprompt", mark);
+  }, []);
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 72, left: 8, zIndex: 9999,
+      background: "#1e1e1e", color: "#fff", borderRadius: 8,
+      padding: "6px 10px", fontSize: 11, fontFamily: "monospace",
+      lineHeight: 1.7, opacity: 0.92, pointerEvents: "none",
+    }}>
+      <div style={{ color: "#facc15", fontWeight: "bold", marginBottom: 2 }}>PWA Debug</div>
+      <div>beforeinstallprompt: <span style={{ color: promptFired ? "#4ade80" : "#f87171" }}>{promptFired ? "YES" : "NO"}</span></div>
+      <div>isInstallable: <span style={{ color: isInstallable ? "#4ade80" : "#f87171" }}>{isInstallable ? "YES" : "NO"}</span></div>
+      <div>standalone: <span style={{ color: standalone ? "#4ade80" : "#94a3b8" }}>{standalone ? "YES" : "NO"}</span></div>
+    </div>
+  );
+};
+import React from "react";
 
 const queryClient = new QueryClient();
 
@@ -148,6 +177,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <div id="app-shell">
+                <PWADebugBadge />
                 <FloatingCart />
                 <FloatingHelpButton />
                 <AppRoutes />
