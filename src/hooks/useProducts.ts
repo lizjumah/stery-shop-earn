@@ -10,6 +10,7 @@ export function useProducts() {
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .eq("visibility", "visible")
         .order("name");
 
       if (error || !data || data.length === 0) {
