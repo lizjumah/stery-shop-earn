@@ -35,6 +35,13 @@ const Profile = () => {
   const { fetchPinStatus, loginVerify, getLockoutState } = useOwnerPin();
   const [ownerHasPin, setOwnerHasPin] = useState(false);
   const { isInstallable, install } = usePWAInstall();
+  // DEBUG — tracks whether beforeinstallprompt has fired at all
+  const [promptFired, setPromptFired] = useState(false);
+  useEffect(() => {
+    const mark = () => setPromptFired(true);
+    window.addEventListener("beforeinstallprompt", mark);
+    return () => window.removeEventListener("beforeinstallprompt", mark);
+  }, []);
   // true when pendingStaff is an owner (PIN verified via backend, not plain text)
   const [pendingIsOwner, setPendingIsOwner] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
@@ -326,6 +333,16 @@ const Profile = () => {
       </div>
 
       <div className="px-4 mt-5 space-y-4">
+
+        {/* ── PWA DEBUG PANEL — remove before release ─────────────────────── */}
+        <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-3 text-[11px] font-mono space-y-1">
+          <p className="font-bold text-yellow-800 mb-1">PWA Install Debug</p>
+          <p>beforeinstallprompt fired: <span className={promptFired ? "text-green-700 font-bold" : "text-red-600 font-bold"}>{promptFired ? "YES" : "NO"}</span></p>
+          <p>isInstallable: <span className={isInstallable ? "text-green-700 font-bold" : "text-red-600 font-bold"}>{isInstallable ? "true" : "false"}</span></p>
+          <p>standalone mode: <span className={window.matchMedia("(display-mode: standalone)").matches ? "text-green-700 font-bold" : "text-yellow-700 font-bold"}>{window.matchMedia("(display-mode: standalone)").matches ? "YES (already installed)" : "NO (browser tab)"}</span></p>
+          <p>button hidden because: <span className="text-yellow-800">{window.matchMedia("(display-mode: standalone)").matches ? "running as installed app" : !promptFired ? "prompt not fired yet" : !isInstallable ? "isInstallable is false" : "— button should be visible"}</span></p>
+        </div>
+        {/* ── END DEBUG PANEL ─────────────────────────────────────────────── */}
 
         {/* ── Stery Earn Wallet ──────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated border border-accent/20">
