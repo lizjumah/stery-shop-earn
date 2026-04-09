@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "auto",
+      injectRegister: "inline",
       includeAssets: ["favicon.ico", "robots.txt", "icons/*.png"],
       manifest: {
         name: "Stery",
