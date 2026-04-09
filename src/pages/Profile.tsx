@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   User, Phone, Mail, MapPin, ChevronRight, ChevronDown, ChevronUp,
   LogOut, HelpCircle, Settings, Star, TrendingUp, ClipboardList,
-  Cake, LayoutDashboard, PhoneCall, MessageCircle, Lock,
+  Cake, LayoutDashboard, PhoneCall, MessageCircle, Lock, Download,
 } from "lucide-react";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useNavigate, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ const Profile = () => {
   const role = getCustomerRole(customer);
   const { fetchPinStatus, loginVerify, getLockoutState } = useOwnerPin();
   const [ownerHasPin, setOwnerHasPin] = useState(false);
+  const { isInstallable, install } = usePWAInstall();
   // true when pendingStaff is an owner (PIN verified via backend, not plain text)
   const [pendingIsOwner, setPendingIsOwner] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
@@ -178,6 +180,11 @@ const Profile = () => {
                 <Button onClick={() => setShowPhoneInput(true)} variant="outline" className="w-full">
                   Sign In
                 </Button>
+                {isInstallable && (
+                  <Button onClick={install} variant="outline" className="w-full gap-2 border-primary/30 text-primary">
+                    <Download className="w-4 h-4" /> Install Stery App
+                  </Button>
+                )}
               </div>
             ) : pendingStaff ? (
               /* PIN step — staff, product_manager, and owner */
@@ -266,6 +273,11 @@ const Profile = () => {
             <span className="flex-1 font-medium text-foreground">Admin Dashboard</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </Link>
+          {isInstallable && (
+            <Button onClick={install} variant="outline" className="w-full h-12 gap-2 border-primary/30 text-primary">
+              <Download className="w-5 h-5" /> Install Stery App
+            </Button>
+          )}
           <Button
             onClick={handleLogout}
             variant="outline"
@@ -427,6 +439,21 @@ const Profile = () => {
             <span className="flex-1 text-left font-medium text-foreground">Settings</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
+
+          {/* Install Stery App — only shown when browser supports PWA install */}
+          {isInstallable && (
+            <button
+              onClick={install}
+              className="w-full flex items-center gap-4 p-4 hover:bg-secondary transition-colors border-b border-border"
+            >
+              <Download className="w-5 h-5 text-primary" />
+              <div className="flex-1 text-left">
+                <span className="font-medium text-foreground block">Install Stery App</span>
+                <span className="text-xs text-muted-foreground">Add to your home screen</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          )}
 
           {/* Help & Support — inline expand */}
           <div>
