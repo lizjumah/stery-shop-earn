@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const LOCAL_DELIVERY_AREAS = [
-  { name: "Bungoma Town", fee: 50 },
+  { name: "Bungoma Town", fee: 100 },
   { name: "Nzoia", fee: 50 },
   { name: "Mabanga", fee: 50 },
   { name: "Nasaka", fee: 50 },
@@ -33,6 +33,7 @@ const LOCAL_DELIVERY_AREAS = [
   { name: "Luuya", fee: 100 },
   { name: "Webuye", fee: 100 },
   { name: "Kanduyi", fee: 100 },
+  { name: "Kibabii", fee: 130 },
 ];
 const FREE_DELIVERY_THRESHOLD = 3000;
 
@@ -616,7 +617,7 @@ const Checkout = () => {
                               Local delivery
                             </p>
                             <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                              From KSh 50
+                              From KSh 50 – 130
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
