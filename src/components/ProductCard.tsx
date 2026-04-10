@@ -82,8 +82,8 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
     <>
     <Link to={isEarnMode ? `/earn/product/${product.id}` : `/shop/product/${product.id}`}>
       <div className="bg-card rounded-lg overflow-hidden card-elevated animate-fade-in">
-        <div className="relative aspect-[3/2]">
-          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+        <div className="relative aspect-[3/2] overflow-hidden">
+          <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
           {isDeal && (
             <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground flex items-center gap-1">
               <Clock className="w-3 h-3" />
