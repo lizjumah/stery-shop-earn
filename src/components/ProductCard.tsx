@@ -80,9 +80,11 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
 
   return (
     <>
-    <Link to={isEarnMode ? `/earn/product/${product.id}` : `/shop/product/${product.id}`}>
-      <div className="bg-card rounded-lg overflow-hidden card-elevated animate-fade-in">
-        <div className="relative aspect-[3/2] overflow-hidden">
+    <Link to={isEarnMode ? `/earn/product/${product.id}` : `/shop/product/${product.id}`} className="h-full">
+      <div className="flex flex-col h-full bg-card rounded-lg overflow-hidden card-elevated animate-fade-in">
+
+        {/* Image — fixed aspect ratio, never grows */}
+        <div className="relative aspect-[3/2] overflow-hidden shrink-0">
           <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
           {isDeal && (
             <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground flex items-center gap-1">
@@ -102,7 +104,8 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
           )}
         </div>
 
-        <div className="px-2.5 pt-1.5 pb-2">
+        {/* Content — grows to fill remaining card height */}
+        <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
           <h3 className="font-semibold text-sm line-clamp-2 text-foreground">{product.name}</h3>
 
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -117,7 +120,8 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
             )}
           </p>
 
-          <div className="flex items-center justify-between mt-1.5">
+          {/* Price + action — pinned to bottom of content area */}
+          <div className="flex items-center justify-between mt-auto pt-1.5">
             <div>
               <span className="font-bold text-sm text-foreground">KSh {product.price}</span>
               {product.originalPrice && (
