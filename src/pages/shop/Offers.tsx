@@ -4,7 +4,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ShoppingCart, Clock, Flame, ChevronRight, Zap } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Clock, Flame, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -91,21 +91,21 @@ const Offers = () => {
                 TODAY ONLY
               </Badge>
             </div>
-            <div className="p-4 flex gap-4">
+            <div className="p-4 flex gap-3">
               <img
                 src={featuredProduct.image}
                 alt={featuredProduct.name}
-                className="w-28 h-28 rounded-xl object-cover shrink-0"
+                className="w-24 h-24 rounded-lg object-cover shrink-0"
               />
               <div className="flex-1 min-w-0 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-bold text-foreground text-lg">{featuredProduct.name}</h3>
+                  <h3 className="font-bold text-foreground text-base line-clamp-2">{featuredProduct.name}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{featuredProduct.description}</p>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xl font-bold text-primary">KSh {featuredProduct.price}</span>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-base font-bold text-primary">KSh {featuredProduct.price}</span>
                   {featuredProduct.originalPrice && (
-                    <span className="text-sm text-muted-foreground line-through">KSh {featuredProduct.originalPrice}</span>
+                    <span className="text-xs text-muted-foreground line-through">KSh {featuredProduct.originalPrice}</span>
                   )}
                 </div>
                 {featuredProduct.originalPrice && (
@@ -117,7 +117,7 @@ const Offers = () => {
             </div>
             <div className="px-4 pb-4">
               <Button
-                className="w-full bg-destructive hover:bg-destructive/90 h-11 font-semibold"
+                className="w-full bg-destructive hover:bg-destructive/90 h-10 font-semibold text-sm"
                 onClick={() => handleAdd(featuredProduct.id, featuredProduct.name)}
               >
                 <ShoppingCart className="w-4 h-4 mr-2" />
@@ -167,7 +167,7 @@ const Offers = () => {
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-24 h-24 rounded-xl object-cover"
+                      className="w-20 h-20 rounded-lg object-cover"
                     />
                     {discount > 0 && (
                       <Badge className="absolute -top-1.5 -left-1.5 bg-destructive text-destructive-foreground text-[10px] px-1.5 py-0.5">
@@ -177,7 +177,7 @@ const Offers = () => {
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-between">
                     <div>
-                      <h3 className="font-semibold text-foreground text-sm truncate">{product.name}</h3>
+                      <h3 className="font-semibold text-foreground text-sm line-clamp-2">{product.name}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
                       {isTodayDeal && (
                         <div className="flex items-center gap-1 mt-1">
@@ -195,20 +195,20 @@ const Offers = () => {
                     </div>
                     <div className="flex items-center justify-between mt-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-foreground">KSh {product.price}</span>
+                        <span className="font-bold text-sm text-foreground">KSh {product.price}</span>
                         {product.originalPrice && (
                           <span className="text-xs text-muted-foreground line-through">KSh {product.originalPrice}</span>
                         )}
                       </div>
                       <Button
                         size="sm"
-                        className="bg-primary hover:bg-primary/90 h-8 px-3 rounded-full"
+                        className="bg-primary hover:bg-primary/90 h-7 px-2.5 rounded-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleAdd(product.id, product.name);
                         }}
                       >
-                        <ShoppingCart className="w-3.5 h-3.5" />
+                        <ShoppingCart className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
