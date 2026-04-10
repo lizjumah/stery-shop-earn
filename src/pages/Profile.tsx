@@ -324,7 +324,35 @@ const Profile = () => {
 
       <div className="px-4 mt-5 space-y-4">
 
-
+        {/* ── PWA Install Prompt ─────────────────────────────────────────── */}
+        {(() => {
+          const isIPhone = /iphone|ipad|ipod/i.test(navigator.userAgent);
+          if (isInstallable) {
+            return (
+              <button
+                onClick={install}
+                className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-xl py-3.5 px-4 font-bold text-sm shadow-md active:opacity-80"
+              >
+                <Download className="w-5 h-5" />
+                Install Stery App
+              </button>
+            );
+          }
+          if (isIPhone) {
+            return (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-3 text-sm text-foreground">
+                <p className="font-semibold mb-1 flex items-center gap-1.5">
+                  <Download className="w-4 h-4 text-primary" /> Add Stery to Home Screen
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Tap the <span className="font-semibold">Share</span> button in Safari, then choose{" "}
+                  <span className="font-semibold">Add to Home Screen</span>.
+                </p>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* ── Stery Earn Wallet ──────────────────────────────────────────── */}
         <div className="bg-card rounded-xl p-4 card-elevated border border-accent/20">
