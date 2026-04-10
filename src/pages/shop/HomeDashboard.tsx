@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
@@ -84,6 +85,13 @@ const HomeDashboard = () => {
   const progress = ((loyaltyPoints % NEXT_REWARD_AT) / NEXT_REWARD_AT) * 100;
 
   const buyAgainProducts  = useBuyAgain(customer?.id);
+  const { isInstallable, isInstalled } = usePWAInstall();
+  const showIPhoneCard = useMemo(() =>
+    !isInstallable &&
+    !isInstalled &&
+    !window.matchMedia("(display-mode: standalone)").matches &&
+    /iphone|ipad|ipod/i.test(navigator.userAgent)
+  , [isInstallable, isInstalled]);
 
   const handleAddAllBuyAgain = () => {
     buyAgainProducts.forEach((p) => addToCart(p.id));
@@ -335,6 +343,17 @@ const HomeDashboard = () => {
         </p>
       </div>
 
+
+      {/* ── iOS install card ── */}
+      {showIPhoneCard && (
+        <div className="mx-4 mt-3 mb-1 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl">
+          <p className="text-sm font-semibold text-orange-900 mb-0.5">Get Stery on your phone 📱</p>
+          <p className="text-xs text-orange-800 leading-relaxed">
+            Open this in Safari, tap the <span className="font-semibold">Share</span> button, then choose{" "}
+            <span className="font-semibold">Add to Home Screen</span>.
+          </p>
+        </div>
+      )}
 
       {/* ── Category chips ── */}
       <div className="sticky top-24 z-30 bg-background border-b border-border shadow-sm">
