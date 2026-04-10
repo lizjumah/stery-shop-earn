@@ -74,6 +74,30 @@ const ManageProducts = () => {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showBulkImageUpload, setShowBulkImageUpload] = useState(false);
 
+  // DB-sourced subcategory map: { [category]: string[] }
+  // Fetched once at mount so the form dropdown is never stale regardless of
+  // what the current filter is or what's in the hardcoded subcategoryConfig.
+  const [dbSubcategoryMap, setDbSubcategoryMap] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    supabase
+      .from("products")
+      .select("category, subcategory")
+      .not("subcategory", "is", null)
+      .neq("subcategory", "")
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string[]> = {};
+        for (const row of data as { category: string; subcategory: string }[]) {
+          if (!map[row.category]) map[row.category] = [];
+          if (!map[row.category].includes(row.subcategory)) {
+            map[row.category].push(row.subcategory);
+          }
+        }
+        setDbSubcategoryMap(map);
+      });
+  }, []);
+
   const [formData, setFormData] = useState({
     name: "",
     price: 0,
@@ -294,6 +318,16 @@ const ManageProducts = () => {
       }
     }
 
+    // Optimistically add new subcategory to the local map so it appears
+    // immediately in the dropdown without requiring a page reload.
+    if (formData.subcategory && formData.subcategory !== "__custom__" && formData.category) {
+      setDbSubcategoryMap((prev) => {
+        const existing = prev[formData.category] ?? [];
+        if (existing.includes(formData.subcategory)) return prev;
+        return { ...prev, [formData.category]: [...existing, formData.subcategory] };
+      });
+    }
+
     setFormData({
       name: "",
       price: 0,
@@ -314,7 +348,7 @@ const ManageProducts = () => {
 
   const handleEdit = (p: any) => {
     const sub = p.subcategory || "";
-    const knownSubs = subcategoryConfig[p.category] ?? [];
+    const knownSubs = [...new Set([...(subcategoryConfig[p.category] ?? []), ...(dbSubcategoryMap[p.category] ?? [])])];
     setFormData({
       name: p.name,
       price: p.price,
@@ -444,7 +478,9 @@ const ManageProducts = () => {
     return "in_stock";
   };
 
-  const subcategoryOptions = categoryFilter ? (subcategoryConfig[categoryFilter] ?? []) : [];
+  const subcategoryOptions = categoryFilter
+    ? [...new Set([...(subcategoryConfig[categoryFilter] ?? []), ...(dbSubcategoryMap[categoryFilter] ?? [])])]
+    : [];
 
   const filteredProducts = products.filter((p) => {
     if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -678,10 +714,8 @@ const ManageProducts = () => {
                 <label className="text-xs text-muted-foreground font-medium">Subcategory</label>
                 {(() => {
                   const configOpts = subcategoryConfig[formData.category] ?? [];
-                  const liveOpts = products
-                    .filter((p) => p.category === formData.category && p.subcategory)
-                    .map((p) => p.subcategory as string);
-                  const opts = [...new Set([...configOpts, ...liveOpts])];
+                  const dbOpts = dbSubcategoryMap[formData.category] ?? [];
+                  const opts = [...new Set([...configOpts, ...dbOpts])];
                   const isCustom =
                     formData.subcategory === "__custom__" ||
                     (formData.subcategory && !opts.includes(formData.subcategory));
