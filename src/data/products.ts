@@ -15,6 +15,7 @@ export interface Product {
   stockStatus?: "in_stock" | "low_stock" | "out_of_stock"; // staff-controlled availability
   barcode?: string; // EAN/GS1 barcode — optional, TEXT to preserve leading zeros
   isAgeRestricted?: boolean; // true for Wines & Spirits — requires age confirmation before browsing/purchasing
+  isFeatured?: boolean; // manually marked by admin for promotions and fallback popular section
 }
 
 export const products: Product[] = [

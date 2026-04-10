@@ -4,6 +4,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
 import { useBuyAgain } from "@/hooks/useBuyAgain";
+import { usePopularProducts } from "@/hooks/usePopularProducts";
 import { Product, subcategoryConfig } from "@/data/products";
 import { SHOP_CATEGORIES } from "@/data/categoryConfig";
 import { ProductCard } from "@/components/ProductCard";
@@ -106,11 +107,12 @@ const HomeDashboard = () => {
   };
 
   // const dealProducts = liveProducts.filter((p) => p.isOffer || p.originalPrice); // disabled with Today's Deals shelf
-  const popularProducts   = liveProducts.filter((p) => p.inStock !== false).slice(0, 8);
-  const groceryProducts   = liveProducts.filter((p) => p.category === "Groceries" || p.category === "Bakery");
-  const householdProducts = liveProducts.filter((p) => p.category === "Household & Cleaning" || p.category === "Electronics");
-  const specialtyProducts = liveProducts.filter((p) => p.category === "Baby Items" || p.category === "Jewelry");
-  const newProducts       = [...liveProducts].reverse().slice(0, 4);
+  const popularProducts   = usePopularProducts(liveProducts, 8);
+  const groceryProducts   = liveProducts.filter((p) => (p.category === "Groceries" || p.category === "Bakery") && p.image && p.image.trim() !== "");
+  const householdProducts = liveProducts.filter((p) => (p.category === "Household & Cleaning" || p.category === "Electronics") && p.image && p.image.trim() !== "");
+  const specialtyProducts = liveProducts.filter((p) => (p.category === "Baby Items" || p.category === "Jewelry") && p.image && p.image.trim() !== "");
+  // New Arrivals: most recently added, only products with images
+  const newProducts       = [...liveProducts].reverse().filter((p) => p.image && p.image.trim() !== "").slice(0, 4);
 
   return (
     <div className="min-h-screen bg-background pb-20">

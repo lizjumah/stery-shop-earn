@@ -36,9 +36,10 @@ export function useProducts() {
         stockStatus: (row.stock_status as "in_stock" | "low_stock" | "out_of_stock") ?? "in_stock",
         barcode: row.barcode ?? undefined,
         isAgeRestricted: row.is_age_restricted ?? false,
+        isFeatured: (row as any).is_featured ?? false,
       }));
     },
-    staleTime: 5 * 60 * 1000, // 5 min — products don't change every second
+    staleTime: 2 * 60 * 1000, // 2 min — homepage needs reasonably fresh data
   });
 }
 

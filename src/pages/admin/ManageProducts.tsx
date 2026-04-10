@@ -110,6 +110,7 @@ const ManageProducts = () => {
     stock_status: "in_stock" as "in_stock" | "low_stock" | "out_of_stock",
     barcode: "",
     visibility: "visible" as "visible" | "hidden",
+    is_featured: false,
   });
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
@@ -340,6 +341,7 @@ const ManageProducts = () => {
       stock_status: "in_stock",
       barcode: "",
       visibility: "visible",
+      is_featured: false,
     });
     setCustomSubcategory("");
     setCustomCategory("");
@@ -361,6 +363,7 @@ const ManageProducts = () => {
       stock_status: (p.stock_status as "in_stock" | "low_stock" | "out_of_stock") ?? "in_stock",
       barcode: p.barcode ?? "",
       visibility: (p.visibility as "visible" | "hidden") ?? "visible",
+      is_featured: p.is_featured ?? false,
     });
     // If subcategory not in the config list, pre-fill the custom input
     if (sub && !knownSubs.includes(sub)) {
@@ -394,6 +397,7 @@ const ManageProducts = () => {
       stock_status: "in_stock",
       barcode: "",
       visibility: "visible",
+      is_featured: false,
     });
   };
 
@@ -915,6 +919,34 @@ const ManageProducts = () => {
                     )}
                   </Button>
                 </div>
+              )}
+
+              {/* Featured toggle — only owner/admin */}
+              {canManageCatalog && (
+                <label className="flex items-center gap-3 cursor-pointer select-none py-1">
+                  <div
+                    role="switch"
+                    aria-checked={formData.is_featured}
+                    onClick={() => setFormData({ ...formData, is_featured: !formData.is_featured })}
+                    className={cn(
+                      "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                      formData.is_featured ? "bg-primary" : "bg-muted border border-border"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-4 w-4 rounded-full bg-white shadow transition-transform",
+                        formData.is_featured ? "translate-x-4" : "translate-x-0.5"
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground leading-none">Featured product</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Appears in the homepage Popular section when sales data is limited
+                    </p>
+                  </div>
+                </label>
               )}
 
               <div className="flex gap-2">

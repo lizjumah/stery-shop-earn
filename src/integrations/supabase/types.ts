@@ -484,6 +484,7 @@ export type Database = {
           in_stock: boolean
           stock_quantity: number
           is_offer: boolean
+          is_featured: boolean
           stock_status: string
           barcode: string | null
           created_at: string
@@ -506,6 +507,7 @@ export type Database = {
           in_stock?: boolean
           stock_quantity?: number
           is_offer?: boolean
+          is_featured?: boolean
           stock_status?: string
           barcode?: string | null
           created_at?: string
@@ -528,6 +530,7 @@ export type Database = {
           in_stock?: boolean
           stock_quantity?: number
           is_offer?: boolean
+          is_featured?: boolean
           stock_status?: string
           barcode?: string | null
           created_at?: string

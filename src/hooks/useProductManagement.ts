@@ -16,6 +16,7 @@ interface Product {
   in_stock: boolean;
   stock_quantity: number;
   is_offer: boolean;
+  is_featured: boolean;
   stock_status?: "in_stock" | "low_stock" | "out_of_stock";
   barcode?: string | null;
   visibility?: "visible" | "hidden";
