@@ -86,12 +86,17 @@ const HomeDashboard = () => {
 
   const buyAgainProducts  = useBuyAgain(customer?.id);
   const { isInstallable, isInstalled } = usePWAInstall();
-  const showIPhoneCard = useMemo(() =>
-    !isInstallable &&
-    !isInstalled &&
-    !window.matchMedia("(display-mode: standalone)").matches &&
-    /iphone|ipad|ipod/i.test(navigator.userAgent)
-  , [isInstallable, isInstalled]);
+  const showIPhoneCard = useMemo(() => {
+    const isIOS =
+      /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    return (
+      !isInstallable &&
+      !isInstalled &&
+      !window.matchMedia("(display-mode: standalone)").matches &&
+      isIOS
+    );
+  }, [isInstallable, isInstalled]);
 
   const handleAddAllBuyAgain = () => {
     buyAgainProducts.forEach((p) => addToCart(p.id));
