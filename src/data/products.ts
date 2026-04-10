@@ -62,7 +62,7 @@ export const categories = [
 export const subcategoryConfig: Record<string, string[]> = {
   // ── legacy (kept for existing products — do not remove) ──────────────────
   Groceries:    ["Dairy", "Eggs", "Flour & Grains", "Cooking Oils", "Sugar & Salt", "Tea & Coffee"],
-  "Baby Items": ["Bedding", "Clothing", "Feeding", "Toys"],
+  "Baby Items": ["Bedding", "Clothing", "Feeding", "Toys", "Baby Diapers", "Baby Skincare"],
   Jewelry:      ["Bracelets", "Necklaces", "Earrings", "Rings"],
   // ── official Stery catalogue structure ───────────────────────────────────
   Beverages:                ["Soda", "Water", "Juice", "Energy Drinks", "Milk/Yoghurt", "Hot Beverages", "Ready to Drink Juices", "General"],
