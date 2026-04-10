@@ -35,7 +35,7 @@ const LOCAL_DELIVERY_AREAS = [
   { name: "Kanduyi", fee: 100 },
   { name: "Kibabii", fee: 130 },
 ];
-const FREE_DELIVERY_THRESHOLD = 3000;
+
 
 type FulfillmentMethod = "pickup" | "local" | "countrywide";
 
@@ -113,9 +113,7 @@ const Checkout = () => {
   );
   const selectedArea = LOCAL_DELIVERY_AREAS.find((a) => a.name === deliveryArea);
   const rawDeliveryFee = fulfillmentMethod === "local" ? (selectedArea?.fee ?? 100) : 0;
-  const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD && fulfillmentMethod === "local";
-  const deliveryFee =
-    fulfillmentMethod === "countrywide" ? 0 : freeDelivery ? 0 : rawDeliveryFee;
+  const deliveryFee = fulfillmentMethod === "countrywide" ? 0 : rawDeliveryFee;
   const preDiscountTotal = subtotal + deliveryFee;
   const pointsDiscount = 0;
   const total = preDiscountTotal - pointsDiscount;
@@ -347,7 +345,6 @@ const Checkout = () => {
           earnedPoints,
           pointsDiscount,
           deliveryFee,
-          freeDelivery,
           items: orderItems,
         },
       });
@@ -440,18 +437,7 @@ const Checkout = () => {
             {fulfillmentMethod === "local" && (
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Delivery ({deliveryArea})</span>
-                <span>
-                  {freeDelivery ? (
-                    <span className="text-green-600 font-medium">
-                      Free{" "}
-                      <span className="line-through text-muted-foreground/60 ml-1">
-                        KSh {rawDeliveryFee}
-                      </span>
-                    </span>
-                  ) : (
-                    `KSh ${deliveryFee}`
-                  )}
-                </span>
+                <span>KSh {deliveryFee}</span>
               </div>
             )}
 
@@ -656,22 +642,11 @@ const Checkout = () => {
                                     {area.name}
                                   </p>
                                   <p className="text-xs text-muted-foreground mt-0.5">
-                                    {subtotal >= FREE_DELIVERY_THRESHOLD ? (
-                                      <span className="text-green-600 font-medium">Free</span>
-                                    ) : (
-                                      `KSh ${area.fee}`
-                                    )}
+                                    KSh {area.fee}
                                   </p>
                                 </button>
                               ))}
                             </div>
-                            {subtotal >= FREE_DELIVERY_THRESHOLD && (
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-center mt-2">
-                                <p className="text-green-700 text-xs font-semibold">
-                                  🎉 Free delivery unlocked on this order!
-                                </p>
-                              </div>
-                            )}
                           </div>
 
                           <div>
