@@ -82,7 +82,7 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
     <>
     <Link to={isEarnMode ? `/earn/product/${product.id}` : `/shop/product/${product.id}`}>
       <div className="bg-card rounded-lg overflow-hidden card-elevated animate-fade-in">
-        <div className="relative aspect-[4/3]">
+        <div className="relative aspect-[3/2]">
           <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
           {isDeal && (
             <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground flex items-center gap-1">
@@ -102,10 +102,10 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
           )}
         </div>
 
-        <div className="px-3 pt-2 pb-2.5">
+        <div className="px-2.5 pt-1.5 pb-2">
           <h3 className="font-semibold text-sm line-clamp-2 text-foreground">{product.name}</h3>
 
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {outOfStock ? (
               <span className="text-destructive font-medium">Out of stock</span>
             ) : isLowStock ? (
@@ -117,9 +117,9 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
             )}
           </p>
 
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between mt-1.5">
             <div>
-              <span className="font-bold text-base text-foreground">KSh {product.price}</span>
+              <span className="font-bold text-sm text-foreground">KSh {product.price}</span>
               {product.originalPrice && (
                 <span className="text-xs text-muted-foreground line-through ml-1">
                   KSh {product.originalPrice}
@@ -130,16 +130,16 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
             {isEarnMode ? (
               <Button
                 size="icon"
-                className="h-9 w-9 rounded-full bg-accent hover:bg-accent/90"
+                className="h-8 w-8 rounded-full bg-accent hover:bg-accent/90"
                 onClick={handleAction}
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-3.5 h-3.5" />
               </Button>
             ) : outOfStock ? (
               <button
                 disabled
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                className="h-8 px-2.5 rounded-md text-xs font-medium bg-muted text-muted-foreground cursor-not-allowed"
+                className="h-7 px-2 rounded-md text-[11px] font-medium bg-muted text-muted-foreground cursor-not-allowed"
               >
                 Out of stock
               </button>
@@ -147,7 +147,7 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
               <button
                 onClick={handleAction}
                 className={cn(
-                  "h-8 px-3 rounded-md text-sm font-semibold transition-colors flex items-center gap-1",
+                  "h-7 px-2.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1",
                   added
                     ? "bg-green-100 text-green-700"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -157,7 +157,7 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
                   "✓ Added"
                 ) : (
                   <>
-                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <ShoppingCart className="w-3 h-3" />
                     Add
                   </>
                 )}
@@ -166,7 +166,7 @@ export const ProductCard = ({ product, showDealBadge = true }: ProductCardProps)
           </div>
 
           {!isEarnMode && (
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[10px] text-muted-foreground mt-0.5">
               +{Math.floor(product.price / 100)} pts
             </p>
           )}
