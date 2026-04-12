@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useProduct } from "@/hooks/useProducts";
 import { useProductImages } from "@/hooks/useProductImages";
 import { FrequentlyBoughtTogether } from "@/components/shop/FrequentlyBoughtTogether";
@@ -7,14 +7,22 @@ import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Star, ShoppingCart, Minus, Plus, Share2, ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { storeReferralCode } from "@/lib/referral";
 
 const ProductDetails = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { addToCart, cartItemCount, cart } = useApp();
   const [quantity, setQuantity] = useState(1);
+
+  // Capture referral code from ?ref= and persist it for checkout
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) storeReferralCode(ref);
+  }, [searchParams]);
   const { product, isLoading } = useProduct(id);
   const { data: galleryImages = [] } = useProductImages(id);
   const [activeIndex, setActiveIndex] = useState(0);

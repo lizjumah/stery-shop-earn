@@ -307,6 +307,7 @@ export type Database = {
           updated_by: string | null
           paid_at: string | null
           payment_status: string
+          referral_code: string | null
         }
         Insert: {
           created_at?: string
@@ -337,6 +338,7 @@ export type Database = {
           updated_by?: string | null
           paid_at?: string | null
           payment_status?: string
+          referral_code?: string | null
         }
         Update: {
           created_at?: string

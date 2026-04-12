@@ -1,9 +1,11 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Share2, Copy, ShoppingBag, Store } from "lucide-react";
 import { toast } from "sonner";
+import { storeReferralCode } from "@/lib/referral";
 
 interface StorefrontProduct {
   id: string;
@@ -94,6 +96,11 @@ async function fetchStorefront(referralCode: string): Promise<Storefront | null>
 
 const ResellerStorefront = () => {
   const { referralCode } = useParams<{ referralCode: string }>();
+
+  // Store referral code immediately when customer lands on storefront
+  useEffect(() => {
+    if (referralCode) storeReferralCode(referralCode);
+  }, [referralCode]);
 
   const { data: storefront, isLoading, isError } = useQuery({
     queryKey: ["storefront", referralCode],

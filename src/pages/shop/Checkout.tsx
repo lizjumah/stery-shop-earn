@@ -3,6 +3,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useProducts } from "@/hooks/useProducts";
 import { useQueryClient } from "@tanstack/react-query";
+import { getStoredReferralCode, clearStoredReferralCode } from "@/lib/referral";
 
 import { Button } from "@/components/ui/button";
 import { API_BASE } from "@/lib/api/client";
@@ -220,6 +221,9 @@ const Checkout = () => {
         quantity: item.quantity,
         price: item.product!.price,
         subtotal: item.product!.price * item.quantity,
+        commission: item.product!.isEarnable && item.product!.commission
+          ? item.product!.commission
+          : null,
       }));
 
       if (pointsDiscount > 0) {
@@ -253,6 +257,8 @@ const Checkout = () => {
               .join(" | ")
           : null;
 
+      const storedRefCode = getStoredReferralCode();
+
       const { data: orderData, error: dbError } = await supabase
         .from("orders")
         .insert({
@@ -273,6 +279,7 @@ const Checkout = () => {
           status: "received",
           order_source: "app",
           loyalty_card_number: cust.loyalty_card_number ?? null,
+          referral_code: storedRefCode,
         } as any)
         .select("id")
         .single();
@@ -290,6 +297,37 @@ const Checkout = () => {
 
         const { error: itemsError } = await supabase.from("order_items").insert(itemsToInsert);
         if (itemsError) console.error("Failed to save order items:", itemsError);
+
+        // Commission: if a referral code was captured, look up the reseller and create commission rows
+        if (storedRefCode) {
+          const { data: reseller } = await supabase
+            .from("customers")
+            .select("id")
+            .eq("referral_code", storedRefCode)
+            .maybeSingle();
+
+          if (reseller && reseller.id !== cust.id) {
+            // Create one commission row per earnable item
+            const commissionRows = orderItems
+              .filter((item) => item.commission != null && (item.commission as number) > 0)
+              .map((item) => ({
+                reseller_id: reseller.id,
+                order_id: orderData.id,
+                product_name: item.name,
+                product_id: item.productId,
+                amount: item.commission as number,
+                status: "pending",
+              }));
+
+            if (commissionRows.length > 0) {
+              const { error: commErr } = await supabase
+                .from("commissions")
+                .insert(commissionRows);
+              if (commErr) console.error("Failed to create commission:", commErr);
+            }
+          }
+          clearStoredReferralCode();
+        }
 
         const customerId = localStorage.getItem("stery_customer_id") || "";
         fetch(`${BACKEND_URL}/api/admin/orders/${orderData.id}/deduct-stock`, {
