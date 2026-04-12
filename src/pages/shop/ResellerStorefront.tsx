@@ -65,14 +65,14 @@ async function fetchStorefront(referralCode: string): Promise<Storefront | null>
   // instantiation error that chaining .eq("is_earnable" as any) causes.
   const { data: rawProducts, error: productsError } = await supabase
     .from("products")
-    .select("id, name, price, original_price, image_url, category, commission, visibility")
+    .select("id, name, price, original_price, image_url, category, commission, visibility, is_earnable")
     .in("id", productIds)
     .eq("visibility", "visible")
     .order("name");
 
-  const products = (rawProducts ?? []).filter((r) => (r as any).is_earnable === true);
-
   if (productsError) throw productsError;
+
+  const products = (rawProducts ?? []).filter((r) => (r as any).is_earnable === true);
 
   return {
     id: customer.id,

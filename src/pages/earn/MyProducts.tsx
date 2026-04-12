@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useProducts } from "@/hooks/useProducts";
 import { useResellerProducts } from "@/hooks/useResellerProducts";
 import { useCustomer } from "@/contexts/CustomerContext";
-import { ArrowLeft, Search, Check, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Search, Check, Plus, Share2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
@@ -230,7 +230,7 @@ const MyProducts = () => {
                         onClick={() => toggle(product.id)}
                         disabled={pending}
                         className={cn(
-                          "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors",
+                          "group flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors",
                           selected
                             ? "bg-accent/10 text-accent border border-accent/30 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
                             : "bg-accent text-accent-foreground hover:bg-accent/90",
@@ -241,7 +241,10 @@ const MyProducts = () => {
                           "…"
                         ) : selected ? (
                           <>
-                            <Check className="w-3 h-3" /> Added
+                            <Check className="w-3 h-3 group-hover:hidden" />
+                            <X className="w-3 h-3 hidden group-hover:block" />
+                            <span className="group-hover:hidden">Added</span>
+                            <span className="hidden group-hover:inline">Remove</span>
                           </>
                         ) : (
                           <>

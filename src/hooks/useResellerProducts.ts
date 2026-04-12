@@ -80,12 +80,28 @@ export function useResellerProducts() {
         .eq("product_id", productId);
       if (error) throw error;
     },
+    // Optimistic update: remove from cache immediately so UI responds
+    // without waiting for the refetch round-trip.
+    onMutate: async (productId: string) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEY(customer!.id) });
+      const previous = queryClient.getQueryData<ResellerProduct[]>(QUERY_KEY(customer!.id));
+      queryClient.setQueryData<ResellerProduct[]>(
+        QUERY_KEY(customer!.id),
+        (old) => (old ?? []).filter((r) => r.product_id !== productId)
+      );
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY(customer!.id) });
       toast.success("Removed from My Products");
     },
-    onError: () => {
-      toast.error("Failed to remove product — please try again");
+    onError: (error, _productId, context) => {
+      // Roll back the optimistic update
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEY(customer!.id), context.previous);
+      }
+      console.error("[removeProduct] Supabase error:", error);
+      toast.error("Failed to remove product — check console for details");
     },
   });
 
