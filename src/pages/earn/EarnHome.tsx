@@ -14,7 +14,7 @@ const EarnHome = () => {
     customer?.referral_code ||
     customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
     "STERY";
-  const referralLink = `https://stery.ke/ref/${referralCode}`;
+  const referralLink = `${window.location.origin}/shop/${referralCode}`;
   const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${referralLink}`;
 
   const { data: allProducts = [] } = useProducts();
@@ -122,12 +122,15 @@ const EarnHome = () => {
 
       <div className="px-4 mt-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <Link to="/earn/products">
-            <Button className="w-full h-12 bg-accent hover:bg-accent/90">Browse Products</Button>
+            <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-xs">Browse Products</Button>
+          </Link>
+          <Link to="/earn/my-products">
+            <Button variant="outline" className="w-full h-12 border-accent text-accent hover:bg-accent/10 text-xs">My Products</Button>
           </Link>
           <Link to="/earn/dashboard">
-            <Button variant="outline" className="w-full h-12 border-accent text-accent hover:bg-accent/10">View Earnings</Button>
+            <Button variant="outline" className="w-full h-12 border-accent text-accent hover:bg-accent/10 text-xs">View Earnings</Button>
           </Link>
         </div>
 

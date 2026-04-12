@@ -1,7 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useProducts } from "@/hooks/useProducts";
-import { ProductCard } from "@/components/ProductCard";
-import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,18 +41,18 @@ const EarnProducts = () => {
         {/* Categories — derived from earnable products */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
           {categories.map((category) => (
-            <Button
+            <button
               key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
               onClick={() => setSelectedCategory(category)}
               className={cn(
-                "rounded-full whitespace-nowrap",
-                selectedCategory === category && "bg-accent hover:bg-accent/90"
+                "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+                selectedCategory === category
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-muted text-foreground border border-border"
               )}
             >
               {category}
-            </Button>
+            </button>
           ))}
         </div>
 
@@ -64,7 +63,31 @@ const EarnProducts = () => {
             <p className="text-sm text-muted-foreground mb-3">{filteredProducts.length} products available</p>
             <div className="grid grid-cols-2 gap-2">
               {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <Link
+                  key={product.id}
+                  to={`/earn/product/${product.id}`}
+                  className="flex flex-col bg-card rounded-lg overflow-hidden card-elevated"
+                >
+                  <div className="relative aspect-[3/2] overflow-hidden rounded-t-lg shrink-0">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    {product.commission && (
+                      <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                        Earn KSh {product.commission}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
+                    <h3 className="font-semibold text-sm line-clamp-2 text-foreground leading-snug">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
+                    <p className="font-bold text-sm text-foreground mt-auto pt-1.5">KSh {product.price}</p>
+                  </div>
+                </Link>
               ))}
             </div>
             {filteredProducts.length === 0 && (

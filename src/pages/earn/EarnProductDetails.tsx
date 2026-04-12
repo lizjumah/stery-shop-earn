@@ -40,7 +40,7 @@ const EarnProductDetails = () => {
     );
   }
 
-  const salesMessage = `🔥 STERY DEAL\n${product.name} – KSh ${product.price}\nOrder now from Stery.\nDelivery available in Bungoma.\n${`https://stery.ke/p/${product.id}?ref=${referralCode}`}`;
+  const salesMessage = `🔥 STERY DEAL\n${product.name} – KSh ${product.price}\nOrder now from Stery.\nDelivery available in Bungoma.\n${window.location.origin}/shop/product/${product.id}?ref=${referralCode}`;
 
   const copySalesText = () => {
     navigator.clipboard.writeText(salesMessage);

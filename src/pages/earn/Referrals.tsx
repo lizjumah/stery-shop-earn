@@ -14,7 +14,7 @@ const Referrals = () => {
     customer?.referral_code ||
     customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
     "STERY";
-  const referralLink = `https://stery.ke/ref/${referralCode}`;
+  const referralLink = `${window.location.origin}/shop/${referralCode}`;
 
   const { data: referrals = [], isLoading } = useReferrals();
 

@@ -41,6 +41,8 @@ import EarnProductDetails from "./pages/earn/EarnProductDetails";
 import ShareProduct from "./pages/earn/ShareProduct";
 import EarningsDashboard from "./pages/earn/EarningsDashboard";
 import Referrals from "./pages/earn/Referrals";
+import MyProducts from "./pages/earn/MyProducts";
+import ResellerStorefront from "./pages/shop/ResellerStorefront";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { FloatingCart } from "./components/FloatingCart";
@@ -127,10 +129,12 @@ const AppRoutes = () => {
           <Route path="/shop/offers" element={<Offers />} />
           <Route path="/shop/rewards" element={<Rewards />} />
           <Route path="/shop/group-order" element={<GroupOrder />} />
+          <Route path="/shop/:referralCode" element={<ResellerStorefront />} />
           <Route path="/earn" element={<EarnHome />} />
           <Route path="/earn/products" element={<EarnProducts />} />
           <Route path="/earn/product/:id" element={<EarnProductDetails />} />
           <Route path="/earn/share/:id" element={<ShareProduct />} />
+          <Route path="/earn/my-products" element={<MyProducts />} />
           <Route path="/earn/dashboard" element={<EarningsDashboard />} />
           <Route path="/earn/referrals" element={<Referrals />} />
         </Route>

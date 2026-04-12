@@ -38,7 +38,7 @@ const ShareProduct = () => {
     );
   }
 
-  const shareLink = `https://stery.ke/p/${product.id}?ref=${referralCode}`;
+  const shareLink = `${window.location.origin}/shop/product/${product.id}?ref=${referralCode}`;
   const shareMessage = `🛒 Check out ${product.name} for only KSh ${product.price}! Shop now: ${shareLink}`;
 
   const shareToWhatsApp = () => {
