@@ -702,6 +702,45 @@ export type Database = {
           }
         ]
       }
+      reseller_products: {
+        Row: {
+          id: string
+          reseller_id: string
+          product_id: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          reseller_id: string
+          product_id: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          reseller_id?: string
+          product_id?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_products_reseller_id_fkey"
+            columns: ["reseller_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

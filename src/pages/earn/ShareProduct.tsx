@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "@/hooks/useProducts";
-import { useCustomer } from "@/contexts/CustomerContext";
+import { useCustomer, getCustomerReferralCode } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageCircle, Copy, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -9,10 +9,7 @@ const ShareProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { customer } = useCustomer();
-  const referralCode =
-    customer?.referral_code ||
-    customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
-    "STERY";
+  const referralCode = getCustomerReferralCode(customer);
 
   const { product, isLoading } = useProduct(id);
 

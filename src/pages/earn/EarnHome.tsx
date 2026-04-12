@@ -2,35 +2,23 @@ import { useProducts } from "@/hooks/useProducts";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useReferrals } from "@/hooks/useReferrals";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2, MessageCircle, Smartphone, Facebook, Link as LinkIcon } from "lucide-react";
+import { TrendingUp, Wallet, Users, Clock, Copy, ChevronRight, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useCustomer } from "@/contexts/CustomerContext";
+import { useCustomer, getCustomerReferralCode } from "@/contexts/CustomerContext";
 
 const EarnHome = () => {
   const { customer } = useCustomer();
-  const referralCode =
-    customer?.referral_code ||
-    customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
-    "STERY";
+  const referralCode = getCustomerReferralCode(customer);
   const referralLink = `${window.location.origin}/shop/${referralCode}`;
-  const SHARE_MESSAGE = `Join Stery and start earning rewards when you shop or share deals. Use my link to sign up: ${referralLink}`;
-
-  const { data: allProducts = [] } = useProducts();
+const { data: allProducts = [] } = useProducts();
   const { data: commissions = [], isLoading: commissionsLoading } = useCommissions();
   const { data: referrals = [] } = useReferrals();
 
   const topProducts = allProducts.filter((p) => p.isEarnable === true).slice(0, 6);
-  const [showShareMenu, setShowShareMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const isNewReseller = !commissionsLoading && commissions.length === 0;
-
-  const HOW_IT_WORKS = [
-    { step: "1", emoji: "🛍️", title: "Pick a product", desc: "Browse our catalogue and choose products with the best commissions for your audience." },
-    { step: "2", emoji: "📲", title: "Share your link", desc: "Send your personalised link via WhatsApp, SMS, or Facebook. Every sale is tracked automatically." },
-    { step: "3", emoji: "💰", title: "Get paid to M-Pesa", desc: "Earn commission on every sale. Withdraw to M-Pesa from as low as KSh 500." },
-  ];
 
   const FAQS = [
     { q: "Is joining free?", a: "Yes, completely free. Any Stery customer can start earning by sharing products right away." },
@@ -53,25 +41,6 @@ const EarnHome = () => {
     toast.success("Referral link copied!");
   };
 
-  const shareVia = (channel: string) => {
-    const encoded = encodeURIComponent(SHARE_MESSAGE);
-    setShowShareMenu(false);
-    switch (channel) {
-      case "whatsapp":
-        window.open(`https://wa.me/?text=${encoded}`, "_blank");
-        break;
-      case "sms":
-        window.open(`sms:?body=${encoded}`, "_blank");
-        break;
-      case "facebook":
-        window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encoded}&u=${encodeURIComponent(referralLink)}`, "_blank");
-        break;
-      case "copy":
-        navigator.clipboard.writeText(SHARE_MESSAGE);
-        toast.success("Message copied to clipboard!");
-        break;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -121,86 +90,75 @@ const EarnHome = () => {
       </div>
 
       <div className="px-4 mt-6">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <Link to="/earn/products">
-            <Button className="w-full h-12 bg-accent hover:bg-accent/90 text-xs">Browse Products</Button>
-          </Link>
+        {/* My Shop — primary action card, always visible */}
+        <div className="bg-accent/10 border border-accent/30 rounded-2xl p-4 mb-4">
+          <p className="text-foreground font-bold text-base mb-3">
+            {isNewReseller ? "🛍️ Set Up Your Shop" : "🏪 My Shop"}
+          </p>
+          <div className="space-y-2 mb-4">
+            <div className="flex items-start gap-3">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-accent text-accent-foreground text-xs font-bold flex items-center justify-center">1</span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Choose products for your shop</p>
+                <p className="text-xs text-muted-foreground">Pick from earnable products — these appear in your personal shop link.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-accent text-accent-foreground text-xs font-bold flex items-center justify-center">2</span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Share your shop link and earn</p>
+                <p className="text-xs text-muted-foreground">Every purchase through your link earns you a commission automatically.</p>
+              </div>
+            </div>
+          </div>
           <Link to="/earn/my-products">
-            <Button variant="outline" className="w-full h-12 border-accent text-accent hover:bg-accent/10 text-xs">My Products</Button>
-          </Link>
-          <Link to="/earn/dashboard">
-            <Button variant="outline" className="w-full h-12 border-accent text-accent hover:bg-accent/10 text-xs">View Earnings</Button>
+            <Button className="w-full h-11 bg-accent hover:bg-accent/90 font-semibold">
+              {isNewReseller ? "Set Up My Shop" : "Manage My Products"}
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
           </Link>
         </div>
 
-        {/* How It Works — shown only for new resellers who have no commissions yet */}
-        {isNewReseller && (
-          <div className="bg-card border border-accent/20 rounded-xl p-4 mb-6">
-            <h2 className="text-sm font-bold text-foreground mb-3">✨ How Stery Earn Works</h2>
-            <div className="space-y-3">
-              {HOW_IT_WORKS.map((item) => (
-                <div key={item.step} className="flex items-start gap-3">
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-base">
-                    {item.emoji}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 pt-3 border-t border-border">
-              <p className="text-xs text-muted-foreground text-center">
-                Free to join · No targets · Withdraw to M-Pesa anytime
-              </p>
-            </div>
+        {/* My Shop Link — prominent, always visible */}
+        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <p className="text-foreground font-bold text-sm mb-0.5">🔗 My Shop Link</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            This is your shop. Share this link to earn when people buy from your products.
+          </p>
+          {/* Link display */}
+          <div className="bg-muted rounded-lg px-3 py-2 mb-3 flex items-center gap-2 overflow-hidden">
+            <span className="text-xs text-foreground font-medium truncate flex-1">{referralLink}</span>
           </div>
-        )}
-
-        {/* Referral Card */}
-        <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-foreground font-semibold text-sm">My Referral Link</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[180px]">{referralLink}</p>
-            </div>
-            <Button size="sm" onClick={copyReferralLink} className="bg-accent hover:bg-accent/90">
-              <Copy className="w-4 h-4 mr-1" />Copy
+          {/* Action buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={copyReferralLink} variant="outline" className="h-10 border-accent text-accent hover:bg-accent/10 text-sm font-semibold">
+              <Copy className="w-4 h-4 mr-1.5" />Copy Link
+            </Button>
+            <Button
+              onClick={() => {
+                const name = customer?.name || "my";
+                const text = `Hi! Welcome to ${name}'s shop on Stery. I've selected products I'm recommending. Shop here: ${referralLink}`;
+                if (navigator.share) {
+                  navigator.share({ text, url: referralLink }).catch(() => {});
+                } else {
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                }
+              }}
+              className="h-10 bg-accent hover:bg-accent/90 text-sm font-semibold"
+            >
+              <Share2 className="w-4 h-4 mr-1.5" />Share Shop
             </Button>
           </div>
         </div>
 
-        {/* Share & Earn Button + Menu */}
-        <div className="mb-6 relative">
-          <Button
-            className="w-full h-14 bg-accent hover:bg-accent/90 text-lg font-bold rounded-xl"
-            onClick={() => setShowShareMenu((v) => !v)}
-          >
-            <Share2 className="w-5 h-5 mr-2" />
-            Share & Earn
-          </Button>
-          {showShareMenu && (
-            <div className="mt-2 bg-card rounded-xl border border-border card-elevated p-3 space-y-2 animate-fade-in">
-              <p className="text-xs text-muted-foreground mb-2">Invite friends and earn rewards 🎉</p>
-              {[
-                { id: "whatsapp", label: "WhatsApp", icon: <MessageCircle className="w-4 h-4" />, color: "bg-green-500/10 text-green-600" },
-                { id: "sms", label: "SMS", icon: <Smartphone className="w-4 h-4" />, color: "bg-blue-500/10 text-blue-600" },
-                { id: "facebook", label: "Facebook", icon: <Facebook className="w-4 h-4" />, color: "bg-blue-600/10 text-blue-700" },
-                { id: "copy", label: "Copy Link", icon: <LinkIcon className="w-4 h-4" />, color: "bg-muted text-foreground" },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => shareVia(opt.id)}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <div className={`rounded-full p-2 ${opt.color}`}>{opt.icon}</div>
-                  <span className="font-medium text-sm text-foreground">{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Secondary nav */}
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          <Link to="/earn/products">
+            <Button variant="outline" className="w-full h-10 border-border text-foreground text-xs">Browse All Products</Button>
+          </Link>
+          <Link to="/earn/dashboard">
+            <Button variant="outline" className="w-full h-10 border-border text-foreground text-xs">View Earnings</Button>
+          </Link>
         </div>
 
         {/* FAQ */}

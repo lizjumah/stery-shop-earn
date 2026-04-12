@@ -16,6 +16,7 @@ interface Customer {
   birthday: string | null;
   birthday_bonus_claimed: boolean;
   is_admin: boolean;
+  /** Always non-null after migration 20260412003. Treat as required. */
   referral_code: string | null;
   /** V1 role system. Falls back to is_admin if column not yet present. */
   role?: CustomerRole;
@@ -23,6 +24,20 @@ interface Customer {
   staff_pin?: string | null;
   /** Physical loyalty card number linked by the customer. */
   loyalty_card_number?: string | null;
+}
+
+/**
+ * Returns the customer's referral code.
+ * After migration 20260412003 every row has one; the fallback
+ * "STERY" is purely defensive and should never be reached in
+ * production.
+ *
+ * NOTE: do NOT fall back to phone digits here — the storefront
+ * lookup queries WHERE referral_code = :code, so the value used
+ * in URLs must exactly match what is stored in the DB.
+ */
+export function getCustomerReferralCode(customer: Customer | null): string {
+  return customer?.referral_code || "STERY";
 }
 
 /**

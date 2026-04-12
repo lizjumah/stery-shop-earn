@@ -1,4 +1,4 @@
-import { useCustomer } from "@/contexts/CustomerContext";
+import { useCustomer, getCustomerReferralCode } from "@/contexts/CustomerContext";
 import { useReferrals } from "@/hooks/useReferrals";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Copy, Share2, Loader2 } from "lucide-react";
@@ -9,11 +9,7 @@ const Referrals = () => {
   const { customer } = useCustomer();
   const navigate = useNavigate();
 
-  // Prefer stored referral_code, fall back to derived code from phone
-  const referralCode =
-    customer?.referral_code ||
-    customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
-    "STERY";
+  const referralCode = getCustomerReferralCode(customer);
   const referralLink = `${window.location.origin}/shop/${referralCode}`;
 
   const { data: referrals = [], isLoading } = useReferrals();

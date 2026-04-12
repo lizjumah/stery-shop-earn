@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useProduct } from "@/hooks/useProducts";
-import { useCustomer } from "@/contexts/CustomerContext";
+import { useCustomer, getCustomerReferralCode } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Share2, TrendingUp, Copy } from "lucide-react";
@@ -11,10 +11,7 @@ const EarnProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { customer } = useCustomer();
-  const referralCode =
-    customer?.referral_code ||
-    customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
-    "STERY";
+  const referralCode = getCustomerReferralCode(customer);
 
   const { product, isLoading } = useProduct(id);
 
