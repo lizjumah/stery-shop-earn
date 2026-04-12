@@ -1,9 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { products } from "@/data/products";
+import { useProduct } from "@/hooks/useProducts";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Share2, Star, TrendingUp, Copy } from "lucide-react";
+import { ArrowLeft, Share2, TrendingUp, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -11,14 +11,31 @@ const EarnProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { customer } = useCustomer();
-  const referralCode = customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() || "STERY";
+  const referralCode =
+    customer?.referral_code ||
+    customer?.phone?.replace(/\s+/g, "").slice(-6).toUpperCase() ||
+    "STERY";
 
-  const product = products.find((p) => p.id === id);
+  const { product, isLoading } = useProduct(id);
 
-  if (!product) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Product not found</p>
+        <p className="text-muted-foreground text-sm">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!product || product.isEarnable !== true) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-foreground font-semibold mb-2">Product not available</p>
+          <p className="text-muted-foreground text-sm mb-4">This product is not available for earning.</p>
+          <Button onClick={() => navigate("/earn/products")} className="bg-accent hover:bg-accent/90">
+            Browse earnable products
+          </Button>
+        </div>
       </div>
     );
   }
@@ -89,9 +106,15 @@ const EarnProductDetails = () => {
         <div className="bg-secondary rounded-xl p-4 mb-6">
           <h3 className="font-bold text-foreground mb-3">How to Earn</h3>
           <div className="space-y-3">
-            {["Share product to WhatsApp or Facebook", "Customer clicks your link and orders", `You earn KSh ${product.commission} commission!`].map((step, i) => (
+            {[
+              "Share product to WhatsApp or Facebook",
+              "Customer clicks your link and orders",
+              `You earn KSh ${product.commission} commission!`,
+            ].map((step, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">{i + 1}</div>
+                <div className="bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                  {i + 1}
+                </div>
                 <p className="text-sm text-foreground">{step}</p>
               </div>
             ))}

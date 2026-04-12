@@ -16,6 +16,7 @@ export interface Product {
   barcode?: string; // EAN/GS1 barcode — optional, TEXT to preserve leading zeros
   isAgeRestricted?: boolean; // true for Wines & Spirits — requires age confirmation before browsing/purchasing
   isFeatured?: boolean; // manually marked by admin for promotions and fallback popular section
+  isEarnable?: boolean; // true = resellers can earn commission by sharing this product
 }
 
 export const products: Product[] = [

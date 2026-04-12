@@ -35,8 +35,9 @@ export function useProducts() {
         subcategory: row.subcategory ?? undefined,
         stockStatus: (row.stock_status as "in_stock" | "low_stock" | "out_of_stock") ?? "in_stock",
         barcode: row.barcode ?? undefined,
-        isAgeRestricted: row.is_age_restricted ?? false,
+        isAgeRestricted: (row as any).is_age_restricted ?? false,
         isFeatured: (row as any).is_featured ?? false,
+        isEarnable: (row as any).is_earnable ?? false,
       }));
     },
     staleTime: 2 * 60 * 1000, // 2 min — homepage needs reasonably fresh data

@@ -1,15 +1,22 @@
 import { useState } from "react";
-import { products, categories } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EarnProducts = () => {
+  const { data: allProducts = [], isLoading } = useProducts();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredProducts = products.filter((product) => {
+  // Only products explicitly marked earnable by admin
+  const earnableProducts = allProducts.filter((p) => p.isEarnable === true);
+
+  // Derive category list from earnable products only
+  const categories = ["All", ...Array.from(new Set(earnableProducts.map((p) => p.category))).sort()];
+
+  const filteredProducts = earnableProducts.filter((product) => {
     const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -32,7 +39,7 @@ const EarnProducts = () => {
           />
         </div>
 
-        {/* Categories */}
+        {/* Categories — derived from earnable products */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
           {categories.map((category) => (
             <Button
@@ -50,14 +57,22 @@ const EarnProducts = () => {
           ))}
         </div>
 
-        <p className="text-sm text-muted-foreground mb-3">{filteredProducts.length} products available</p>
-        <div className="grid grid-cols-2 gap-2">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">Loading products…</p>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground mb-3">{filteredProducts.length} products available</p>
+            <div className="grid grid-cols-2 gap-2">
+              {filteredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+            {filteredProducts.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-12">No products found.</p>
+            )}
+          </>
+        )}
       </div>
-
     </div>
   );
 };

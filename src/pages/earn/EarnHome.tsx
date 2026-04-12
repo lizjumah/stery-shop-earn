@@ -21,7 +21,7 @@ const EarnHome = () => {
   const { data: commissions = [], isLoading: commissionsLoading } = useCommissions();
   const { data: referrals = [] } = useReferrals();
 
-  const topProducts = allProducts.filter((p) => (p.commission || 0) >= 40).slice(0, 6);
+  const topProducts = allProducts.filter((p) => p.isEarnable === true).slice(0, 6);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const isNewReseller = !commissionsLoading && commissions.length === 0;
