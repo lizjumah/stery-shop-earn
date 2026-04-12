@@ -1,9 +1,10 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
-import { Share2, Copy, ShoppingBag, Store } from "lucide-react";
+import { Share2, Copy, ShoppingBag, Store, ShoppingCart, Check } from "lucide-react";
 import { toast } from "sonner";
 import { storeReferralCode } from "@/lib/referral";
 
@@ -62,9 +63,6 @@ async function fetchStorefront(referralCode: string): Promise<Storefront | null>
   }
 
   // 3. Fetch those products — earnable and visible only
-  // Note: is_earnable is a late-added column not yet in types.ts, so we
-  // filter it client-side after the query to avoid the TypeScript deep-
-  // instantiation error that chaining .eq("is_earnable" as any) causes.
   const { data: rawProducts, error: productsError } = await supabase
     .from("products")
     .select("id, name, price, original_price, image_url, category, commission, visibility, is_earnable")
@@ -96,8 +94,14 @@ async function fetchStorefront(referralCode: string): Promise<Storefront | null>
 
 const ResellerStorefront = () => {
   const { referralCode } = useParams<{ referralCode: string }>();
+  const { addToCart, cart, cartItemCount } = useApp();
+
+  // Track which products were just added for brief visual feedback
+  const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
 
   // Store referral code immediately when customer lands on storefront
+  // Referral attribution is preserved: storeReferralCode persists to
+  // localStorage so Checkout picks it up regardless of navigation.
   useEffect(() => {
     if (referralCode) storeReferralCode(referralCode);
   }, [referralCode]);
@@ -110,6 +114,22 @@ const ResellerStorefront = () => {
   });
 
   const shopUrl = `${window.location.origin}/shop/${referralCode}`;
+
+  const handleAddToCart = (product: StorefrontProduct) => {
+    addToCart(product.id);
+    toast.success(`${product.name} added to cart`, {
+      action: { label: "View Cart", onClick: () => window.location.href = "/shop/cart" },
+    });
+    // Flash the check icon for 1.5s
+    setJustAdded((prev) => new Set(prev).add(product.id));
+    setTimeout(() => {
+      setJustAdded((prev) => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
+    }, 1500);
+  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(shopUrl);
@@ -126,7 +146,7 @@ const ResellerStorefront = () => {
     }
   };
 
-if (isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground text-sm">Loading shop…</p>
@@ -154,7 +174,7 @@ if (isLoading) {
   const displayName = storefront.storefront_name || storefront.name;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="gradient-earn px-4 pt-6 pb-6 rounded-b-3xl">
         <div className="flex items-start justify-between gap-3">
@@ -170,7 +190,20 @@ if (isLoading) {
               {storefront.products.length} product{storefront.products.length !== 1 ? "s" : ""} available
             </p>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0 items-center">
+            {/* Cart count badge */}
+            {cartItemCount > 0 && (
+              <Link
+                to="/shop/cart"
+                className="relative bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors"
+                title="View cart"
+              >
+                <ShoppingCart className="w-4 h-4 text-white" />
+                <span className="absolute -top-1 -right-1 bg-white text-accent text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  {cartItemCount > 9 ? "9+" : cartItemCount}
+                </span>
+              </Link>
+            )}
             <button
               onClick={copyLink}
               className="bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors"
@@ -198,25 +231,31 @@ if (isLoading) {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
-            {storefront.products.map((product) => (
-              <Link
-                key={product.id}
-                to={`/shop/product/${product.id}?ref=${referralCode}`}
-                className="flex flex-col bg-card rounded-lg overflow-hidden card-elevated"
-              >
-                <div className="relative aspect-[3/2] overflow-hidden rounded-t-lg shrink-0">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
-                  <h3 className="font-semibold text-sm line-clamp-2 text-foreground leading-snug">
-                    {product.name}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
-                  <div className="flex items-center justify-between mt-auto pt-1.5">
+            {storefront.products.map((product) => {
+              const inCart = cart.some((i) => i.productId === product.id);
+              const added = justAdded.has(product.id);
+
+              return (
+                <div key={product.id} className="flex flex-col bg-card rounded-lg overflow-hidden card-elevated">
+                  {/* Image + name → product details page, referral preserved in URL */}
+                  <Link to={`/shop/product/${product.id}?ref=${referralCode}`} className="block">
+                    <div className="relative aspect-[3/2] overflow-hidden rounded-t-lg shrink-0">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="px-2.5 pt-1.5">
+                      <h3 className="font-semibold text-sm line-clamp-2 text-foreground leading-snug">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
+                    </div>
+                  </Link>
+
+                  {/* Price + Add to Cart — stays on storefront */}
+                  <div className="flex items-center justify-between px-2.5 pt-1 pb-2 mt-auto">
                     <div>
                       <span className="font-bold text-sm text-foreground">KSh {product.price}</span>
                       {product.originalPrice && (
@@ -225,16 +264,41 @@ if (isLoading) {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] font-semibold text-accent-foreground bg-accent px-2 py-0.5 rounded">
-                      Buy
-                    </span>
+                    <button
+                      onClick={() => handleAddToCart(product)}
+                      className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full transition-colors ${
+                        added
+                          ? "bg-green-100 text-green-700"
+                          : inCart
+                          ? "bg-accent/15 text-accent border border-accent/30"
+                          : "bg-accent text-accent-foreground hover:bg-accent/90"
+                      }`}
+                    >
+                      {added ? (
+                        <><Check className="w-3 h-3" /> Added</>
+                      ) : (
+                        <><ShoppingCart className="w-3 h-3" /> {inCart ? "Add More" : "Add"}</>
+                      )}
+                    </button>
                   </div>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Sticky View Cart bar — appears once items are in cart */}
+      {cartItemCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 z-50">
+          <Link to="/shop/cart">
+            <Button className="w-full h-12 bg-accent hover:bg-accent/90 font-semibold">
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              View Cart · {cartItemCount} item{cartItemCount !== 1 ? "s" : ""}
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 };
