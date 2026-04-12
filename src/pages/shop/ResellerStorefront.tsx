@@ -119,17 +119,7 @@ const ResellerStorefront = () => {
     }
   };
 
-  const shareProduct = (product: StorefrontProduct) => {
-    const productUrl = `${window.location.origin}/shop/product/${product.id}?ref=${referralCode}`;
-    const text = `Hi! Check out ${product.name} – KSh ${product.price}. Available on Stery: ${productUrl}`;
-    if (navigator.share) {
-      navigator.share({ text, url: productUrl }).catch(() => {});
-    } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-    }
-  };
-
-  if (isLoading) {
+if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground text-sm">Loading shop…</p>
@@ -202,17 +192,18 @@ const ResellerStorefront = () => {
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {storefront.products.map((product) => (
-              <div key={product.id} className="flex flex-col bg-card rounded-lg overflow-hidden card-elevated">
-                {/* Image — tapping goes to product/buy page */}
-                <Link to={`/shop/product/${product.id}?ref=${referralCode}`}>
-                  <div className="relative aspect-[3/2] overflow-hidden rounded-t-lg shrink-0">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </div>
-                </Link>
+              <Link
+                key={product.id}
+                to={`/shop/product/${product.id}?ref=${referralCode}`}
+                className="flex flex-col bg-card rounded-lg overflow-hidden card-elevated"
+              >
+                <div className="relative aspect-[3/2] overflow-hidden rounded-t-lg shrink-0">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </div>
                 <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
                   <h3 className="font-semibold text-sm line-clamp-2 text-foreground leading-snug">
                     {product.name}
@@ -227,17 +218,12 @@ const ResellerStorefront = () => {
                         </span>
                       )}
                     </div>
-                    {/* Share button — does not navigate, lets reseller share without clicking into the product */}
-                    <button
-                      onClick={(e) => { e.preventDefault(); shareProduct(product); }}
-                      className="flex items-center gap-0.5 text-[10px] font-semibold text-accent bg-accent/10 hover:bg-accent/20 px-1.5 py-0.5 rounded transition-colors"
-                      title="Share this product"
-                    >
-                      <Share2 className="w-3 h-3" /> Share
-                    </button>
+                    <span className="text-[10px] font-semibold text-accent-foreground bg-accent px-2 py-0.5 rounded">
+                      Buy
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
