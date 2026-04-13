@@ -73,11 +73,11 @@ export const subcategoryConfig: Record<string, string[]> = {
   Bakery:                   ["Bread", "Cakes", "Buns", "Birthday items", "General"],
   // Legacy Household subcategories (Cleaning, Cookware, Storage, Bedding) merged in so
   // products migrated from the old "Household" category still show a valid subcategory.
-  "Household & Cleaning":   ["Detergents", "Cleaning Supplies", "Cleaning", "Sanitary items", "Air Fresheners", "Tissue", "Cookware", "Storage", "Bedding", "General"],
+  "Household & Cleaning":   ["Detergents", "Cleaning Supplies", "Cleaning", "Sanitary items", "Air Fresheners", "Tissue", "Towels", "Cookware", "Storage", "Bedding", "General"],
   "Personal Care":          ["Soap", "Toothpaste", "Lotion", "Hair Products", "Sanitary Pads", "Cosmetics", "Deodorants", "General"],
   "Kitchen & Utensils":     ["Cooking Utensils", "Storage Containers", "Cups & Plates", "Kitchen Tools", "Water Bottles", "General"],
   "Stationery & School":    ["Exercise Books", "Pens & Pencils", "School Bags", "General"],
-  "Fashion & Accessories":  ["Clothing", "Jewelry", "Watches", "Bags", "Belts/hats", "Baby Wear", "General"],
+  "Fashion & Accessories":  ["Clothing", "Underwear", "Sleepwear", "Jewelry", "Watches", "Bags", "Belts/hats", "Baby Wear", "General"],
   Footwear:                 ["Shoes", "Slippers", "Sandals", "General"],
   Shoes:                    ["Men", "Women", "Children", "School Shoes", "Slippers", "Sports", "Gumboots"],
   Electronics:              ["Phones", "Chargers", "Earphones", "Phone Accessories", "Small Electronics", "General"],

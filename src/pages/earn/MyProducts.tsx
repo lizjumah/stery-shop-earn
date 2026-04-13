@@ -6,6 +6,7 @@ import { useCustomer } from "@/contexts/CustomerContext";
 import { ArrowLeft, Search, Check, Plus, Share2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { calcCommission } from "@/lib/commission";
 
 const MyProducts = () => {
   const navigate = useNavigate();
@@ -211,16 +212,12 @@ const MyProducts = () => {
                         {product.name}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
-                      {product.commission ? (
-                        <div className="mt-1 inline-flex items-center gap-1 bg-accent/10 rounded-md px-2 py-0.5">
-                          <span className="text-accent font-bold text-xs">
-                            Earn KSh {product.commission}
-                          </span>
-                          <span className="text-[10px] text-accent/70">/ sale</span>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground mt-1">KSh {product.price}</p>
-                      )}
+                      <div className="mt-1 inline-flex items-center gap-1 bg-accent/10 rounded-md px-2 py-0.5">
+                        <span className="text-accent font-bold text-xs">
+                          Earn KSh {calcCommission(product.price, product.category, product.commission)}
+                        </span>
+                        <span className="text-[10px] text-accent/70">/ sale</span>
+                      </div>
                     </div>
 
                     {/* Actions */}

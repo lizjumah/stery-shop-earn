@@ -221,8 +221,14 @@ const Checkout = () => {
         quantity: item.quantity,
         price: item.product!.price,
         subtotal: item.product!.price * item.quantity,
-        commission: item.product!.isEarnable && item.product!.commission
-          ? item.product!.commission
+        // Commission per unit: explicit value wins; else category-based default rate
+        commission: item.product!.isEarnable
+          ? Math.round(
+              item.product!.commission != null && item.product!.commission > 0
+                ? item.product!.commission
+                : item.product!.price *
+                  (item.product!.category === "Electronics" ? 0.05 : 0.1)
+            )
           : null,
       }));
 
@@ -307,7 +313,7 @@ const Checkout = () => {
             .maybeSingle();
 
           if (reseller && reseller.id !== cust.id) {
-            // Create one commission row per earnable item
+            // Create one commission row per earnable item (amount = per-unit commission × quantity)
             const commissionRows = orderItems
               .filter((item) => item.commission != null && (item.commission as number) > 0)
               .map((item) => ({
@@ -315,7 +321,7 @@ const Checkout = () => {
                 order_id: orderData.id,
                 product_name: item.name,
                 product_id: item.productId,
-                amount: item.commission as number,
+                amount: (item.commission as number) * item.quantity,
                 status: "pending",
               }));
 

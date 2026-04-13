@@ -47,7 +47,7 @@ const ProductShelf = ({
         </Link>
       </div>
       <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
-        {products.slice(0, 6).map((p) => (
+        {products.slice(0, 10).map((p) => (
           <div key={p.id} className="w-36 shrink-0">
             <ProductCard product={p} />
           </div>
@@ -208,7 +208,7 @@ const HomeDashboard = () => {
                     {SHOP_CATEGORIES.map((cat) => {
                       const subs = (subcategoryConfig[cat.db] ?? [])
                         .filter((s) => s !== "General")
-                        .slice(0, 6);
+                        .slice(0, 10);
                       const isExpanded = expandedCat === cat.db;
                       return (
                         <div key={cat.db}>
@@ -286,7 +286,7 @@ const HomeDashboard = () => {
                 {/* ── Right column: subcategories (desktop only) ── */}
                 {expandedCat && (() => {
                   const cat = SHOP_CATEGORIES.find((c) => c.db === expandedCat);
-                  const subs = (subcategoryConfig[expandedCat] ?? []).filter((s) => s !== "General").slice(0, 6);
+                  const subs = (subcategoryConfig[expandedCat] ?? []).filter((s) => s !== "General").slice(0, 10);
                   if (!cat || subs.length === 0) return null;
                   return (
                     <div

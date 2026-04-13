@@ -21,7 +21,9 @@ const Categories = () => {
   const needsGateOnLoad = AGE_RESTRICTED.has(rawInitialCat) && !isAgeConfirmed();
 
   const [selectedCategory, setSelectedCategory] = useState(needsGateOnLoad ? "All" : rawInitialCat);
-  const [selectedSubcategory, setSelectedSubcategory] = useState("All");
+  const [selectedSubcategory, setSelectedSubcategory] = useState(
+    needsGateOnLoad ? "All" : (searchParams.get("sub") || "All")
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [offersOnly, setOffersOnly] = useState(false);
   const [showAgeGate, setShowAgeGate] = useState(needsGateOnLoad);
@@ -39,7 +41,7 @@ const Categories = () => {
       setShowAgeGate(true);
     } else {
       setSelectedCategory(cat);
-      setSelectedSubcategory("All");
+      setSelectedSubcategory(searchParams.get("sub") || "All");
     }
   }, [searchParams]);
 

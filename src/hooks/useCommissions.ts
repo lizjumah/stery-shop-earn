@@ -27,6 +27,6 @@ export function useCommissions() {
       if (error) throw error;
       return (data ?? []) as Commission[];
     },
-    staleTime: 60 * 1000,
+    staleTime: 10 * 1000,
   });
 }

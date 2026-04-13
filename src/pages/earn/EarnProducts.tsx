@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useProducts } from "@/hooks/useProducts";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { calcCommission } from "@/lib/commission";
 
 const EarnProducts = () => {
   const { data: allProducts = [], isLoading } = useProducts();
@@ -74,11 +75,9 @@ const EarnProducts = () => {
                       alt={product.name}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
-                    {product.commission && (
-                      <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                        Earn KSh {product.commission}
-                      </span>
-                    )}
+                    <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                      Earn KSh {calcCommission(product.price, product.category, product.commission)}
+                    </span>
                   </div>
                   <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
                     <h3 className="font-semibold text-sm line-clamp-2 text-foreground leading-snug">
