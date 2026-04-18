@@ -133,7 +133,7 @@ const OrderTracker = () => {
             <p className="font-bold text-foreground">KSh {Number(order.total).toLocaleString()}</p>
             <button
               onClick={handleReorder}
-              className="flex items-center gap-1 text-xs font-medium bg-secondary text-foreground px-3 py-1.5 rounded-full hover:bg-secondary/70 transition-colors"
+              className="flex items-center gap-1 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full transition-colors"
             >
               <RotateCcw className="w-3 h-3" />
               Reorder

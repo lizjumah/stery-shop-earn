@@ -147,18 +147,22 @@ function parseCsv(text: string): ParseResult {
     const rawCategory = fields["category"] ?? "";
     const resolvedCategory = resolveCategory(rawCategory);
 
-    if (resolvedCategory) {
-      category = resolvedCategory;
-      const rawSubcategory = fields["subcategory"] ?? "";
-      const resolvedSub = resolveSubcategory(rawSubcategory, resolvedCategory);
-      subcategory = resolvedSub;
-      // Mark auto-assigned when input was blank/invalid and we defaulted to General
-      if (!rawSubcategory.trim() || resolvedSub === "General") {
-        subcategoryAutoAssigned = rawSubcategory.trim() === "" || resolvedSub === "General";
-      }
+    if (!rawCategory.trim()) {
+      skipped.push({ row: rowNum, reason: `Category is required for product: "${name}"` });
+      return;
     }
-    // If category is blank or invalid: category and subcategory stay undefined.
-    // The row is still valid — staff can assign category manually afterwards.
+    if (!resolvedCategory) {
+      skipped.push({ row: rowNum, reason: `Category not found for product: "${name}". CSV value: "${rawCategory.trim()}"` });
+      return;
+    }
+
+    category = resolvedCategory;
+    const rawSubcategory = fields["subcategory"] ?? "";
+    const resolvedSub = resolveSubcategory(rawSubcategory, resolvedCategory);
+    subcategory = resolvedSub;
+    if (!rawSubcategory.trim() || resolvedSub === "General") {
+      subcategoryAutoAssigned = rawSubcategory.trim() === "" || resolvedSub === "General";
+    }
 
     valid.push({
       name,
@@ -240,7 +244,7 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4">
-      <div className="bg-card rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-border shadow-xl">
+      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200 shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="font-semibold text-foreground">Import Products from CSV</h2>
@@ -256,7 +260,7 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
         <div className="p-4 space-y-4">
           {/* Format hint */}
           {!parseResult && !importResult && (
-            <div className="rounded-lg bg-secondary p-3 text-xs text-muted-foreground space-y-1">
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs text-muted-foreground space-y-1">
               <p className="font-medium text-foreground">Expected CSV format (header row required):</p>
               <p className="font-mono break-all">name,barcode,price,cost_price,stock,category,subcategory</p>
               <p>cost_price, stock, category, and subcategory are optional.</p>
@@ -326,7 +330,7 @@ export const CsvImportModal = ({ customerId, onClose, onImported }: Props) => {
                   </p>
                   <div className="rounded-lg border border-border overflow-x-auto">
                     <table className="w-full text-xs">
-                      <thead className="bg-secondary">
+                      <thead className="bg-gray-100">
                         <tr>
                           <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">Name</th>
                           <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">Price</th>

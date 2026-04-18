@@ -51,6 +51,7 @@ export const categories = [
   "Hair & Beauty",
   "Shoes",
   "Electronics",
+  "Wines & Spirits",
   // legacy — kept so existing products still filter correctly
   "Groceries",
   "Baby Items",
@@ -62,7 +63,7 @@ export const categories = [
  */
 export const subcategoryConfig: Record<string, string[]> = {
   // ── legacy (kept for existing products — do not remove) ──────────────────
-  Groceries:    ["Dairy", "Eggs", "Flour & Grains", "Cooking Oils", "Sugar & Salt", "Tea & Coffee"],
+  Groceries:    ["Dairy", "Eggs", "Flour & Grains", "Cooking Oils", "Sugar & Salt", "Tea & Coffee", "Spices & Seasonings"],
   "Baby Items": ["Bedding", "Clothing", "Feeding", "Toys", "Baby Diapers", "Baby Skincare"],
   // ── official Stery catalogue structure ───────────────────────────────────
   Beverages:                ["Soda", "Water", "Juice", "Energy Drinks", "Milk/Yoghurt", "Hot Beverages", "Ready to Drink Juices", "General"],
@@ -83,6 +84,12 @@ export const subcategoryConfig: Record<string, string[]> = {
 };
 
 /**
+ * Derived from subcategoryConfig — single authoritative list of valid category strings.
+ * Use this for CSV import validation in both frontend and backend.
+ */
+export const VALID_CATEGORIES = Object.keys(subcategoryConfig) as string[];
+
+/**
  * Category metadata — single source of truth for storefront display.
  * Future: owner can manage categories here or via a DB table.
  */
@@ -90,7 +97,6 @@ export const categoryConfig: Record<string, { emoji: string; label: string; desc
   // ── legacy (kept for existing products — do not remove) ──────────────────
   Groceries:    { emoji: "🛒", label: "Groceries",         description: "Fresh food and daily staples" },
   "Baby Items": { emoji: "👶", label: "Baby Items",        description: "Baby care and nursery" },
-  Jewelry:      { emoji: "💎", label: "Jewelry",           description: "Accessories and gifts" },
   // ── official Stery catalogue structure ───────────────────────────────────
   Beverages:                { emoji: "🥤", label: "Beverages",               description: "Drinks, juices and dairy" },
   "Food & Grocery":         { emoji: "🛒", label: "Food & Grocery",          description: "Staples, cooking essentials and general grocery" },
@@ -98,10 +104,10 @@ export const categoryConfig: Record<string, { emoji: string; label: string; desc
   Bakery:                   { emoji: "🍞", label: "Bakery",                  description: "Freshly baked breads, cakes and buns" },
   "Household & Cleaning":   { emoji: "🧹", label: "Household & Cleaning",    description: "Detergents, cleaning and sanitary supplies" },
   "Personal Care":          { emoji: "🧴", label: "Personal Care",           description: "Soap, lotion, hair and hygiene products" },
+  "Hair & Beauty":          { emoji: "💇", label: "Hair & Beauty",           description: "Weaves, wigs, braids and hair accessories" },
   "Kitchen & Utensils":     { emoji: "🍳", label: "Kitchen & Utensils",      description: "Cookware, plates and kitchen tools" },
   "Stationery & School":    { emoji: "📚", label: "Stationery & School",     description: "Books, pens and school supplies" },
   "Fashion & Accessories":  { emoji: "👗", label: "Fashion & Accessories",   description: "Clothing, jewelry, bags and baby wear" },
-  Footwear:                 { emoji: "👟", label: "Footwear",                description: "Shoes, slippers and sandals" },
   Shoes:                    { emoji: "👞", label: "Shoes",                   description: "Men, women, children and sports shoes" },
   Electronics:              { emoji: "⚡", label: "Electronics",             description: "Phones, chargers and accessories" },
   "Wines & Spirits":        { emoji: "🍷", label: "Wines & Spirits",         description: "Wine, spirits, beer and alcoholic drinks" },

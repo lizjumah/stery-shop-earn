@@ -185,7 +185,7 @@ const OrderHistory = () => {
                   {(order.status === "delivered" || order.status === "completed" || order.status === "received") && (
                     <button
                       onClick={() => handleReorder(order)}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary font-medium transition-colors"
+                      className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors"
                     >
                       <RotateCcw className="w-3 h-3" />
                       Reorder

@@ -14,7 +14,7 @@ export const BottomNav: React.FC<{className?: string}> = ({ className = "" }) =>
   const location = useLocation();
 
   return (
-    <nav className={cn("fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-pb z-50 lg:hidden", className)}>
+    <nav className={cn("fixed bottom-0 left-0 right-0 bg-white border-t shadow-sm safe-area-pb z-50 lg:hidden", className)}>
       <div className="flex justify-around items-center h-16 max-w-md mx-auto">
         {navItems.map((item) => {
           // Home is active for all /shop/* routes not owned by another tab

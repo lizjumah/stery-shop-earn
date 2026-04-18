@@ -673,6 +673,15 @@ Body: { rows: Array<{ name, barcode?, price, cost_price?, stock? }> }
 - Inserts in batches of 50.
 - Returns { imported, updatedExisting, skippedDuplicates, skippedErrors, errors[] }
 */
+// Mirror of subcategoryConfig keys in src/data/products.ts — must be kept in sync.
+const VALID_CATEGORIES = [
+  "Groceries", "Baby Items",
+  "Beverages", "Food & Grocery", "Snacks & Confectionery", "Bakery",
+  "Household & Cleaning", "Personal Care", "Hair & Beauty",
+  "Kitchen & Utensils", "Stationery & School", "Fashion & Accessories",
+  "Shoes", "Electronics", "Wines & Spirits",
+];
+
 router.post("/products/import", async (req: Request, res: Response) => {
   try {
     const { rows } = req.body as {
@@ -747,12 +756,22 @@ router.post("/products/import", async (req: Request, res: Response) => {
         continue;
       }
 
+      const categoryValue = String(row.category || "").trim();
+      if (!categoryValue) {
+        errors.push(`"${String(row.name).trim()}" skipped: category is required.`);
+        continue;
+      }
+      if (!VALID_CATEGORIES.includes(categoryValue)) {
+        errors.push(`"${String(row.name).trim()}" skipped: unrecognized category "${categoryValue}".`);
+        continue;
+      }
+
       toInsert.push({
         name: String(row.name).trim(),
         price: Number(row.price),
         stock_quantity: stockQty,
         barcode: barcode || null,
-        category: row.category || "Groceries",
+        category: categoryValue,
         subcategory: row.subcategory || null,
         commission: 0,
         loyalty_points: 0,

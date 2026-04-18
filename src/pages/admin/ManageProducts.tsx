@@ -9,7 +9,7 @@ import { useProductManagement } from "@/hooks/useProductManagement";
 import { useCustomer, getCustomerRole } from "@/contexts/CustomerContext";
 import { useOwnerPinContext } from "@/contexts/OwnerPinContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
-import { subcategoryConfig } from "@/data/products";
+import { subcategoryConfig, VALID_CATEGORIES } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { ShopHeader } from "@/components/ShopHeader";
 import {
@@ -140,26 +140,7 @@ const ManageProducts = () => {
     setSubcategoryFilter("");
   }, [categoryFilter]);
 
-  const BUILT_IN_CATEGORIES = [
-    // official Stery catalogue
-    "Beverages",
-    "Food & Grocery",
-    "Snacks & Confectionery",
-    "Bakery",
-    "Household & Cleaning",
-    "Personal Care",
-    "Kitchen & Utensils",
-    "Stationery & School",
-    "Fashion & Accessories",
-    "Hair & Beauty",
-    "Shoes",
-    "Electronics",
-    "Wines & Spirits",
-    // legacy — kept so existing products' categories remain selectable
-    "Groceries",
-    "Baby Items",
-  ];
-  const categories = [...new Set([...BUILT_IN_CATEGORIES, ...products.map((p) => p.category).filter(Boolean)])];
+  const categories = [...new Set([...VALID_CATEGORIES, ...products.map((p) => p.category).filter(Boolean)])];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

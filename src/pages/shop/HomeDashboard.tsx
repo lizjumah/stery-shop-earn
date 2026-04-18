@@ -132,7 +132,7 @@ const HomeDashboard = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/shop/orders")}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+              className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
               <span>Reorder</span>

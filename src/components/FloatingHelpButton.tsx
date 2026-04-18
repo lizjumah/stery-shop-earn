@@ -18,7 +18,7 @@ export const FloatingHelpButton = () => {
   return (
     <div className="fixed bottom-24 left-4 z-50 flex flex-col items-start gap-2">
       {open && (
-        <>
+        <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm">
           <a
             href={CALL_URL}
             onClick={() => setOpen(false)}
@@ -37,7 +37,7 @@ export const FloatingHelpButton = () => {
             <MessageCircle className="w-4 h-4 text-green-600 shrink-0" />
             WhatsApp Stery
           </a>
-        </>
+        </div>
       )}
       <button
         onClick={() => setOpen((v) => !v)}

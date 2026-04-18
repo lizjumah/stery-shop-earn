@@ -3,6 +3,7 @@ import { ShopHeader } from "@/components/ShopHeader";
 import { Button } from "@/components/ui/button";
 import { Upload, CheckCircle, AlertCircle, Loader2, Download } from "lucide-react";
 import { API_BASE } from "@/lib/api/client";
+import { VALID_CATEGORIES } from "@/data/products";
 
 interface ImportResult {
   total: number;
@@ -95,6 +96,16 @@ Canvas Shoes,3123456789012,1800,12,Shoes,General`;
 
         if (!product.barcode) {
           errors.push(`Row ${i + 1}: Barcode is required`);
+          continue;
+        }
+
+        const rawCat = (fields.category || "").trim();
+        if (!rawCat) {
+          errors.push(`Row ${i + 1}: Category is required for product: "${product.name}"`);
+          continue;
+        }
+        if (!VALID_CATEGORIES.includes(rawCat)) {
+          errors.push(`Row ${i + 1}: Category not found for product: "${product.name}". CSV value: "${rawCat}"`);
           continue;
         }
 
