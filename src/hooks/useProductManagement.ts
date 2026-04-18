@@ -68,7 +68,7 @@ export const useProductManagement = () => {
       query = query.not("image_url", "is", null).neq("image_url", "");
     }
 
-    const { data, error } = await query.order("created_at", { ascending: false });
+    const { data, error } = await query.order("created_at", { ascending: false }).range(0, 4999);
 
     if (error) {
       toast.error("Failed to fetch products");

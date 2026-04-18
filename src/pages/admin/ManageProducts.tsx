@@ -41,19 +41,24 @@ const ManageProducts = () => {
   const { data: catalogHealth } = useQuery({
     queryKey: ["catalog_health"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("barcode, image_url");
-      if (error || !data) return null;
-      const total = data.length;
-      const withBarcode = data.filter((p) => p.barcode && String(p.barcode).trim() !== "").length;
-      const withImage = data.filter((p) => p.image_url && String(p.image_url).trim() !== "").length;
+      const [
+        { count: total, error: e1 },
+        { count: withBarcode, error: e2 },
+        { count: withImage, error: e3 },
+      ] = await Promise.all([
+        supabase.from("products").select("*", { count: "exact", head: true }),
+        supabase.from("products").select("*", { count: "exact", head: true }).not("barcode", "is", null).neq("barcode", ""),
+        supabase.from("products").select("*", { count: "exact", head: true }).not("image_url", "is", null).neq("image_url", ""),
+      ]);
+      if (e1 || e2 || e3 || total == null) return null;
+      const wb = withBarcode ?? 0;
+      const wi = withImage ?? 0;
       return {
         total,
-        withBarcode,
-        withoutBarcode: total - withBarcode,
-        withImage,
-        withoutImage: total - withImage,
+        withBarcode: wb,
+        withoutBarcode: total - wb,
+        withImage: wi,
+        withoutImage: total - wi,
       };
     },
     staleTime: 5 * 60 * 1000,
