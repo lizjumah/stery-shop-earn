@@ -39,7 +39,7 @@ export const BottomNav: React.FC<{className?: string}> = ({ className = "" }) =>
               to={item.path}
               className={cn(
                 "flex flex-col items-center justify-center touch-target px-2 transition-colors",
-                active ? "text-red-600" : "text-muted-foreground"
+                active ? "text-red-700 font-semibold" : "text-red-500"
               )}
             >
               <item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
