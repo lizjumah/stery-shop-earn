@@ -39,16 +39,16 @@ const ProductShelf = ({
 }) => {
   if (!products.length) return null;
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between px-4 mb-3">
-        <h2 className="font-bold text-foreground text-base">{title}</h2>
-        <Link to={seeAllPath} className="text-xs text-primary font-medium flex items-center gap-0.5">
-          See all <ChevronRight className="w-3.5 h-3.5" />
+    <div className="mb-8">
+      <div className="flex items-center justify-between px-4 mb-2.5">
+        <h2 className="font-semibold text-foreground text-sm tracking-wide">{title}</h2>
+        <Link to={seeAllPath} className="text-xs text-primary font-medium flex items-center gap-0.5 opacity-80 hover:opacity-100 transition-opacity">
+          See all <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
-      <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+      <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 scrollbar-hide">
         {products.slice(0, 10).map((p) => (
-          <div key={p.id} className="w-36 shrink-0">
+          <div key={p.id} className="w-36 lg:w-44 shrink-0">
             <ProductCard product={p} />
           </div>
         ))}
@@ -115,7 +115,7 @@ const HomeDashboard = () => {
   const newProducts       = [...liveProducts].reverse().filter((p) => p.image && p.image.trim() !== "").slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 lg:pb-6">
 
       {/* ── Sticky storefront header ── */}
       <div className="sticky top-0 z-40 bg-card border-b border-border">
@@ -160,8 +160,8 @@ const HomeDashboard = () => {
         {/* Main header row — logo / search / browse-dropdown / cart */}
         <div className="flex items-center gap-2 px-4 py-3">
 
-          {/* Logo */}
-          <Link to="/shop" className="shrink-0 flex items-center">
+          {/* Logo — hidden on desktop (sidebar already shows it) */}
+          <Link to="/shop" className="shrink-0 flex items-center lg:hidden">
             <img src={steryLogo} alt="Stery Supermarket" className="h-11 w-auto object-contain" />
           </Link>
 
@@ -338,15 +338,16 @@ const HomeDashboard = () => {
       </div>
 
       {/* ── Store identity band ── */}
-      <div className="px-4 py-2.5 border-b border-border">
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-bold text-foreground text-sm">Stery Supermarket</span>
-          <span className="text-muted-foreground text-sm">· Bungoma</span>
+      <div className="px-4 py-3 border-b border-border/60">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-foreground text-sm">Stery Supermarket</span>
+          <span className="text-muted-foreground/50 text-xs">·</span>
+          <span className="text-muted-foreground text-xs">Bungoma</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
           {firstName
-            ? `Welcome back, ${firstName} 👋 — what are you shopping for today?`
-            : "Fresh groceries, bakery, electronics & household essentials"}
+            ? `Welcome back, ${firstName} 👋`
+            : "Fresh groceries, bakery, electronics & more"}
         </p>
       </div>
 
@@ -363,7 +364,7 @@ const HomeDashboard = () => {
       )}
 
       {/* ── Category chips ── */}
-      <div className="sticky top-24 z-30 bg-background border-b border-border shadow-sm">
+      <div className="sticky top-[96px] lg:top-[56px] z-30 bg-background border-b border-border shadow-sm">
         <div className="flex gap-1.5 overflow-x-auto px-4 py-2 scrollbar-hide">
           {CHIP_CATEGORIES.map((cat) => (
             <Link
@@ -386,23 +387,20 @@ const HomeDashboard = () => {
 
       {/* ── Buy Again ── */}
       {buyAgainProducts.length > 0 && (
-        <div className="mt-4 mb-6">
-          <div className="flex items-center justify-between px-4 mb-1">
-            <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-foreground text-base">🔁 Buy Again</h2>
-            </div>
+        <div className="mt-5 mb-8">
+          <div className="flex items-center justify-between px-4 mb-2.5">
+            <h2 className="font-semibold text-foreground text-sm tracking-wide">🔁 Buy Again</h2>
             <button
               onClick={handleAddAllBuyAgain}
-              className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors rounded-full px-3 py-1"
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
             >
               <PackagePlus className="w-3 h-3" />
               Add All
             </button>
           </div>
-          <p className="px-4 text-xs text-muted-foreground mb-3">Reorder in seconds</p>
-          <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+          <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 scrollbar-hide">
             {buyAgainProducts.map((p) => (
-              <div key={p.id} className="w-36 shrink-0">
+              <div key={p.id} className="w-36 lg:w-44 shrink-0">
                 <ProductCard product={p} />
               </div>
             ))}
@@ -428,7 +426,7 @@ const HomeDashboard = () => {
       />
 
       {/* ── Earn with Stery banner ── */}
-      <div className="mx-4 mb-6">
+      <div className="mx-4 mb-8">
         <div className="gradient-earn rounded-2xl p-5 flex items-center gap-4 card-elevated">
           <div className="bg-white/20 rounded-full p-3 shrink-0">
             <TrendingUp className="w-6 h-6 text-white" />
@@ -469,14 +467,14 @@ const HomeDashboard = () => {
 
       {/* ── New Arrivals — 2-col grid ── */}
       {newProducts.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between px-4 mb-3">
-            <h2 className="font-bold text-foreground text-base">🆕 New Arrivals</h2>
-            <Link to="/shop/browse" className="text-xs text-primary font-medium flex items-center gap-0.5">
-              See all <ChevronRight className="w-3.5 h-3.5" />
+        <div className="mb-8">
+          <div className="flex items-center justify-between px-4 mb-2.5">
+            <h2 className="font-semibold text-foreground text-sm tracking-wide">🆕 New Arrivals</h2>
+            <Link to="/shop/browse" className="text-xs text-primary font-medium flex items-center gap-0.5 opacity-80 hover:opacity-100 transition-opacity">
+              See all <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-2 px-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 px-4">
             {newProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
@@ -485,7 +483,7 @@ const HomeDashboard = () => {
       )}
 
       {/* ── Contact / support block ── */}
-      <div className="mx-4 mb-4 bg-card rounded-xl p-4 border border-border card-elevated">
+      <div className="mx-4 mb-6 bg-card rounded-xl p-4 border border-border/60 card-elevated">
         <p className="text-xs font-semibold text-foreground mb-2.5">Need help? We're here for you</p>
         <div className="flex gap-2">
           <a href={`tel:${STERY_PHONE}`} className="flex-1">
@@ -510,7 +508,7 @@ const HomeDashboard = () => {
       </div>
 
       {/* ── Rewards strip ── */}
-      <div className="mx-4 mb-6 bg-card rounded-xl p-4 border border-primary/20 card-elevated">
+      <div className="mx-4 mb-8 bg-card rounded-xl p-4 border border-primary/15 card-elevated">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-primary fill-primary" />

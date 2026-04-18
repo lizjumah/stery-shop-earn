@@ -146,13 +146,13 @@ const ManageProducts = () => {
     "Kitchen & Utensils",
     "Stationery & School",
     "Fashion & Accessories",
-    "Footwear",
+    "Hair & Beauty",
+    "Shoes",
     "Electronics",
     "Wines & Spirits",
     // legacy — kept so existing products' categories remain selectable
     "Groceries",
     "Baby Items",
-    "Jewelry",
   ];
   const categories = [...new Set([...BUILT_IN_CATEGORIES, ...products.map((p) => p.category).filter(Boolean)])];
 
@@ -867,7 +867,7 @@ const ManageProducts = () => {
                 <div className="space-y-2">
                   <label className="text-xs text-muted-foreground font-medium block">
                     Gallery Images
-                    {["Shoes", "Fashion & Accessories", "Footwear"].includes(formData.category) && (
+                    {["Shoes", "Fashion & Accessories", "Hair & Beauty"].includes(formData.category) && (
                       <span className="ml-1 text-primary">(recommended for this category)</span>
                     )}
                   </label>

@@ -28,7 +28,7 @@ export const products: Product[] = [
   { id: "6",  name: "Phone Charger",      price: 500, originalPrice: 650, image: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400", category: "Electronics", subcategory: "Chargers & Cables", description: "Fast charging USB cable. Compatible with most Android phones.",              commission: 100, loyaltyPoints: 30, inStock: true, isOffer: true },
   { id: "7",  name: "Earphones",          price: 350, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400", category: "Electronics", subcategory: "Earphones",        description: "Comfortable in-ear earphones with clear sound quality and bass.",           commission: 60,  loyaltyPoints: 20, inStock: true },
   { id: "8",  name: "Baby Blanket",       price: 800, originalPrice: 950, image: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400", category: "Baby Items",  subcategory: "Bedding",          description: "Soft, warm baby blanket. Perfect for newborns and infants.",                commission: 120, loyaltyPoints: 50, inStock: true, isOffer: true },
-  { id: "9",  name: "Bracelet",           price: 1200, image: "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=400", category: "Jewelry",    subcategory: "Bracelets",        description: "Beautiful handmade bracelet. Perfect gift for someone special.",            commission: 200, loyaltyPoints: 60, inStock: true },
+  { id: "9",  name: "Bracelet",           price: 1200, image: "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=400", category: "Fashion & Accessories", subcategory: "Jewelry",   description: "Beautiful handmade bracelet. Perfect gift for someone special.",            commission: 200, loyaltyPoints: 60, inStock: true },
   { id: "10", name: "Cooking Pan",        price: 650, image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400", category: "Household & Cleaning", subcategory: "Cookware",         description: "Non-stick cooking pan. Durable and easy to clean.",                        commission: 80,  loyaltyPoints: 35, inStock: true },
   { id: "11", name: "Unga Maize Flour 2kg", price: 220, originalPrice: 250, image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400", category: "Groceries", subcategory: "Flour & Grains",   description: "Premium maize flour for making ugali. Finely milled for smooth texture.",   commission: 15,  loyaltyPoints: 15, inStock: true, isOffer: true },
   { id: "12", name: "Tea Leaves 500g",    price: 450, originalPrice: 520, image: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=400", category: "Groceries",   subcategory: "Tea & Coffee",     description: "Premium Kenyan tea leaves. Strong and aromatic.",                           commission: 35,  loyaltyPoints: 30, inStock: true, isOffer: true },
@@ -48,13 +48,12 @@ export const categories = [
   "Kitchen & Utensils",
   "Stationery & School",
   "Fashion & Accessories",
-  "Footwear",
+  "Hair & Beauty",
   "Shoes",
   "Electronics",
   // legacy — kept so existing products still filter correctly
   "Groceries",
   "Baby Items",
-  "Jewelry",
 ];
 
 /**
@@ -65,7 +64,6 @@ export const subcategoryConfig: Record<string, string[]> = {
   // ── legacy (kept for existing products — do not remove) ──────────────────
   Groceries:    ["Dairy", "Eggs", "Flour & Grains", "Cooking Oils", "Sugar & Salt", "Tea & Coffee"],
   "Baby Items": ["Bedding", "Clothing", "Feeding", "Toys", "Baby Diapers", "Baby Skincare"],
-  Jewelry:      ["Bracelets", "Necklaces", "Earrings", "Rings"],
   // ── official Stery catalogue structure ───────────────────────────────────
   Beverages:                ["Soda", "Water", "Juice", "Energy Drinks", "Milk/Yoghurt", "Hot Beverages", "Ready to Drink Juices", "General"],
   "Food & Grocery":         ["Sugar", "Flour", "Cooking Oil", "Spices", "Cereals", "General Grocery", "General"],
@@ -74,12 +72,12 @@ export const subcategoryConfig: Record<string, string[]> = {
   // Legacy Household subcategories (Cleaning, Cookware, Storage, Bedding) merged in so
   // products migrated from the old "Household" category still show a valid subcategory.
   "Household & Cleaning":   ["Detergents", "Cleaning Supplies", "Cleaning", "Sanitary items", "Air Fresheners", "Tissue", "Towels", "Cookware", "Storage", "Bedding", "General"],
-  "Personal Care":          ["Soap", "Toothpaste", "Lotion", "Hair Products", "Sanitary Pads", "Cosmetics", "Deodorants", "General"],
+  "Personal Care":          ["Soap", "Toothpaste", "Lotion", "Hair Care", "Hair Products", "Sanitary Pads", "Cosmetics", "Deodorants", "General"],
+  "Hair & Beauty":          ["Weaves", "Wigs", "Braids & Extensions", "Hair Accessories", "General"],
   "Kitchen & Utensils":     ["Cooking Utensils", "Storage Containers", "Cups & Plates", "Kitchen Tools", "Water Bottles", "General"],
   "Stationery & School":    ["Exercise Books", "Pens & Pencils", "School Bags", "General"],
   "Fashion & Accessories":  ["Clothing", "Underwear", "Sleepwear", "Jewelry", "Watches", "Bags", "Belts/hats", "Baby Wear", "General"],
-  Footwear:                 ["Shoes", "Slippers", "Sandals", "General"],
-  Shoes:                    ["Men", "Women", "Children", "School Shoes", "Slippers", "Sports", "Gumboots"],
+  Shoes:                    ["Men", "Women", "Children", "School Shoes", "Slippers", "Sandals", "Sports", "Gumboots"],
   Electronics:              ["Phones", "Chargers", "Earphones", "Phone Accessories", "Small Electronics", "General"],
   "Wines & Spirits":        ["Wine", "Spirits", "Beer", "General"],
 };

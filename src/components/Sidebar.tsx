@@ -23,25 +23,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle })
     <aside
       className={cn(
         "hidden lg:flex flex-col fixed inset-y-0 left-0 bg-card border-r border-border z-50 transition-width duration-200",
-        collapsed ? "w-20" : "w-64"
+        collapsed ? "w-16" : "w-56"
       )}
     >
       {/* ── Sidebar header ── */}
-      <div className="border-b border-border">
+      <div className="border-b border-border/60">
 
-        {/* Expanded: full-width logo + collapse toggle */}
+        {/* Expanded: logo + collapse toggle */}
         {!collapsed && (
-          <div className="flex items-center justify-between px-3 py-2">
+          <div className="flex items-center justify-between px-4 py-3">
             <Link to="/shop" className="flex-1 min-w-0">
               <img
                 src={steryLogo}
                 alt="Stery Supermarket"
-                className="h-28 w-auto max-w-full object-contain object-left"
+                className="h-10 w-auto max-w-full object-contain object-left"
               />
             </Link>
             <button
               onClick={onToggle}
-              className="shrink-0 p-1 rounded-full hover:bg-muted ml-1"
+              className="shrink-0 p-1.5 rounded-lg hover:bg-muted transition-colors ml-2"
               aria-label="Collapse sidebar"
             >
               <Menu className="w-4 h-4 text-muted-foreground" />
@@ -49,19 +49,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle })
           </div>
         )}
 
-        {/* Collapsed: centred small logo + toggle */}
+        {/* Collapsed: icon + toggle stacked */}
         {collapsed && (
-          <div className="flex flex-col items-center gap-1.5 py-2">
+          <div className="flex flex-col items-center gap-2 py-3">
             <Link to="/shop" aria-label="Stery Supermarket home">
               <img
                 src={steryLogo}
                 alt="Stery Supermarket"
-                className="h-14 w-auto object-contain"
+                className="h-8 w-auto object-contain"
               />
             </Link>
             <button
               onClick={onToggle}
-              className="p-1 rounded-full hover:bg-muted"
+              className="p-1.5 rounded-lg hover:bg-muted transition-colors"
               aria-label="Expand sidebar"
             >
               <Menu className="w-4 h-4 text-muted-foreground" />
@@ -70,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle })
         )}
       </div>
 
-      <nav className="mt-3 flex-1 flex flex-col space-y-1 px-2">
+      <nav className="mt-2 flex-1 flex flex-col gap-0.5 px-2 py-2">
         {navItems.map((item) => {
           const active =
             item.path === "/shop"
@@ -91,13 +91,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle })
               key={item.path}
               to={item.path}
               className={cn(
-                "flex items-center py-2 px-3 rounded-lg transition-colors",
-                active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted",
-                collapsed && "justify-center"
+                "flex items-center py-2.5 px-3 rounded-lg text-sm transition-colors",
+                active
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                collapsed && "justify-center px-0"
               )}
             >
-              <item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
-              {!collapsed && <span className="ml-2 font-medium">{item.label}</span>}
+              <item.icon className="w-4.5 h-4.5 shrink-0" strokeWidth={active ? 2.5 : 2} />
+              {!collapsed && <span className="ml-3 truncate">{item.label}</span>}
             </Link>
           );
         })}

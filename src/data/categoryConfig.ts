@@ -20,7 +20,7 @@ export const SHOP_CATEGORIES = [
   { db: "Kitchen & Utensils",     label: "Kitchen",                emoji: "🍳", isHomepage: false },
   { db: "Stationery & School",    label: "Stationery",             emoji: "📚", isHomepage: false },
   { db: "Fashion & Accessories",  label: "Fashion",                emoji: "👗", isHomepage: false },
-  { db: "Footwear",               label: "Footwear",               emoji: "👟", isHomepage: false },
+  { db: "Hair & Beauty",         label: "Hair & Beauty",          emoji: "💇", isHomepage: false },
   { db: "Shoes",                  label: "Shoes",                  emoji: "👞", isHomepage: false },
   { db: "Electronics",            label: "Electronics",            emoji: "⚡", isHomepage: false },
 ];
